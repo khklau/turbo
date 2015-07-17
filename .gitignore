@@ -26,3 +26,13 @@
 *.exe
 *.out
 *.app
+
+# Vim
+*.swp
+
+# Waf
+/.lock-waf*
+/.waf*
+/waf
+/build.status
+/build
