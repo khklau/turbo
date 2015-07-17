@@ -1,0 +1,19 @@
+{
+    "product" : "robocup2Dsim",
+    "version" : "master",
+    "dependencies" :
+    [
+	{
+	    "product" : "capnproto",
+	    "version" : "0.5.2"
+	},
+	{
+	    "product" : "gtest",
+	    "version" : "1.7.0"
+	},
+	{
+	    "product" : "gmock",
+	    "version" : "1.7.0"
+	}
+    ]
+}
