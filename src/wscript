@@ -1,0 +1,36 @@
+from waflib.extras.layout import Solution, Product
+
+NAME = 'turbo'
+
+def options(optCtx):
+    optCtx.load('cxx_env dep_resolver')
+
+def prepare(prepCtx):
+    prepCtx.options.dep_base_dir = prepCtx.srcnode.find_dir('..').abspath()
+    prepCtx.load('cxx_env dep_resolver')
+
+def configure(confCtx):
+    confCtx.options.env_conf_dir = confCtx.srcnode.find_dir('env').abspath()
+    confCtx.load('cxx_env dep_resolver')
+    confCtx.env.product = Product.fromContext(confCtx, NAME, confCtx.env.solution)
+    confCtx.env.solution.addProduct(confCtx.env.product)
+    confCtx.env.product.include_path_list.append(confCtx.env.product.build_tree.include)
+    confCtx.env.product.include_path_list.append(confCtx.env['INCLUDES_CAPNPROTO'])
+    confCtx.env.product.include_path_list.append(confCtx.env['INCLUDES_GTEST'])
+    confCtx.env.product.include_path_list.append(confCtx.env['INCLUDES_GMOCK'])
+    confCtx.env.product.lib_path_list.append(confCtx.env['LIBPATH_CAPNPROTO'])
+    confCtx.env.product.lib_path_list.append(confCtx.env['STLIBPATH_GTEST'])
+    confCtx.env.product.lib_path_list.append(confCtx.env['STLIBPATH_GMOCK'])
+    confCtx.env.product.rpath_list.append(confCtx.env['LIBPATH_CAPNPROTO'])
+    confCtx.recurse('toolset')
+    confCtx.recurse('ipc')
+
+def build(buildCtx):
+    buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
+    buildCtx.recurse('toolset')
+    buildCtx.recurse('ipc')
+
+def install(installCtx):
+    installCtx.env.product = installCtx.env.solution.getProduct(NAME)
+    installCtx.recurse('toolset')
+    installCtx.recurse('ipc')
