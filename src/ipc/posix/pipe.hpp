@@ -14,19 +14,25 @@ public:
     class reader
     {
     public:
+	~reader();
     private:
 	friend class pipe;
 	typedef int handle;
 	reader(handle read_end);
+	reader(const reader& other) = delete;
+	reader& operator=(const reader& other) = delete;
 	handle read_end_;
     };
     class writer
     {
     public:
+	~writer();
     private:
 	friend class pipe;
 	typedef int handle;
 	writer(handle write_end);
+	writer(const writer& other) = delete;
+	writer& operator=(const writer& other) = delete;
 	handle write_end_;
     };
     struct process_limit_reached_error {};

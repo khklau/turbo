@@ -57,9 +57,19 @@ pipe::reader::reader(handle read_end) :
 	read_end_(read_end)
 { }
 
+pipe::reader::~reader()
+{
+    close(read_end_);
+}
+
 pipe::writer::writer(handle write_end) :
 	write_end_(write_end)
 { }
+
+pipe::writer::~writer()
+{
+    close(write_end_);
+}
 
 } // namespace posix
 } // namespace ipc
