@@ -11,29 +11,29 @@ namespace posix {
 class pipe
 {
 public:
-    class reader
+    class front
     {
     public:
-	~reader();
+	~front();
     private:
 	friend class pipe;
 	typedef int handle;
-	reader(handle read_end);
-	reader(const reader& other) = delete;
-	reader& operator=(const reader& other) = delete;
-	handle read_end_;
+	front(handle front);
+	front(const front& other) = delete;
+	front& operator=(const front& other) = delete;
+	handle front_;
     };
-    class writer
+    class back
     {
     public:
-	~writer();
+	~back();
     private:
 	friend class pipe;
 	typedef int handle;
-	writer(handle write_end);
-	writer(const writer& other) = delete;
-	writer& operator=(const writer& other) = delete;
-	handle write_end_;
+	back(handle back);
+	back(const back& other) = delete;
+	back& operator=(const back& other) = delete;
+	handle back_;
     };
     struct process_limit_reached_error {};
     struct system_limit_reached_error {};
@@ -44,10 +44,10 @@ public:
     };
     pipe(std::vector<option>& options);
 private:
-    static std::pair<reader::handle, writer::handle> init(std::vector<option>& options);
-    pipe(std::pair<reader::handle, writer::handle> handles);
-    reader reader_;
-    writer writer_;
+    static std::pair<front::handle, back::handle> init(std::vector<option>& options);
+    pipe(std::pair<front::handle, back::handle> handles);
+    front front_;
+    back back_;
 };
 
 } // namespace posix

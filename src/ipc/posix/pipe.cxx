@@ -12,7 +12,7 @@ pipe::pipe(std::vector<option>& options) :
 	pipe(init(options))
 { }
 
-std::pair<pipe::reader::handle, pipe::writer::handle> pipe::init(std::vector<option>& options)
+std::pair<pipe::front::handle, pipe::back::handle> pipe::init(std::vector<option>& options)
 {
     int opt = 0;
     for (auto iter = options.cbegin(); iter != options.cend(); ++iter)
@@ -48,27 +48,27 @@ std::pair<pipe::reader::handle, pipe::writer::handle> pipe::init(std::vector<opt
     return std::make_pair(tmp[0], tmp[1]);
 }
 
-pipe::pipe(std::pair<reader::handle, writer::handle> handles) :
-	reader_(handles.first),
-	writer_(handles.second)
+pipe::pipe(std::pair<front::handle, back::handle> handles) :
+	front_(handles.first),
+	back_(handles.second)
 { }
 
-pipe::reader::reader(handle read_end) :
-	read_end_(read_end)
+pipe::front::front(handle front) :
+	front_(front)
 { }
 
-pipe::reader::~reader()
+pipe::front::~front()
 {
-    close(read_end_);
+    close(front_);
 }
 
-pipe::writer::writer(handle write_end) :
-	write_end_(write_end)
+pipe::back::back(handle back) :
+	back_(back)
 { }
 
-pipe::writer::~writer()
+pipe::back::~back()
 {
-    close(write_end_);
+    close(back_);
 }
 
 } // namespace posix
