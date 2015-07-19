@@ -43,9 +43,13 @@ public:
 	fork_compatible
     };
     pipe(std::vector<option>& options);
+    inline front& get_front() { return front_; }
+    inline back& get_back() { return back_; }
 private:
     static std::pair<front::handle, back::handle> init(std::vector<option>& options);
     pipe(std::pair<front::handle, back::handle> handles);
+    pipe(const pipe& other) = delete;
+    pipe& operator=(const pipe& other) = delete;
     front front_;
     back back_;
 };
