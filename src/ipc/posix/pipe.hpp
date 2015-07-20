@@ -1,7 +1,7 @@
 #ifndef TURBO_IPC_POSIX_PIPE_HPP
 #define TURBO_IPC_POSIX_PIPE_HPP
 
-#include <utility>
+#include <tuple>
 #include <vector>
 
 namespace turbo {
@@ -11,47 +11,34 @@ namespace posix {
 class pipe
 {
 public:
-    class front
-    {
-    public:
-	~front();
-    private:
-	friend class pipe;
-	typedef int handle;
-	front(handle front);
-	front(const front& other) = delete;
-	front& operator=(const front& other) = delete;
-	handle front_;
-    };
-    class back
-    {
-    public:
-	~back();
-    private:
-	friend class pipe;
-	typedef int handle;
-	back(handle back);
-	back(const back& other) = delete;
-	back& operator=(const back& other) = delete;
-	handle back_;
-    };
-    struct process_limit_reached_error {};
-    struct system_limit_reached_error {};
     enum class option
     {
 	non_blocking,
 	fork_compatible
     };
+    enum class result
+    {
+	success,
+	interrupted
+    };
+    struct process_limit_reached_error {};
+    struct system_limit_reached_error {};
+    struct race_condition_error {};
     pipe(std::vector<option>& options);
-    inline front& get_front() { return front_; }
-    inline back& get_back() { return back_; }
+    ~pipe();
+    result replace_stdin();
+    result replace_stdout();
+    result replace_stderr();
 private:
-    static std::pair<front::handle, back::handle> init(std::vector<option>& options);
-    pipe(std::pair<front::handle, back::handle> handles);
+    typedef int handle;
+    std::tuple<int, handle, handle> init(std::vector<option>& options);
+    pipe(std::tuple<int, handle, handle> args);
     pipe(const pipe& other) = delete;
     pipe& operator=(const pipe& other) = delete;
-    front front_;
-    back back_;
+    result replace(handle end, handle stdstream);
+    int options_;
+    handle front_;
+    handle back_;
 };
 
 } // namespace posix

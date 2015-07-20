@@ -12,7 +12,7 @@ pipe::pipe(std::vector<option>& options) :
 	pipe(init(options))
 { }
 
-std::pair<pipe::front::handle, pipe::back::handle> pipe::init(std::vector<option>& options)
+std::tuple<int, pipe::handle, pipe::handle> pipe::init(std::vector<pipe::option>& options)
 {
     int opt = 0;
     for (auto iter = options.cbegin(); iter != options.cend(); ++iter)
@@ -36,39 +36,77 @@ std::pair<pipe::front::handle, pipe::back::handle> pipe::init(std::vector<option
     switch (result)
     {
 	case EMFILE:
+	{
 	    throw process_limit_reached_error();
+	}
 	case ENFILE:
+	{
 	    throw system_limit_reached_error();
+	}
 	case EFAULT:
 	case EINVAL:
 	{
 	    assert(false);
 	}
     }
-    return std::make_pair(tmp[0], tmp[1]);
+    return std::make_tuple(opt, tmp[0], tmp[1]);
 }
 
-pipe::pipe(std::pair<front::handle, back::handle> handles) :
-	front_(handles.first),
-	back_(handles.second)
+pipe::pipe(std::tuple<int, handle, handle> args) :
+	options_(std::get<0>(args)),
+	front_(std::get<1>(args)),
+	back_(std::get<2>(args))
 { }
 
-pipe::front::front(handle front) :
-	front_(front)
-{ }
-
-pipe::front::~front()
+pipe::~pipe()
 {
+    close(back_);
     close(front_);
 }
 
-pipe::back::back(handle back) :
-	back_(back)
-{ }
-
-pipe::back::~back()
+pipe::result pipe::replace_stdin()
 {
-    close(back_);
+    return replace(front_, STDIN_FILENO);
+}
+
+pipe::result pipe::replace_stdout()
+{
+    return replace(back_, STDOUT_FILENO);
+}
+
+pipe::result pipe::replace_stderr()
+{
+    return replace(back_, STDERR_FILENO);
+}
+
+pipe::result pipe::replace(handle end, handle stdstream)
+{
+    result tmp = result::success;
+    if (dup3(end, stdstream, options_) == -1)
+    {
+	switch (errno)
+	{
+	    case EINTR:
+	    {
+		tmp = result::interrupted;
+		break;
+	    }
+	    case EBUSY:
+	    {
+		throw race_condition_error();
+	    }
+	    case EMFILE:
+	    {
+		throw process_limit_reached_error();
+	    }
+	    case EBADF:
+	    case EINVAL:
+	    {
+		assert(false);
+	    }
+	}
+    }
+    return tmp;
 }
 
 } // namespace posix
