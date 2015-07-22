@@ -24,13 +24,16 @@ def configure(confCtx):
     confCtx.env.product.rpath_list.append(confCtx.env['LIBPATH_CAPNPROTO'])
     confCtx.recurse('toolset')
     confCtx.recurse('ipc')
+    confCtx.recurse('process')
 
 def build(buildCtx):
     buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
     buildCtx.recurse('toolset')
     buildCtx.recurse('ipc')
+    buildCtx.recurse('process')
 
 def install(installCtx):
     installCtx.env.product = installCtx.env.solution.getProduct(NAME)
     installCtx.recurse('toolset')
     installCtx.recurse('ipc')
+    installCtx.recurse('process')
