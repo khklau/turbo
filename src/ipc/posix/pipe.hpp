@@ -24,7 +24,7 @@ public:
     struct process_limit_reached_error {};
     struct system_limit_reached_error {};
     struct race_condition_error {};
-    pipe(std::vector<option>& options);
+    explicit pipe(std::vector<option>& options);
     ~pipe();
     result replace_stdin();
     result replace_stdout();
@@ -32,7 +32,7 @@ public:
 private:
     typedef int handle;
     std::tuple<int, handle, handle> init(std::vector<option>& options);
-    pipe(std::tuple<int, handle, handle> args);
+    explicit pipe(std::tuple<int, handle, handle> args);
     pipe(const pipe& other) = delete;
     pipe& operator=(const pipe& other) = delete;
     result replace(handle end, handle stdstream);
