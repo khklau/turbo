@@ -10,15 +10,15 @@
 namespace {
 
 using namespace turbo::process::posix;
-using turbo::ipc::posix::pipe2;
-using turbo::ipc::posix::replace_result;
+using turbo::ipc::posix::pipe::end_pair;
+using turbo::ipc::posix::pipe::replace_result;
 
-child init_parent(pid_t pid, pipe2&& in, pipe2&& out, pipe2&& err)
+child init_parent(pid_t pid, end_pair&& in, end_pair&& out, end_pair&& err)
 {
     return child(pid, std::move(in.second), std::move(out.first), std::move(err.first));
 }
 
-void init_child(pipe2&& in, pipe2&& out, pipe2&& err)
+void init_child(end_pair&& in, end_pair&& out, end_pair&& err)
 {
     while (in.first.replace_stdin() != replace_result::success)
     {
@@ -40,14 +40,13 @@ namespace turbo {
 namespace process {
 namespace posix {
 
-using turbo::ipc::posix::pipe;
-using turbo::ipc::posix::pipe2;
-using turbo::ipc::posix::pipe_front;
-using turbo::ipc::posix::pipe_back;
-using turbo::ipc::posix::pipe_option;
-using turbo::ipc::posix::make_pipe;
+using turbo::ipc::posix::pipe::end_pair;
+using turbo::ipc::posix::pipe::front;
+using turbo::ipc::posix::pipe::back;
+using turbo::ipc::posix::pipe::option;
+using turbo::ipc::posix::pipe::make_pipe;
 
-child::child(pid_t childpid, pipe_back&& instream, pipe_front&& outstream, pipe_front&& errstream) :
+child::child(pid_t childpid, back&& instream, front&& outstream, front&& errstream) :
 	pid(childpid),
 	in(std::move(instream)),
 	out(std::move(outstream)),
@@ -85,15 +84,15 @@ child& child::operator=(child&& other)
     return *this;
 }
 
-child spawn2(const char* exepath, char* const args[], char* const env[])
+child spawn(const char* exepath, char* const args[], char* const env[])
 {
-    std::vector<pipe_option> options {
-	    pipe_option::non_blocking,
-	    pipe_option::fork_compatible
+    std::vector<option> options {
+	    option::non_blocking,
+	    option::fork_compatible
     };
-    pipe2&& in = make_pipe(options);
-    pipe2&& out = make_pipe(options);
-    pipe2&& err = make_pipe(options);
+    end_pair&& in = make_pipe(options);
+    end_pair&& out = make_pipe(options);
+    end_pair&& err = make_pipe(options);
     pid_t pid = fork();
     if (pid == 0)
     {
@@ -119,58 +118,6 @@ child spawn2(const char* exepath, char* const args[], char* const env[])
 	return init_parent(pid, std::move(in), std::move(out), std::move(err));
     }
 }
-
-stdstream::stdstream(options& inopt, options& outopt, options& erropt) :
-	in(inopt),
-	out(outopt),
-	err(erropt)
-{ }
-
-std::unique_ptr<stdstream> spawn(const char* exepath, char* const args[], char* const env[])
-{
-    std::vector<pipe::option> options {
-	    pipe::option::non_blocking,
-	    pipe::option::fork_compatible
-    };
-    std::unique_ptr<stdstream> pipes(new stdstream(options, options, options));
-    pid_t pid = fork();
-    if (pid == 0)
-    {
-	// child continues here
-	while (pipes->in.replace_stdin() != pipe::result::success)
-	{
-	    std::this_thread::sleep_for(std::chrono::microseconds(100));
-	}
-	while (pipes->out.replace_stdout() != pipe::result::success)
-	{
-	    std::this_thread::sleep_for(std::chrono::microseconds(100));
-	}
-	while (pipes->err.replace_stderr() != pipe::result::success)
-	{
-	    std::this_thread::sleep_for(std::chrono::microseconds(100));
-	}
-	pipes.reset();
-	if (execve(exepath, args, env) == -1)
-	{
-	    exit(errno);
-	}
-	else
-	{
-	    exit(0);
-	}
-    }
-    else if (pid == -1)
-    {
-	// fork failure
-	throw insufficient_resource_error();
-    }
-    else
-    {
-	// parent continues here
-	return pipes;
-    }
-}
-
 
 } // namespace posix
 } // namespace process

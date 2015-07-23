@@ -6,7 +6,7 @@
 
 namespace {
 
-using namespace turbo::ipc::posix;
+using namespace turbo::ipc::posix::pipe;
 
 replace_result replace(int handle, int stdstream, int options)
 {
@@ -43,13 +43,14 @@ replace_result replace(int handle, int stdstream, int options)
 namespace turbo {
 namespace ipc {
 namespace posix {
+namespace pipe {
 
-pipe_front::pipe_front(int options, const handle& handle) :
+front::front(int options, const handle& handle) :
 	options_(options),
 	handle_(handle)
 { }
 
-pipe_front::pipe_front(pipe_front&& other) noexcept :
+front::front(front&& other) noexcept :
 	options_(other.options_),
 	handle_(other.handle_)
 {
@@ -57,7 +58,7 @@ pipe_front::pipe_front(pipe_front&& other) noexcept :
     other.handle_ = -1;
 }
 
-pipe_front::~pipe_front()
+front::~front()
 {
     if (handle_ >= 0)
     {
@@ -65,7 +66,7 @@ pipe_front::~pipe_front()
     }
 }
 
-pipe_front& pipe_front::operator=(pipe_front&& other)
+front& front::operator=(front&& other)
 {
     if (this != &other)
     {
@@ -77,17 +78,17 @@ pipe_front& pipe_front::operator=(pipe_front&& other)
     return *this;
 }
 
-replace_result pipe_front::replace_stdin()
+replace_result front::replace_stdin()
 {
     return ::replace(handle_, STDIN_FILENO, options_);
 }
 
-pipe_back::pipe_back(int options, const handle& handle) :
+back::back(int options, const handle& handle) :
 	options_(options),
 	handle_(handle)
 { }
 
-pipe_back::pipe_back(pipe_back&& other) noexcept :
+back::back(back&& other) noexcept :
 	options_(other.options_),
 	handle_(other.handle_)
 {
@@ -95,7 +96,7 @@ pipe_back::pipe_back(pipe_back&& other) noexcept :
     other.handle_ = -1;
 }
 
-pipe_back::~pipe_back()
+back::~back()
 {
     if (handle_ >= 0)
     {
@@ -103,7 +104,7 @@ pipe_back::~pipe_back()
     }
 }
 
-pipe_back& pipe_back::operator=(pipe_back&& other)
+back& back::operator=(back&& other)
 {
     if (this != &other)
     {
@@ -115,61 +116,17 @@ pipe_back& pipe_back::operator=(pipe_back&& other)
     return *this;
 }
 
-replace_result pipe_back::replace_stdout()
+replace_result back::replace_stdout()
 {
     return ::replace(handle_, STDOUT_FILENO, options_);
 }
 
-replace_result pipe_back::replace_stderr()
+replace_result back::replace_stderr()
 {
     return ::replace(handle_, STDERR_FILENO, options_);
 }
 
-pipe2 make_pipe(std::vector<pipe_option>& options)
-{
-    int opt = 0;
-    for (auto iter = options.cbegin(); iter != options.cend(); ++iter)
-    {
-	switch (*iter)
-	{
-	    case pipe_option::non_blocking:
-	    {
-		opt |= O_NONBLOCK;
-		break;
-	    }
-	    case pipe_option::fork_compatible:
-	    {
-		opt |= O_CLOEXEC;
-		break;
-	    }
-	}
-    }
-    int tmp[2];
-    int result = ::pipe2(tmp, opt);
-    switch (result)
-    {
-	case EMFILE:
-	{
-	    throw process_limit_reached_error();
-	}
-	case ENFILE:
-	{
-	    throw system_limit_reached_error();
-	}
-	case EFAULT:
-	case EINVAL:
-	{
-	    assert(false);
-	}
-    }
-    return std::make_pair(pipe_front(opt, tmp[0]), pipe_back(opt, tmp[1]));
-}
-
-pipe::pipe(std::vector<option>& options) :
-	pipe(init(options))
-{ }
-
-std::tuple<int, pipe::handle, pipe::handle> pipe::init(std::vector<pipe::option>& options)
+end_pair make_pipe(std::vector<option>& options)
 {
     int opt = 0;
     for (auto iter = options.cbegin(); iter != options.cend(); ++iter)
@@ -206,66 +163,10 @@ std::tuple<int, pipe::handle, pipe::handle> pipe::init(std::vector<pipe::option>
 	    assert(false);
 	}
     }
-    return std::make_tuple(opt, tmp[0], tmp[1]);
+    return std::make_pair(front(opt, tmp[0]), back(opt, tmp[1]));
 }
 
-pipe::pipe(std::tuple<int, handle, handle> args) :
-	options_(std::get<0>(args)),
-	front_(std::get<1>(args)),
-	back_(std::get<2>(args))
-{ }
-
-pipe::~pipe()
-{
-    close(back_);
-    close(front_);
-}
-
-pipe::result pipe::replace_stdin()
-{
-    return replace(front_, STDIN_FILENO);
-}
-
-pipe::result pipe::replace_stdout()
-{
-    return replace(back_, STDOUT_FILENO);
-}
-
-pipe::result pipe::replace_stderr()
-{
-    return replace(back_, STDERR_FILENO);
-}
-
-pipe::result pipe::replace(handle end, handle stdstream)
-{
-    result tmp = result::success;
-    if (dup3(end, stdstream, options_) == -1)
-    {
-	switch (errno)
-	{
-	    case EINTR:
-	    {
-		tmp = result::interrupted;
-		break;
-	    }
-	    case EBUSY:
-	    {
-		throw race_condition_error();
-	    }
-	    case EMFILE:
-	    {
-		throw process_limit_reached_error();
-	    }
-	    case EBADF:
-	    case EINVAL:
-	    {
-		assert(false);
-	    }
-	}
-    }
-    return tmp;
-}
-
+} // namespace pipe
 } // namespace posix
 } // namespace ipc
 } // namespace turbo
