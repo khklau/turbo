@@ -45,7 +45,12 @@ namespace ipc {
 namespace posix {
 namespace pipe {
 
-front::front(int options, const handle& handle) :
+class key
+{
+    friend end_pair make_pipe(std::vector<option>& options);
+};
+
+front::front(const key&, int options, const handle& handle) :
 	options_(options),
 	handle_(handle)
 { }
@@ -83,7 +88,7 @@ replace_result front::replace_stdin()
     return ::replace(handle_, STDIN_FILENO, options_);
 }
 
-back::back(int options, const handle& handle) :
+back::back(const key&, int options, const handle& handle) :
 	options_(options),
 	handle_(handle)
 { }
@@ -163,7 +168,7 @@ end_pair make_pipe(std::vector<option>& options)
 	    assert(false);
 	}
     }
-    return std::make_pair(front(opt, tmp[0]), back(opt, tmp[1]));
+    return std::make_pair(front(key(), opt, tmp[0]), back(key(), opt, tmp[1]));
 }
 
 } // namespace pipe
