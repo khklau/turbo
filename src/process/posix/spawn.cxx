@@ -9,12 +9,13 @@
 
 namespace {
 
-using namespace turbo::process::posix;
 using turbo::ipc::posix::pipe::end_pair;
 using turbo::ipc::posix::pipe::replace_result;
+using turbo::process::posix::child;
 
 child init_parent(pid_t pid, end_pair&& in, end_pair&& out, end_pair&& err)
 {
+    // only keep the pipe ends the parent need and let the rest fall of out scope
     return child(pid, std::move(in.second), std::move(out.first), std::move(err.first));
 }
 
@@ -32,6 +33,8 @@ void init_child(end_pair&& in, end_pair&& out, end_pair&& err)
     {
 	std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
+    // after standard streams have been replaced, the child no longer needs
+    // the pipes, so let them fall out of scope
 }
 
 } // anonymous namespace
@@ -46,28 +49,28 @@ using turbo::ipc::posix::pipe::back;
 using turbo::ipc::posix::pipe::option;
 using turbo::ipc::posix::pipe::make_pipe;
 
-child::child(pid_t childpid, back&& instream, front&& outstream, front&& errstream) :
-	pid(childpid),
+child::child(const pid_t& pid, back&& instream, front&& outstream, front&& errstream) :
 	in(std::move(instream)),
 	out(std::move(outstream)),
-	err(std::move(errstream))
+	err(std::move(errstream)),
+	pid_(pid)
 { }
 
 child::child(child&& other) noexcept :
-	pid(other.pid),
 	in(std::move(other.in)),
 	out(std::move(other.out)),
-	err(std::move(other.err))
+	err(std::move(other.err)),
+	pid_(other.pid_)
 {
-    other.pid = -1;
+    other.pid_ = -1;
 }
 
 child::~child()
 {
     int status = 0;
-    if (pid >= 0)
+    if (pid_ >= 0)
     {
-	waitpid(pid, &status, 0);
+	waitpid(pid_, &status, 0);
     }
 }
 
@@ -75,11 +78,11 @@ child& child::operator=(child&& other)
 {
     if (this != &other)
     {
-	pid = other.pid;
 	in = std::move(other.in);
 	out = std::move(other.out);
 	err = std::move(other.err);
-	other.pid = -1;
+	pid_ = other.pid_;
+	other.pid_ = -1;
     }
     return *this;
 }
@@ -98,14 +101,9 @@ child spawn(const char* exepath, char* const args[], char* const env[])
     {
 	// child continues here
 	init_child(std::move(in), std::move(out), std::move(err));
-	if (execve(exepath, args, env) == -1)
-	{
-	    exit(errno);
-	}
-	else
-	{
-	    exit(0);
-	}
+	execve(exepath, args, env);
+	// arriving here means the child has some error
+	exit(errno);
     }
     else if (pid == -1)
     {

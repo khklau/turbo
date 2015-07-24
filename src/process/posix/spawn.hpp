@@ -10,20 +10,25 @@ namespace posix {
 
 struct insufficient_resource_error { };
 
-struct child
+class child
 {
-    pid_t pid;
+public:
     turbo::ipc::posix::pipe::back in;
     turbo::ipc::posix::pipe::front out;
     turbo::ipc::posix::pipe::front err;
-    child(pid_t childpid, turbo::ipc::posix::pipe::back&& instream, turbo::ipc::posix::pipe::front&& outstream, turbo::ipc::posix::pipe::front&& errstream); 
+    child(const pid_t& childpid,
+	    turbo::ipc::posix::pipe::back&& instream,
+	    turbo::ipc::posix::pipe::front&& outstream,
+	    turbo::ipc::posix::pipe::front&& errstream); 
     child(child&& other) noexcept;
     ~child();
     child& operator=(child&& other);
+    inline const pid_t& get_pid() { return pid_; }
 private:
     child() = delete;
     child(const child& other) = delete;
     child& operator=(const child& other) = delete;
+    pid_t pid_;
 };
 
 child spawn(const char* exepath, char* const args[], char* const env[]);
