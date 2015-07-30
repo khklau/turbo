@@ -113,7 +113,7 @@ child spawn(const char* exepath, char* const args[], char* const env[])
     else
     {
 	// parent continues here
-	return init_parent(pid, std::move(in), std::move(out), std::move(err));
+	return std::move(init_parent(pid, std::move(in), std::move(out), std::move(err)));
     }
 }
 
