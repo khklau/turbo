@@ -56,6 +56,22 @@ replace_result replace(int handle, int stdstream)
     return tmp;
 }
 
+void set_size(int handle, std::size_t size, const char* mode)
+{
+    FILE* file = fdopen(handle, mode);
+    if (file == NULL)
+    {
+	throw std::system_error(errno, std::system_category(), "fdopen produced unknown error");
+    }
+    else
+    {
+	if (setvbuf(file, NULL, _IOFBF, size) != 0)
+	{
+	    throw std::system_error(errno, std::system_category(), "setvbuf produced unknown error");
+	}
+    }
+}
+
 } // anonymous namespace
 
 namespace turbo {
@@ -233,7 +249,7 @@ replace_result back::replace_stderr()
     return ::replace(handle_, STDERR_FILENO);
 }
 
-end_pair make_pipe(std::vector<option>& options)
+end_pair make_pipe(std::vector<option>& options, std::size_t bufsize)
 {
     int flags = 0;
     for (auto iter = options.cbegin(); iter != options.cend(); ++iter)
@@ -280,6 +296,8 @@ end_pair make_pipe(std::vector<option>& options)
 	    }
 	}
     }
+    set_size(tmp[0], bufsize, "r");
+    set_size(tmp[1], bufsize, "w");
     return std::make_pair(front(key(), tmp[0]), back(key(), tmp[1]));
 }
 

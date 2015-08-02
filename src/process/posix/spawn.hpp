@@ -31,7 +31,7 @@ private:
     pid_t pid_;
 };
 
-child spawn(const char* exepath, char* const args[], char* const env[]);
+child spawn(const char* exepath, char* const args[], char* const env[], std::size_t bufsize);
 
 } // namespace posix
 } // namespace process

@@ -76,7 +76,7 @@ private:
 
 typedef std::pair<front, back> end_pair;
 
-end_pair make_pipe(std::vector<option>& options);
+end_pair make_pipe(std::vector<option>& options, std::size_t bufsize);
 
 } // namespace pipe
 } // namespace posix

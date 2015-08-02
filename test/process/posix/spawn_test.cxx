@@ -9,7 +9,7 @@ namespace tpp = turbo::process::posix;
 
 tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
 {
-    tpp::child&& child = tpp::spawn(exe, {}, {});
+    tpp::child&& child = tpp::spawn(exe, {}, {}, 2 << 16);
     const char* expected = "READY\n";
     char signal[256];
     char* signal_pos = &signal[0];

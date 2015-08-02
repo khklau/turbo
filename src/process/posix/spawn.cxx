@@ -87,15 +87,15 @@ child& child::operator=(child&& other)
     return *this;
 }
 
-child spawn(const char* exepath, char* const args[], char* const env[])
+child spawn(const char* exepath, char* const args[], char* const env[], std::size_t bufsize)
 {
     std::vector<option> options {
 	    option::non_blocking,
 	    option::fork_compatible
     };
-    end_pair&& in = make_pipe(options);
-    end_pair&& out = make_pipe(options);
-    end_pair&& err = make_pipe(options);
+    end_pair&& in = make_pipe(options, bufsize);
+    end_pair&& out = make_pipe(options, bufsize);
+    end_pair&& err = make_pipe(options, bufsize);
     pid_t pid = fork();
     if (pid == 0)
     {
