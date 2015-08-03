@@ -30,6 +30,7 @@ def build(buildCtx):
 	    source=[buildCtx.path.find_node(source) for source in sourceFiles],
 	    target=os.path.join(buildCtx.env.component.build_tree.libPathFromBuild(buildCtx), 'turbo_process'),
 	    includes=buildCtx.env.component.include_path_list,
+	    defines=['SHLIB_BUILD'],
 	    cxxflags=buildCtx.env.CXXFLAGS,
 	    linkflags=buildCtx.env.LDFLAGS,
 	    libpath=buildCtx.env.component.lib_path_list,
