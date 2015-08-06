@@ -7,8 +7,10 @@ def options(optCtx):
 
 def configure(confCtx):
     confCtx.env.product = Product.fromContext(confCtx, NAME, confCtx.env.solution)
+    confCtx.recurse('filesystem')
     confCtx.recurse('process')
 
 def build(buildCtx):
     buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
+    buildCtx.recurse('filesystem')
     buildCtx.recurse('process')
