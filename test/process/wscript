@@ -9,6 +9,7 @@ def configure(confCtx):
     confCtx.env.product.addComponent(confCtx.env.component)
 
 def build(buildCtx):
+    buildCtx.env.component = buildCtx.env.product.getComponent(name(buildCtx))
     buildCtx.program(
 	    name='exe_spawn_child',
 	    source=[buildCtx.path.find_node('posix/spawn_child.cxx')],
