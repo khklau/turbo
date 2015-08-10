@@ -1,11 +1,15 @@
 #include <cstring>
 #include <string>
 #include <turbo/ipc/posix/pipe.hpp>
+#include <turbo/filesystem/path.hpp>
+#include <turbo/process/status.hpp>
 #include <turbo/process/posix/spawn.hpp>
 #include <gtest/gtest.h>
 
+namespace tf = turbo::filesystem;
 namespace tip = turbo::ipc::posix;
 namespace tpp = turbo::process::posix;
+namespace tps = turbo::process::status;
 
 tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
 {
@@ -35,8 +39,8 @@ tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
 
 TEST(spawn_test, stdstream_check)
 {
-    const char* exe = "/home/kean/workspace/product/turbo/build/test/turbo/process/spawn_child";
-    tpp::child&& child = spawn_child(exe, {}, {});
+    tf::path exe = tps::current_exe_path().parent_path() /= "spawn_child";
+    tpp::child&& child = spawn_child(exe.c_str(), {}, {});
 
     char input[] = "FOO\n";
     char* input_pos = input;
