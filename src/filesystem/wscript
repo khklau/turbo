@@ -2,10 +2,12 @@ import os
 from waflib.extras.layout import Product, Component
 
 publicHeaders = [
-    'path.hpp']
+    'path.hpp',
+    'status.hpp']
 
 sourceFiles = [
-    'path.cxx']
+    'path.cxx',
+    'status.cxx']
 
 def name(context):
     return os.path.basename(str(context.path))
@@ -33,6 +35,7 @@ def build(buildCtx):
 	    defines=['SHLIB_BUILD'],
 	    cxxflags=buildCtx.env.CXXFLAGS,
 	    linkflags=buildCtx.env.LDFLAGS,
+	    use=['shlib_turbo_algorithm'],
 	    libpath=buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=buildCtx.env.component.install_tree.lib,
@@ -44,6 +47,7 @@ def build(buildCtx):
 	    includes=buildCtx.env.component.include_path_list,
 	    cxxflags=buildCtx.env.CXXFLAGS,
 	    linkflags=buildCtx.env.LDFLAGS,
+	    use=['stlib_turbo_algorithm'],
 	    libpath=buildCtx.env.component.lib_path_list,
 	    install_path=buildCtx.env.component.install_tree.lib,
 	    after=publishTaskList)
