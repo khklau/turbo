@@ -1,18 +1,18 @@
 {
-    "product" : "robocup2Dsim",
+    "product" : "turbo",
     "version" : "master",
     "dependencies" :
     [
+	{
+	    "product" : "asio",
+	    "version" : "1.10.6"
+	},
 	{
 	    "product" : "capnproto",
 	    "version" : "0.5.2"
 	},
 	{
 	    "product" : "gtest",
-	    "version" : "1.7.0"
-	},
-	{
-	    "product" : "gmock",
 	    "version" : "1.7.0"
 	}
     ]
