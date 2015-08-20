@@ -157,6 +157,27 @@ io_result front::read(void* buf, std::size_t requested_bytes, std::size_t& actua
     return io_result::success;
 }
 
+void front::read_all(void* buf, std::size_t requested_bytes)
+{
+    unsigned char* pos = static_cast<unsigned char*>(buf);
+    unsigned char* end = pos + requested_bytes;
+    std::size_t actual_bytes = 0;
+    while (pos < end)
+    {
+	if (read(pos, end - pos, actual_bytes) == io_result::success)
+	{
+	    if (actual_bytes == 0)
+	    {
+		break;
+	    }
+	    else
+	    {
+		pos += actual_bytes;
+	    }
+	}
+    }
+}
+
 replace_result front::replace_stdin()
 {
     return ::replace(handle_, STDIN_FILENO);

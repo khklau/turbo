@@ -45,8 +45,10 @@ public:
     front(front&& other) noexcept;
     ~front();
     front& operator=(front&& other);
+    inline const handle& get_handle() const { return handle_; }
     bool is_open() const;
     io_result read(void* buf, std::size_t requested_bytes, std::size_t& actual_bytes);
+    void read_all(void* buf, std::size_t requested_bytes);
     replace_result replace_stdin();
 private:
     front() = delete;
@@ -63,6 +65,7 @@ public:
     back(back&& other) noexcept;
     ~back();
     back& operator=(back&& other);
+    inline const handle& get_handle() const { return handle_; }
     bool is_open() const;
     io_result write(void* buf, std::size_t requested_bytes, std::size_t& actual_bytes);
     replace_result replace_stdout();
