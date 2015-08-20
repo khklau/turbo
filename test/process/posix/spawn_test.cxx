@@ -16,24 +16,11 @@ tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
     tpp::child&& child = tpp::spawn(exe, {}, {}, 2 << 16);
     const char* expected = "READY\n";
     char signal[256];
-    char* signal_pos = &signal[0];
-    std::size_t read_count = 0;
-    ssize_t remaining_count = strlen(expected);
-    do
+    child.err.read_all(signal, strlen(expected));
+    if (strncmp(expected, signal, sizeof(signal)) != 0)
     {
-	if (remaining_count > 0 && child.err.read(signal_pos, remaining_count, read_count) == tip::pipe::io_result::success)
-	{
-	    remaining_count -= read_count;
-	    signal_pos += (read_count / sizeof(char));
-	}
-	else if (remaining_count <= 0)
-	{
-	    remaining_count = strlen(expected);
-	    std::cerr << "ERROR: ready signal not received; instead received: " << signal << std::endl;
-	    //exit(99);
-	}
+	std::cerr << "ERROR: ready signal not received; instead received: " << signal << std::endl;
     }
-    while (strncmp(expected, signal, sizeof(signal)) != 0);
     return std::move(child);
 }
 
