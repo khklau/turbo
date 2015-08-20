@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-int main(int argc, char* argv[])
+int main()
 {
     std::cerr << "READY" << std::endl;
     std::string input;
