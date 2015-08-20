@@ -68,6 +68,7 @@ public:
     inline const handle& get_handle() const { return handle_; }
     bool is_open() const;
     io_result write(void* buf, std::size_t requested_bytes, std::size_t& actual_bytes);
+    void write_all(void* buf, std::size_t requested_bytes);
     replace_result replace_stdout();
     replace_result replace_stderr();
 private:

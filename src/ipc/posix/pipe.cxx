@@ -260,6 +260,27 @@ io_result back::write(void* buf, std::size_t requested_bytes, std::size_t& actua
     return io_result::success;
 }
 
+void back::write_all(void* buf, std::size_t requested_bytes)
+{
+    unsigned char* pos = static_cast<unsigned char*>(buf);
+    unsigned char* end = pos + requested_bytes;
+    std::size_t actual_bytes = 0;
+    while (pos < end)
+    {
+	if (write(pos, end - pos, actual_bytes) == io_result::success)
+	{
+	    if (actual_bytes == 0)
+	    {
+		break;
+	    }
+	    else
+	    {
+		pos += actual_bytes;
+	    }
+	}
+    }
+}
+
 replace_result back::replace_stdout()
 {
     return ::replace(handle_, STDOUT_FILENO);
