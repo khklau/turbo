@@ -49,6 +49,7 @@ public:
     bool is_open() const;
     io_result read(void* buf, std::size_t requested_bytes, std::size_t& actual_bytes);
     void read_all(void* buf, std::size_t requested_bytes);
+    std::size_t available() const;
     replace_result replace_stdin();
 private:
     front() = delete;

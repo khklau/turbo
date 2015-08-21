@@ -1,5 +1,6 @@
 #include "pipe.hpp"
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <cerrno>
 #include <system_error>
@@ -176,6 +177,16 @@ void front::read_all(void* buf, std::size_t requested_bytes)
 	    }
 	}
     }
+}
+
+std::size_t front::available() const
+{
+    int available = 0;
+    if (TURBO_UNLIKELY(ioctl(handle_, FIONREAD, &available) != 0))
+    {
+	throw std::system_error(errno, std::system_category(), "ioctl produced unexpected error");
+    }
+    return static_cast<std::size_t>(available);
 }
 
 replace_result front::replace_stdin()
