@@ -21,4 +21,4 @@ def build(buildCtx):
 	    use=['GTEST', 'shlib_turbo_algorithm', 'shlib_turbo_filesystem'],
 	    libpath=['.'] + buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
-	    install_path=buildCtx.env.component.install_tree.test)
+	    install_path=None)

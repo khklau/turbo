@@ -20,7 +20,7 @@ def build(buildCtx):
 	    linkflags=buildCtx.env.LDFLAGS,
 	    libpath=['.'] + buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
-	    install_path=buildCtx.env.component.install_tree.test,
+	    install_path=None,
 	    after=['shlib_supernova_core', 'shlib_supernova_communication', 'shlib_supernova_storage'])
     buildCtx.program(
 	    name='exe_spawn_test',
@@ -33,5 +33,5 @@ def build(buildCtx):
 	    use=['GTEST', 'shlib_turbo_ipc', 'shlib_turbo_process'],
 	    libpath=['.'] + buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
-	    install_path=buildCtx.env.component.install_tree.test,
+	    install_path=None,
 	    after=['exe_spawn_child'])
