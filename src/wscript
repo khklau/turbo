@@ -35,11 +35,3 @@ def build(buildCtx):
     buildCtx.recurse('filesystem')
     buildCtx.recurse('ipc')
     buildCtx.recurse('process')
-
-def install(installCtx):
-    installCtx.env.product = installCtx.env.solution.getProduct(NAME)
-    installCtx.recurse('toolset')
-    installCtx.recurse('algorithm')
-    installCtx.recurse('filesystem')
-    installCtx.recurse('ipc')
-    installCtx.recurse('process')

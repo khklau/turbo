@@ -20,6 +20,3 @@ def build(buildCtx):
     buildCtx.recurse('src')
     status.setSuccess()
     buildCtx.recurse('test')
-
-def install(installCtx):
-    installCtx.recurse('src')
