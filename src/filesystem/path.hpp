@@ -38,7 +38,7 @@ private:
     string_type pathname_;
 };
 
-inline path operator/(const path& lhs, const path& rhs)  { return path(lhs) /= rhs; }
+inline TURBO_SYMBOL_DECL path operator/(const path& lhs, const path& rhs)  { return path(lhs) /= rhs; }
 
 } // namespace filesystem
 } // namespace turbo

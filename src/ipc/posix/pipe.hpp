@@ -4,25 +4,26 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
 namespace ipc {
 namespace posix {
 namespace pipe {
 
-enum class option
+enum class TURBO_SYMBOL_DECL option
 {
     non_blocking,
     fork_compatible
 };
 
-enum class replace_result
+enum class TURBO_SYMBOL_DECL replace_result
 {
     success,
     interrupted
 };
 
-enum class io_result
+enum class TURBO_SYMBOL_DECL io_result
 {
     success,
     interrupted,
@@ -30,14 +31,14 @@ enum class io_result
     pipe_full
 };
 
-class key;
-struct process_limit_reached_error {};
-struct system_limit_reached_error {};
-struct race_condition_error {};
-struct used_after_move_error {};
-struct invalid_buffer_error {};
+class TURBO_SYMBOL_DECL key;
+struct TURBO_SYMBOL_DECL process_limit_reached_error {};
+struct TURBO_SYMBOL_DECL system_limit_reached_error {};
+struct TURBO_SYMBOL_DECL race_condition_error {};
+struct TURBO_SYMBOL_DECL used_after_move_error {};
+struct TURBO_SYMBOL_DECL invalid_buffer_error {};
 
-class front
+class TURBO_SYMBOL_DECL front
 {
 public:
     typedef int handle;
@@ -58,7 +59,7 @@ private:
     handle handle_;
 };
 
-class back
+class TURBO_SYMBOL_DECL back
 {
 public:
     typedef int handle;
@@ -81,7 +82,7 @@ private:
 
 typedef std::pair<front, back> end_pair;
 
-end_pair make_pipe(std::vector<option>& options, std::size_t bufsize);
+TURBO_SYMBOL_DECL end_pair make_pipe(std::vector<option>& options, std::size_t bufsize);
 
 } // namespace pipe
 } // namespace posix

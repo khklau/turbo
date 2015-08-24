@@ -7,12 +7,13 @@
 #include <asio/error_code.hpp>
 #include <asio/io_service.hpp>
 #include <asio/signal_set.hpp>
+#include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
 namespace ipc {
 namespace posix {
 
-class signal_notifier
+class TURBO_SYMBOL_DECL signal_notifier
 {
 public:
     typedef std::function<void ()> receiver;

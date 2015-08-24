@@ -3,14 +3,15 @@
 
 #include <unistd.h>
 #include <turbo/ipc/posix/pipe.hpp>
+#include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
 namespace process {
 namespace posix {
 
-struct insufficient_resource_error { };
+struct TURBO_SYMBOL_DECL insufficient_resource_error { };
 
-class child
+class TURBO_SYMBOL_DECL child
 {
 public:
     turbo::ipc::posix::pipe::back in;
@@ -31,7 +32,7 @@ private:
     pid_t pid_;
 };
 
-child spawn(const char* exepath, char* const args[], char* const env[], std::size_t bufsize);
+TURBO_SYMBOL_DECL child spawn(const char* exepath, char* const args[], char* const env[], std::size_t bufsize);
 
 } // namespace posix
 } // namespace process
