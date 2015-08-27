@@ -26,7 +26,7 @@ def build(buildCtx):
 		rule='cp ${SRC} ${TGT}',
 		source=header,
 		target=os.path.join(buildCtx.env.component.build_tree.includePathFromBuild(buildCtx), header),
-		install_path=buildCtx.env.component.install_tree.include)
+		install_path=os.path.join(buildCtx.env.component.install_tree.include, os.path.dirname(header)))
 	publishTaskList.append(publishTask)
     buildCtx.shlib(
 	    name='shlib_turbo_filesystem',
