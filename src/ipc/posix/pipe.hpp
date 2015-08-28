@@ -11,6 +11,9 @@ namespace ipc {
 namespace posix {
 namespace pipe {
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+
 enum class TURBO_SYMBOL_DECL option
 {
     non_blocking,
@@ -30,6 +33,8 @@ enum class TURBO_SYMBOL_DECL io_result
     would_block,
     pipe_full
 };
+
+#pragma GCC diagnostic pop
 
 class TURBO_SYMBOL_DECL key;
 struct TURBO_SYMBOL_DECL process_limit_reached_error {};
