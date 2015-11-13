@@ -45,7 +45,7 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
 	    return result::queue_full;
 	}
     }
-    buffer_[head] = input;
+    buffer_[head % buffer_.capacity()] = input;
     head_.fetch_add(1, std::memory_order_seq_cst);
     return result::success;
 }
@@ -70,7 +70,7 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_full;
     }
-    output = buffer_[tail];
+    output = buffer_[tail % buffer_.capacity()];
     tail_.fetch_add(1, std::memory_order_seq_cst);
     return result::success;
 }
