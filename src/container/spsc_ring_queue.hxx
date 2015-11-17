@@ -30,20 +30,10 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
 {
     uint32_t head = head_.load(std::memory_order_consume);
     uint32_t tail = tail_.load(std::memory_order_consume);
-    if (head < tail)
+    // for unsigned integrals nothing extra is needed to handle overflow
+    if (head - tail == buffer_.capacity())
     {
-	// overflow has occurred
-	if (((head - 0 + 1) + (std::numeric_limits<uint32_t>::max() - tail + 1)) == buffer_.capacity())
-	{
-	    return result::queue_full;
-	}
-    }
-    else
-    {
-	if (head - tail == buffer_.capacity())
-	{
-	    return result::queue_full;
-	}
+	return result::queue_full;
     }
     buffer_[head % buffer_.capacity()] = input;
     head_.fetch_add(1, std::memory_order_seq_cst);
@@ -68,7 +58,7 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     uint32_t tail = tail_.load(std::memory_order_consume);
     if (head == tail)
     {
-	return result::queue_full;
+	return result::queue_empty;
     }
     output = buffer_[tail % buffer_.capacity()];
     tail_.fetch_add(1, std::memory_order_seq_cst);
