@@ -41,6 +41,21 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
 }
 
 template <class value_t, class allocator_t>
+typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue(value_t&& input)
+{
+    uint32_t head = head_.load(std::memory_order_consume);
+    uint32_t tail = tail_.load(std::memory_order_consume);
+    // for unsigned integrals nothing extra is needed to handle overflow
+    if (head - tail == buffer_.capacity())
+    {
+	return result::queue_full;
+    }
+    buffer_[head % buffer_.capacity()] = std::move(input);
+    head_.fetch_add(1, std::memory_order_seq_cst);
+    return result::success;
+}
+
+template <class value_t, class allocator_t>
 spsc_consumer<value_t, allocator_t>::spsc_consumer(
 		const key&,
 		std::vector<value_t, allocator_t>& buffer,
@@ -61,6 +76,20 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
 	return result::queue_empty;
     }
     output = buffer_[tail % buffer_.capacity()];
+    tail_.fetch_add(1, std::memory_order_seq_cst);
+    return result::success;
+}
+
+template <class value_t, class allocator_t>
+typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue(value_t&& output)
+{
+    uint32_t head = head_.load(std::memory_order_consume);
+    uint32_t tail = tail_.load(std::memory_order_consume);
+    if (head == tail)
+    {
+	return result::queue_empty;
+    }
+    output = std::move(buffer_[tail % buffer_.capacity()]);
     tail_.fetch_add(1, std::memory_order_seq_cst);
     return result::success;
 }

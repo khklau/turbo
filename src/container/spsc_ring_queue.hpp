@@ -5,6 +5,7 @@
 #include <array>
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <vector>
 #include <turbo/toolset/attribute.hpp>
 
@@ -30,6 +31,7 @@ public:
 		    std::atomic<uint32_t>& head,
 		    std::atomic<uint32_t>& tail);
     result try_enqueue(const value_t& input);
+    result try_enqueue(value_t&& input);
 private:
     std::vector<value_t, allocator_t>& buffer_;
     std::atomic<uint32_t>& head_;
@@ -53,6 +55,7 @@ public:
 	queue_empty
     };
     result try_dequeue(value_t& output);
+    result try_dequeue(value_t&& output);
 private:
     std::vector<value_t, allocator_t>& buffer_;
     std::atomic<uint32_t>& head_;
