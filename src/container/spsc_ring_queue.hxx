@@ -81,7 +81,7 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
 }
 
 template <class value_t, class allocator_t>
-typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue(value_t&& output)
+typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue_swap(value_t& output)
 {
     uint32_t head = head_.load(std::memory_order_consume);
     uint32_t tail = tail_.load(std::memory_order_consume);
@@ -89,7 +89,7 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    output = std::move(buffer_[tail % buffer_.capacity()]);
+    std::swap(output, buffer_[tail % buffer_.capacity()]);
     tail_.fetch_add(1, std::memory_order_seq_cst);
     return result::success;
 }
