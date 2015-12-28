@@ -30,8 +30,8 @@ public:
 		    std::vector<value_t, allocator_t>& buffer,
 		    std::atomic<uint32_t>& head,
 		    std::atomic<uint32_t>& tail);
-    result try_enqueue(const value_t& input);
-    result try_enqueue(value_t&& input);
+    result try_enqueue_copy(const value_t& input);
+    result try_enqueue_move(value_t&& input);
 private:
     std::vector<value_t, allocator_t>& buffer_;
     std::atomic<uint32_t>& head_;
@@ -54,8 +54,8 @@ public:
 	success,
 	queue_empty
     };
-    result try_dequeue(value_t& output);
-    result try_dequeue_swap(value_t& output);
+    result try_dequeue_copy(value_t& output);
+    result try_dequeue_move(value_t& output);
 private:
     std::vector<value_t, allocator_t>& buffer_;
     std::atomic<uint32_t>& head_;

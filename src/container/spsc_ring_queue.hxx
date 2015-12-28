@@ -26,7 +26,7 @@ spsc_producer<value_t, allocator_t>::spsc_producer(
 { }
 
 template <class value_t, class allocator_t>
-typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue(const value_t& input)
+typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue_copy(const value_t& input)
 {
     uint32_t head = head_.load(std::memory_order_consume);
     uint32_t tail = tail_.load(std::memory_order_consume);
@@ -41,7 +41,7 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
 }
 
 template <class value_t, class allocator_t>
-typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue(value_t&& input)
+typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue_move(value_t&& input)
 {
     uint32_t head = head_.load(std::memory_order_consume);
     uint32_t tail = tail_.load(std::memory_order_consume);
@@ -67,7 +67,7 @@ spsc_consumer<value_t, allocator_t>::spsc_consumer(
 { }
 
 template <class value_t, class allocator_t>
-typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue(value_t& output)
+typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue_copy(value_t& output)
 {
     uint32_t head = head_.load(std::memory_order_consume);
     uint32_t tail = tail_.load(std::memory_order_consume);
@@ -81,7 +81,7 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
 }
 
 template <class value_t, class allocator_t>
-typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue_swap(value_t& output)
+typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue_move(value_t& output)
 {
     uint32_t head = head_.load(std::memory_order_consume);
     uint32_t tail = tail_.load(std::memory_order_consume);
@@ -89,7 +89,7 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    std::swap(output, buffer_[tail % buffer_.capacity()]);
+    output = std::move(buffer_[tail % buffer_.capacity()]);
     tail_.fetch_add(1, std::memory_order_seq_cst);
     return result::success;
 }
