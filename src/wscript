@@ -28,6 +28,7 @@ def configure(confCtx):
     confCtx.recurse('filesystem')
     confCtx.recurse('ipc')
     confCtx.recurse('process')
+    confCtx.recurse('type_utility')
 
 def build(buildCtx):
     buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
@@ -37,3 +38,4 @@ def build(buildCtx):
     buildCtx.recurse('filesystem')
     buildCtx.recurse('ipc')
     buildCtx.recurse('process')
+    buildCtx.recurse('type_utility')
