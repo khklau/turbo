@@ -15,7 +15,7 @@ tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
 {
     tpp::child&& child = tpp::spawn(exe, args, env, 2 << 16);
     const char* expected = "READY\n";
-    char signal[256];
+    char signal[7];
     child.err.read_all(signal, strlen(expected));
     if (strncmp(expected, signal, sizeof(signal)) != 0)
     {
@@ -33,7 +33,7 @@ TEST(spawn_test, stdstream_check)
     child.in.write_all(input, strlen(input));
 
     const char* expected = "FOOBAR\n";
-    char output[256];
+    char output[8];
     child.out.read_all(output, strlen(expected));
     EXPECT_EQ(strncmp(expected, output, sizeof(output)), 0) << "Unexpected message from stdout: " << output;
 }
