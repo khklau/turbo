@@ -33,9 +33,9 @@ public:
     result try_enqueue_copy(const value_t& input);
     result try_enqueue_move(value_t&& input);
 private:
-    std::vector<value_t, allocator_t>& buffer_;
-    std::atomic<uint32_t>& head_;
-    std::atomic<uint32_t>& tail_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::vector<value_t, allocator_t>& buffer_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t>& head_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t>& tail_;
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
@@ -57,9 +57,9 @@ public:
     result try_dequeue_copy(value_t& output);
     result try_dequeue_move(value_t& output);
 private:
-    std::vector<value_t, allocator_t>& buffer_;
-    std::atomic<uint32_t>& head_;
-    std::atomic<uint32_t>& tail_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::vector<value_t, allocator_t>& buffer_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t>& head_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t>& tail_;
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
@@ -75,9 +75,9 @@ public:
     consumer& get_consumer() { return consumer_; }
 private:
     typedef std::vector<value_t, allocator_t> vector_type;
-    std::vector<value_t, allocator_t> buffer_;
-    std::atomic<uint32_t> head_;
-    std::atomic<uint32_t> tail_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::vector<value_t, allocator_t> buffer_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> head_;
+    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> tail_;
     producer producer_;
     consumer consumer_;
 };
