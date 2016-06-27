@@ -35,7 +35,8 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
     {
 	return result::queue_full;
     }
-    uint32_t exclusive = head_.fetch_add(1, std::memory_order_acq_rel);
+    // release fence is sufficient; acquire not required since there are no further read operations
+    uint32_t exclusive = head_.fetch_add(1, std::memory_order_release);
     buffer_[exclusive % buffer_.capacity()] = input;
     return result::success;
 }
@@ -50,7 +51,8 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
     {
 	return result::queue_full;
     }
-    uint32_t exclusive = head_.fetch_add(1, std::memory_order_acq_rel);
+    // release fence is sufficient; acquire not required since there are no further read operations
+    uint32_t exclusive = head_.fetch_add(1, std::memory_order_release);
     buffer_[exclusive % buffer_.capacity()] = std::move(input);
     return result::success;
 }
@@ -75,7 +77,8 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_acq_rel);
+    // release fence is sufficient; acquire not required since there are no further read operations
+    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_release);
     output = buffer_[exclusive % buffer_.capacity()];
     return result::success;
 }
@@ -89,7 +92,8 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_acq_rel);
+    // release fence is sufficient; acquire not required since there are no further read operations
+    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_release);
     output = std::move(buffer_[exclusive % buffer_.capacity()]);
     return result::success;
 }
