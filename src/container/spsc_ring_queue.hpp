@@ -5,6 +5,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <turbo/toolset/attribute.hpp>
 
@@ -14,7 +15,7 @@ namespace container {
 template <class value_t, class allocator_t = std::allocator<value_t>> class spsc_key;
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
-class spsc_producer
+class TURBO_SYMBOL_DECL spsc_producer
 {
 public:
     typedef value_t value_type;
@@ -38,7 +39,7 @@ private:
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
-class spsc_consumer
+class TURBO_SYMBOL_DECL spsc_consumer
 {
 public:
     typedef value_t value_type;
@@ -62,7 +63,7 @@ private:
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
-class spsc_ring_queue
+class TURBO_SYMBOL_DECL spsc_ring_queue
 {
 public:
     typedef value_t value_type;
@@ -70,15 +71,23 @@ public:
     typedef spsc_producer<value_t, allocator_t> producer;
     typedef spsc_consumer<value_t, allocator_t> consumer;
     spsc_ring_queue(uint32_t capacity);
-    producer& get_producer() { return producer_; }
-    consumer& get_consumer() { return consumer_; }
+    producer& get_producer();
+    consumer& get_consumer();
 private:
     typedef std::vector<value_t, allocator_t> vector_type;
+    struct single_lock
+    {
+	single_lock();
+	std::mutex mutex;
+	std::unique_lock<std::mutex> lock;
+    };
     alignas(LEVEL1_DCACHE_LINESIZE) std::vector<value_t, allocator_t> buffer_;
     alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> head_;
     alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> tail_;
     alignas(LEVEL1_DCACHE_LINESIZE) producer producer_;
+    alignas(LEVEL1_DCACHE_LINESIZE) single_lock producer_lock_;
     alignas(LEVEL1_DCACHE_LINESIZE) consumer consumer_;
+    alignas(LEVEL1_DCACHE_LINESIZE) single_lock consumer_lock_;
 };
 
 } // namespace container

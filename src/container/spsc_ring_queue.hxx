@@ -99,13 +99,36 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
 }
 
 template <class value_t, class allocator_t>
+spsc_ring_queue<value_t, allocator_t>::single_lock::single_lock()
+    :
+	mutex(),
+	lock(mutex, std::defer_lock)
+{ }
+
+template <class value_t, class allocator_t>
 spsc_ring_queue<value_t, allocator_t>::spsc_ring_queue(uint32_t capacity) :
 	buffer_(capacity),
 	head_(0),
 	tail_(0),
 	producer_(typename producer::key(), buffer_, head_, tail_),
-	consumer_(typename consumer::key(), buffer_, head_, tail_)
+	producer_lock_(),
+	consumer_(typename consumer::key(), buffer_, head_, tail_),
+	consumer_lock_()
 { }
+
+template <class value_t, class allocator_t>
+typename spsc_ring_queue<value_t, allocator_t>::producer& spsc_ring_queue<value_t, allocator_t>::get_producer()
+{
+    producer_lock_.lock.try_lock();
+    return producer_;
+}
+
+template <class value_t, class allocator_t>
+typename spsc_ring_queue<value_t, allocator_t>::consumer& spsc_ring_queue<value_t, allocator_t>::get_consumer()
+{
+    consumer_lock_.lock.try_lock();
+    return consumer_;
+}
 
 } // namespace container
 } // namespace turbo

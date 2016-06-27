@@ -187,3 +187,19 @@ TEST(spsc_ring_queue_test, overflow)
     ASSERT_NE(consumer1.try_dequeue_copy(actual), uint_queue::consumer::result::queue_empty) << "Queue should not be empty";
     EXPECT_EQ(consumer1.try_dequeue_copy(actual), uint_queue::consumer::result::queue_empty) << "Queue should be empty";
 }
+
+TEST(spsc_ring_queue_test, excess_producer)
+{
+    typedef tc::spsc_ring_queue<uint32_t> uint_queue;
+    uint_queue queue1(4);
+    queue1.get_producer();
+    ASSERT_THROW(queue1.get_producer(), std::system_error);
+}
+
+TEST(spsc_ring_queue_test, excess_consumer)
+{
+    typedef tc::spsc_ring_queue<uint32_t> uint_queue;
+    uint_queue queue1(4);
+    queue1.get_consumer();
+    ASSERT_THROW(queue1.get_consumer(), std::system_error);
+}
