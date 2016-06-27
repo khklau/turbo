@@ -28,30 +28,30 @@ spsc_producer<value_t, allocator_t>::spsc_producer(
 template <class value_t, class allocator_t>
 typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue_copy(const value_t& input)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     // for unsigned integrals nothing extra is needed to handle overflow
     if (head - tail == buffer_.capacity())
     {
 	return result::queue_full;
     }
-    buffer_[head % buffer_.capacity()] = input;
-    head_.fetch_add(1, std::memory_order_seq_cst);
+    uint32_t exclusive = head_.fetch_add(1, std::memory_order_acq_rel);
+    buffer_[exclusive % buffer_.capacity()] = input;
     return result::success;
 }
 
 template <class value_t, class allocator_t>
 typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allocator_t>::try_enqueue_move(value_t&& input)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     // for unsigned integrals nothing extra is needed to handle overflow
     if (head - tail == buffer_.capacity())
     {
 	return result::queue_full;
     }
-    buffer_[head % buffer_.capacity()] = std::move(input);
-    head_.fetch_add(1, std::memory_order_seq_cst);
+    uint32_t exclusive = head_.fetch_add(1, std::memory_order_acq_rel);
+    buffer_[exclusive % buffer_.capacity()] = std::move(input);
     return result::success;
 }
 
@@ -69,28 +69,28 @@ spsc_consumer<value_t, allocator_t>::spsc_consumer(
 template <class value_t, class allocator_t>
 typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue_copy(value_t& output)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     if (head == tail)
     {
 	return result::queue_empty;
     }
-    output = buffer_[tail % buffer_.capacity()];
-    tail_.fetch_add(1, std::memory_order_seq_cst);
+    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_acq_rel);
+    output = buffer_[exclusive % buffer_.capacity()];
     return result::success;
 }
 
 template <class value_t, class allocator_t>
 typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allocator_t>::try_dequeue_move(value_t& output)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     if (head == tail)
     {
 	return result::queue_empty;
     }
-    output = std::move(buffer_[tail % buffer_.capacity()]);
-    tail_.fetch_add(1, std::memory_order_seq_cst);
+    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_acq_rel);
+    output = std::move(buffer_[exclusive % buffer_.capacity()]);
     return result::success;
 }
 
