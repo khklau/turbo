@@ -38,31 +38,43 @@ mpmc_producer<value_t, allocator_t>::mpmc_producer(const mpmc_producer& other)
 template <class value_t, class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allocator_t>::try_enqueue_copy(const value_t& input)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     // for unsigned integrals nothing extra is needed to handle overflow
     if (head - tail == buffer_.capacity())
     {
 	return result::queue_full;
     }
-    buffer_[head % buffer_.capacity()] = input;
-    head_.fetch_add(1, std::memory_order_seq_cst);
-    return result::success;
+    else if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+    {
+	buffer_[head % buffer_.capacity()] = input;
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allocator_t>::try_enqueue_move(value_t&& input)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     // for unsigned integrals nothing extra is needed to handle overflow
     if (head - tail == buffer_.capacity())
     {
 	return result::queue_full;
     }
-    buffer_[head % buffer_.capacity()] = std::move(input);
-    head_.fetch_add(1, std::memory_order_seq_cst);
-    return result::success;
+    else if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+    {
+	buffer_[head % buffer_.capacity()] = std::move(input);
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
@@ -88,29 +100,41 @@ mpmc_consumer<value_t, allocator_t>::mpmc_consumer(const mpmc_consumer& other)
 template <class value_t, class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allocator_t>::try_dequeue_copy(value_t& output)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     if (head == tail)
     {
 	return result::queue_empty;
     }
-    output = buffer_[tail % buffer_.capacity()];
-    tail_.fetch_add(1, std::memory_order_seq_cst);
-    return result::success;
+    else if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+    {
+	output = buffer_[tail % buffer_.capacity()];
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allocator_t>::try_dequeue_move(value_t& output)
 {
-    uint32_t head = head_.load(std::memory_order_consume);
-    uint32_t tail = tail_.load(std::memory_order_consume);
+    uint32_t head = head_.load(std::memory_order_acquire);
+    uint32_t tail = tail_.load(std::memory_order_acquire);
     if (head == tail)
     {
 	return result::queue_empty;
     }
-    output = std::move(buffer_[tail % buffer_.capacity()]);
-    tail_.fetch_add(1, std::memory_order_seq_cst);
-    return result::success;
+    else if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+    {
+	output = std::move(buffer_[tail % buffer_.capacity()]);
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
