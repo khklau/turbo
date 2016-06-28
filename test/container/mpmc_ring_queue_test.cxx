@@ -11,7 +11,7 @@ TEST(mpmc_ring_queue_test, dequeue_basic)
 {
     typedef tc::mpmc_ring_queue<std::string> string_queue;
 
-    string_queue queue1(8);
+    string_queue queue1(8, 2);
     string_queue::producer& producer1 = queue1.get_producer();
     string_queue::consumer& consumer1 = queue1.get_consumer();
     std::string expected1("foo");
@@ -20,7 +20,7 @@ TEST(mpmc_ring_queue_test, dequeue_basic)
     ASSERT_NE(consumer1.try_dequeue_copy(actual1), string_queue::consumer::result::queue_empty) << "Just enqueued queue is empty";
     EXPECT_EQ(expected1, actual1) << "Value enqueued is not the same value dequeued";
 
-    string_queue queue2(8);
+    string_queue queue2(8, 2);
     string_queue::producer& producer2 = queue2.get_producer();
     string_queue::consumer& consumer2 = queue2.get_consumer();
     std::string expected2a("123");
@@ -44,7 +44,7 @@ TEST(mpmc_ring_queue_test, dequeue_move)
 {
     typedef tc::mpmc_ring_queue<std::unique_ptr<std::string>> string_queue;
 
-    string_queue queue1(8);
+    string_queue queue1(8, 2);
     string_queue::producer& producer1 = queue1.get_producer();
     string_queue::consumer& consumer1 = queue1.get_consumer();
     std::string expected1("foo");
@@ -54,7 +54,7 @@ TEST(mpmc_ring_queue_test, dequeue_move)
     ASSERT_NE(consumer1.try_dequeue_move(actual1), string_queue::consumer::result::queue_empty) << "Just enqueued queue is empty";
     EXPECT_EQ(expected1, *actual1) << "Value enqueued is not the same value dequeued";
 
-    string_queue queue2(8);
+    string_queue queue2(8, 2);
     string_queue::producer& producer2 = queue2.get_producer();
     string_queue::consumer& consumer2 = queue2.get_consumer();
     std::string expected2a("123");
@@ -81,7 +81,7 @@ TEST(mpmc_ring_queue_test, loop_back)
 {
     typedef tc::mpmc_ring_queue<std::string> string_queue;
 
-    string_queue queue1(2);
+    string_queue queue1(2, 2);
     string_queue::producer& producer1 = queue1.get_producer();
     string_queue::consumer& consumer1 = queue1.get_consumer();
     std::string expected1a("123");
@@ -108,7 +108,7 @@ TEST(mpmc_ring_queue_test, empty_queue)
 {
     typedef tc::mpmc_ring_queue<std::string> string_queue;
 
-    string_queue queue1(8);
+    string_queue queue1(8, 2);
     string_queue::producer& producer1 = queue1.get_producer();
     string_queue::consumer& consumer1 = queue1.get_consumer();
     std::string expected1("foo");
@@ -118,7 +118,7 @@ TEST(mpmc_ring_queue_test, empty_queue)
     ASSERT_NE(consumer1.try_dequeue_copy(actual1), string_queue::consumer::result::queue_empty) << "Just enqueued queue is empty";
     EXPECT_EQ(consumer1.try_dequeue_copy(actual1), string_queue::consumer::result::queue_empty) << "Queue should be empty";
 
-    string_queue queue2(8);
+    string_queue queue2(8, 2);
     string_queue::producer& producer2 = queue2.get_producer();
     string_queue::consumer& consumer2 = queue2.get_consumer();
     std::string expected2a("123");
@@ -141,7 +141,7 @@ TEST(mpmc_ring_queue_test, full_queue)
 {
     typedef tc::mpmc_ring_queue<std::string> string_queue;
 
-    string_queue queue1(2);
+    string_queue queue1(2, 2);
     string_queue::producer& producer1 = queue1.get_producer();
     std::string expected1a("123");
     std::string expected1b("456");
@@ -161,7 +161,7 @@ TEST(mpmc_ring_queue_test, overflow)
 {
     typedef tc::mpmc_ring_queue<uint32_t> uint_queue;
 
-    uint_queue queue1(4);
+    uint_queue queue1(4, 2);
     uint_queue::producer& producer1 = queue1.get_producer();
     uint_queue::consumer& consumer1 = queue1.get_consumer();
     uint32_t expected = 0;
