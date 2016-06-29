@@ -3,6 +3,7 @@
 
 #include <turbo/container/spsc_ring_queue.hpp>
 #include <limits>
+#include <stdexcept>
 
 namespace turbo {
 namespace container {
@@ -114,7 +115,13 @@ spsc_ring_queue<value_t, allocator_t>::spsc_ring_queue(uint32_t capacity) :
 	producer_lock_(),
 	consumer_(typename consumer::key(), buffer_, head_, tail_),
 	consumer_lock_()
-{ }
+{
+    // TODO: when a constexpr version of is_lock_free is available do this check as a static_assert
+    if (!head_.is_lock_free() || !tail_.is_lock_free())
+    {
+	throw std::invalid_argument("uin32_t is not atomic on this platform");
+    }
+}
 
 template <class value_t, class allocator_t>
 typename spsc_ring_queue<value_t, allocator_t>::producer& spsc_ring_queue<value_t, allocator_t>::get_producer()

@@ -145,7 +145,13 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, uint16
 	tail_(0),
 	producer_list(handle_limit, key(), buffer_, head_, tail_),
 	consumer_list(handle_limit, key(), buffer_, head_, tail_)
-{ }
+{
+    // TODO: when a constexpr version of is_lock_free is available do this check as a static_assert
+    if (!head_.is_lock_free() || !tail_.is_lock_free())
+    {
+	throw std::invalid_argument("uin32_t is not atomic on this platform");
+    }
+}
 
 template <class value_t, class allocator_t>
 template <class handle_t>
