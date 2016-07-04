@@ -1,15 +1,20 @@
 #include <turbo/container/spsc_ring_queue.hpp>
 #include <turbo/container/spsc_ring_queue.hxx>
 #include <gtest/gtest.h>
+#include <array>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
+#include <thread>
+#include <turbo/algorithm/recovery.hpp>
 
-namespace tc = turbo::container;
+namespace tco = turbo::container;
+namespace tar = turbo::algorithm::recovery;
 
 TEST(spsc_ring_queue_test, dequeue_basic)
 {
-    typedef tc::spsc_ring_queue<std::string> string_queue;
+    typedef tco::spsc_ring_queue<std::string> string_queue;
 
     string_queue queue1(8);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -42,7 +47,7 @@ TEST(spsc_ring_queue_test, dequeue_basic)
 
 TEST(spsc_ring_queue_test, dequeue_move)
 {
-    typedef tc::spsc_ring_queue<std::unique_ptr<std::string>> string_queue;
+    typedef tco::spsc_ring_queue<std::unique_ptr<std::string>> string_queue;
 
     string_queue queue1(8);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -79,7 +84,7 @@ TEST(spsc_ring_queue_test, dequeue_move)
 
 TEST(spsc_ring_queue_test, loop_back)
 {
-    typedef tc::spsc_ring_queue<std::string> string_queue;
+    typedef tco::spsc_ring_queue<std::string> string_queue;
 
     string_queue queue1(2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -106,7 +111,7 @@ TEST(spsc_ring_queue_test, loop_back)
 
 TEST(spsc_ring_queue_test, empty_queue)
 {
-    typedef tc::spsc_ring_queue<std::string> string_queue;
+    typedef tco::spsc_ring_queue<std::string> string_queue;
 
     string_queue queue1(8);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -139,7 +144,7 @@ TEST(spsc_ring_queue_test, empty_queue)
 
 TEST(spsc_ring_queue_test, full_queue)
 {
-    typedef tc::spsc_ring_queue<std::string> string_queue;
+    typedef tco::spsc_ring_queue<std::string> string_queue;
 
     string_queue queue1(2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -157,9 +162,207 @@ TEST(spsc_ring_queue_test, full_queue)
     EXPECT_EQ(producer1.try_enqueue_copy(expected1a), string_queue::producer::result::queue_full) << "Queue should be full";
 }
 
+TEST(spsc_ring_queue_test, excess_producer)
+{
+    typedef tco::spsc_ring_queue<uint32_t> uint_queue;
+    uint_queue queue1(4);
+    queue1.get_producer();
+    ASSERT_THROW(queue1.get_producer(), std::system_error);
+}
+
+TEST(spsc_ring_queue_test, excess_consumer)
+{
+    typedef tco::spsc_ring_queue<uint32_t> uint_queue;
+    uint_queue queue1(4);
+    queue1.get_consumer();
+    ASSERT_THROW(queue1.get_consumer(), std::system_error);
+}
+
+template <class value_t, std::size_t limit>
+class produce_task
+{
+public:
+    typedef tco::spsc_ring_queue<value_t> queue;
+    produce_task(typename queue::producer& producer, const std::array<value_t, limit>& input);
+    ~produce_task() noexcept;
+    void run();
+    void produce();
+private:
+    typename queue::producer& producer_;
+    const std::array<value_t, limit>& input_;
+    std::thread* thread_;
+};
+
+template <class value_t, std::size_t limit>
+produce_task<value_t, limit>::produce_task(typename queue::producer& producer, const std::array<value_t, limit>& input)
+    :
+	producer_(producer),
+	input_(input),
+	thread_(nullptr)
+{ }
+
+template <class value_t, std::size_t limit>
+produce_task<value_t, limit>::~produce_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&produce_task::produce, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::produce()
+{
+    for (auto iter = input_.cbegin(); iter != input_.cend();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (producer_.try_enqueue_copy(*iter) == queue::producer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
+class consume_task
+{
+public:
+    typedef tco::spsc_ring_queue<value_t> queue;
+    consume_task(typename queue::consumer& consumer, std::array<value_t, limit>& output);
+    ~consume_task() noexcept;
+    void run();
+    void consume();
+private:
+    typename queue::consumer& consumer_;
+    std::array<value_t, limit>& output_;
+    std::thread* thread_;
+};
+
+template <class value_t, std::size_t limit>
+consume_task<value_t, limit>::consume_task(typename queue::consumer& consumer, std::array<value_t, limit>& output)
+    :
+	consumer_(consumer),
+	output_(output),
+	thread_(nullptr)
+{ }
+
+template <class value_t, std::size_t limit>
+consume_task<value_t, limit>::~consume_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&consume_task::consume, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::consume()
+{
+    for (auto iter = output_.begin(); iter != output_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (consumer_.try_dequeue_copy(*iter) == queue::consumer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+struct record
+{
+    bool operator==(const record& other) const;
+    uint16_t first;
+    uint32_t second;
+    uint64_t third;
+};
+
+bool record::operator==(const record& other) const
+{
+    return first == other.first && second == other.second && third == other.third;
+}
+
+TEST(spsc_ring_queue_test, async_large_struct)
+{
+    typedef tco::spsc_ring_queue<record> record_queue;
+    record_queue queue1(4U);
+    std::array<record, 256U> input1;
+    std::array<record, 256U> output1;
+    for (uint64_t counter1 = 0U; counter1 < input1.max_size(); ++counter1)
+    {
+	uint16_t base = 3U + (counter1 * 5U);
+	input1[counter1] = record{base, base * 3U, base * 9UL};
+    }
+    {
+	produce_task<record, 256U> producer1(queue1.get_producer(), input1);
+	consume_task<record, 256U> consumer1(queue1.get_consumer(), output1);
+	producer1.run();
+	consumer1.run();
+    }
+    for (uint64_t counter1 = 0U; counter1 < output1.max_size(); ++counter1)
+    {
+	uint16_t base = 3U + (counter1 * 5U);
+	record expected{base, base * 3U, base * 9UL};
+	EXPECT_EQ(output1[counter1], expected) << "Mismatching record consumed " <<
+		"- expected {" << expected.first << ", " << expected.second << ", " << expected.third << "} " <<
+		"- actual { " << output1[counter1].first << ", " << output1[counter1].second << ", " << output1[counter1].third << "}";
+    }
+}
+
 TEST(spsc_ring_queue_test, overflow)
 {
-    typedef tc::spsc_ring_queue<uint32_t> uint_queue;
+    typedef tco::spsc_ring_queue<uint32_t> uint_queue;
 
     uint_queue queue1(4);
     uint_queue::producer& producer1 = queue1.get_producer();
@@ -186,20 +389,4 @@ TEST(spsc_ring_queue_test, overflow)
     ASSERT_NE(consumer1.try_dequeue_copy(actual), uint_queue::consumer::result::queue_empty) << "Queue should not be empty";
     ASSERT_NE(consumer1.try_dequeue_copy(actual), uint_queue::consumer::result::queue_empty) << "Queue should not be empty";
     EXPECT_EQ(consumer1.try_dequeue_copy(actual), uint_queue::consumer::result::queue_empty) << "Queue should be empty";
-}
-
-TEST(spsc_ring_queue_test, excess_producer)
-{
-    typedef tc::spsc_ring_queue<uint32_t> uint_queue;
-    uint_queue queue1(4);
-    queue1.get_producer();
-    ASSERT_THROW(queue1.get_producer(), std::system_error);
-}
-
-TEST(spsc_ring_queue_test, excess_consumer)
-{
-    typedef tc::spsc_ring_queue<uint32_t> uint_queue;
-    uint_queue queue1(4);
-    queue1.get_consumer();
-    ASSERT_THROW(queue1.get_consumer(), std::system_error);
 }
