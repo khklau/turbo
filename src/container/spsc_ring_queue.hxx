@@ -36,10 +36,15 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
     {
 	return result::queue_full;
     }
-    // release fence is sufficient; acquire not required since there are no further read operations
-    uint32_t exclusive = head_.fetch_add(1, std::memory_order_release);
-    buffer_[exclusive % buffer_.capacity()] = input;
-    return result::success;
+    buffer_[head % buffer_.capacity()] = input;
+    if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+    {
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
@@ -52,10 +57,15 @@ typename spsc_producer<value_t, allocator_t>::result spsc_producer<value_t, allo
     {
 	return result::queue_full;
     }
-    // release fence is sufficient; acquire not required since there are no further read operations
-    uint32_t exclusive = head_.fetch_add(1, std::memory_order_release);
-    buffer_[exclusive % buffer_.capacity()] = std::move(input);
-    return result::success;
+    buffer_[head % buffer_.capacity()] = std::move(input);
+    if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+    {
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
@@ -78,10 +88,15 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    // release fence is sufficient; acquire not required since there are no further read operations
-    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_release);
-    output = buffer_[exclusive % buffer_.capacity()];
-    return result::success;
+    output = buffer_[tail % buffer_.capacity()];
+    if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+    {
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>
@@ -93,10 +108,15 @@ typename spsc_consumer<value_t, allocator_t>::result spsc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    // release fence is sufficient; acquire not required since there are no further read operations
-    uint32_t exclusive = tail_.fetch_add(1, std::memory_order_release);
-    output = std::move(buffer_[exclusive % buffer_.capacity()]);
-    return result::success;
+    output = std::move(buffer_[tail % buffer_.capacity()]);
+    if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+    {
+	return result::success;
+    }
+    else
+    {
+	return result::failure;
+    }
 }
 
 template <class value_t, class allocator_t>

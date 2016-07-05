@@ -24,6 +24,7 @@ public:
     enum class result
     {
 	success,
+	failure,
 	queue_full
     };
     spsc_producer(const key&,
@@ -52,6 +53,7 @@ public:
     enum class result
     {
 	success,
+	failure,
 	queue_empty
     };
     result try_dequeue_copy(value_t& output);
