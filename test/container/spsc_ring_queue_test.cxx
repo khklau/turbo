@@ -183,18 +183,20 @@ class produce_task
 {
 public:
     typedef tco::spsc_ring_queue<value_t> queue;
-    produce_task(typename queue::producer& producer, const std::array<value_t, limit>& input);
+    produce_task(typename queue::producer& producer, std::array<value_t, limit>& input);
     ~produce_task() noexcept;
-    void run();
-    void produce();
+    void run_copy();
+    void run_move();
+    void produce_copy();
+    void produce_move();
 private:
     typename queue::producer& producer_;
-    const std::array<value_t, limit>& input_;
+    std::array<value_t, limit>& input_;
     std::thread* thread_;
 };
 
 template <class value_t, std::size_t limit>
-produce_task<value_t, limit>::produce_task(typename queue::producer& producer, const std::array<value_t, limit>& input)
+produce_task<value_t, limit>::produce_task(typename queue::producer& producer, std::array<value_t, limit>& input)
     :
 	producer_(producer),
 	input_(input),
@@ -220,17 +222,27 @@ produce_task<value_t, limit>::~produce_task() noexcept
 }
 
 template <class value_t, std::size_t limit>
-void produce_task<value_t, limit>::run()
+void produce_task<value_t, limit>::run_copy()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&produce_task::produce, this));
+	std::function<void ()> entry(std::bind(&produce_task::produce_copy, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class value_t, std::size_t limit>
-void produce_task<value_t, limit>::produce()
+void produce_task<value_t, limit>::run_move()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&produce_task::produce_move, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::produce_copy()
 {
     for (auto iter = input_.cbegin(); iter != input_.cend();)
     {
@@ -250,14 +262,36 @@ void produce_task<value_t, limit>::produce()
 }
 
 template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::produce_move()
+{
+    for (auto iter = input_.begin(); iter != input_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (producer_.try_enqueue_move(std::move(*iter)) == queue::producer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
 class consume_task
 {
 public:
     typedef tco::spsc_ring_queue<value_t> queue;
     consume_task(typename queue::consumer& consumer, std::array<value_t, limit>& output);
     ~consume_task() noexcept;
-    void run();
-    void consume();
+    void run_copy();
+    void run_move();
+    void consume_copy();
+    void consume_move();
 private:
     typename queue::consumer& consumer_;
     std::array<value_t, limit>& output_;
@@ -291,23 +325,53 @@ consume_task<value_t, limit>::~consume_task() noexcept
 }
 
 template <class value_t, std::size_t limit>
-void consume_task<value_t, limit>::run()
+void consume_task<value_t, limit>::run_copy()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&consume_task::consume, this));
+	std::function<void ()> entry(std::bind(&consume_task::consume_copy, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class value_t, std::size_t limit>
-void consume_task<value_t, limit>::consume()
+void consume_task<value_t, limit>::run_move()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&consume_task::consume_move, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::consume_copy()
 {
     for (auto iter = output_.begin(); iter != output_.end();)
     {
 	tar::retry_with_random_backoff([&] () -> bool
 	{
 	    if (consumer_.try_dequeue_copy(*iter) == queue::consumer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::consume_move()
+{
+    for (auto iter = output_.begin(); iter != output_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (consumer_.try_dequeue_move(*iter) == queue::consumer::result::success)
 	    {
 		++iter;
 		return true;
@@ -333,30 +397,30 @@ bool record::operator==(const record& other) const
     return first == other.first && second == other.second && third == other.third;
 }
 
-TEST(spsc_ring_queue_test, async_large_struct)
+TEST(spsc_ring_queue_test, async_struct_copy)
 {
     typedef tco::spsc_ring_queue<record> record_queue;
     record_queue queue1(4U);
-    std::array<record, 256U> input1;
-    std::array<record, 256U> output1;
-    for (uint64_t counter1 = 0U; counter1 < input1.max_size(); ++counter1)
+    std::unique_ptr<std::array<record, 8192U>> input1(new std::array<record, 8192U>());
+    std::unique_ptr<std::array<record, 8192U>> output1(new std::array<record, 8192U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
     {
 	uint16_t base = 3U + (counter1 * 5U);
-	input1[counter1] = record{base, base * 3U, base * 9UL};
+	(*input1)[counter1] = record{base, base * 3U, base * 9UL};
     }
     {
-	produce_task<record, 256U> producer1(queue1.get_producer(), input1);
-	consume_task<record, 256U> consumer1(queue1.get_consumer(), output1);
-	producer1.run();
-	consumer1.run();
+	produce_task<record, 8192U> producer1(queue1.get_producer(), *input1);
+	consume_task<record, 8192U> consumer1(queue1.get_consumer(), *output1);
+	producer1.run_copy();
+	consumer1.run_copy();
     }
-    for (uint64_t counter1 = 0U; counter1 < output1.max_size(); ++counter1)
+    for (uint64_t counter1 = 0U; counter1 < output1->max_size(); ++counter1)
     {
 	uint16_t base = 3U + (counter1 * 5U);
 	record expected{base, base * 3U, base * 9UL};
-	EXPECT_EQ(output1[counter1], expected) << "Mismatching record consumed " <<
+	EXPECT_EQ(expected, (*output1)[counter1]) << "Mismatching record consumed " <<
 		"- expected {" << expected.first << ", " << expected.second << ", " << expected.third << "} " <<
-		"- actual { " << output1[counter1].first << ", " << output1[counter1].second << ", " << output1[counter1].third << "}";
+		"- actual {" << (*output1)[counter1].first << ", " << (*output1)[counter1].second << ", " << (*output1)[counter1].third << "}";
     }
 }
 
