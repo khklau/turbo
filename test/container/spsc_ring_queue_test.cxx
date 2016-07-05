@@ -424,6 +424,33 @@ TEST(spsc_ring_queue_test, async_struct_copy)
     }
 }
 
+TEST(spsc_ring_queue_test, async_unique_string)
+{
+    typedef std::unique_ptr<std::string> unique_string;
+    typedef tco::spsc_ring_queue<unique_string> string_queue;
+    string_queue queue1(4U);
+    std::unique_ptr<std::array<unique_string, 8192U>> input1(new std::array<unique_string, 8192U>());
+    std::unique_ptr<std::array<unique_string, 8192U>> output1(new std::array<unique_string, 8192U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	(*input1)[counter1] = std::move(unique_string(new std::string(std::to_string(std::hash<uint64_t>()(counter1)))));
+    }
+    {
+	produce_task<unique_string, 8192U> producer1(queue1.get_producer(), *input1);
+	consume_task<unique_string, 8192U> consumer1(queue1.get_consumer(), *output1);
+	producer1.run_move();
+	consumer1.run_move();
+    }
+    for (uint64_t counter1 = 0U; counter1 < output1->max_size(); ++counter1)
+    {
+	std::string expected(std::to_string(std::hash<uint64_t>()(counter1)));
+	ASSERT_TRUE((*output1)[counter1].get() != nullptr) << "Unique pointer to string is null";
+	EXPECT_EQ(expected, *((*output1)[counter1])) << "Mismatching string consumed " <<
+		"- expected '" << expected << "' " <<
+		"- actual '" << *((*output1)[counter1]) << "'";
+    }
+}
+
 TEST(spsc_ring_queue_test, overflow)
 {
     typedef tco::spsc_ring_queue<uint32_t> uint_queue;
