@@ -1,15 +1,21 @@
 #include <turbo/container/mpmc_ring_queue.hpp>
 #include <turbo/container/mpmc_ring_queue.hxx>
 #include <gtest/gtest.h>
+#include <algorithm>
+#include <array>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
+#include <thread>
+#include <turbo/algorithm/recovery.hpp>
 
-namespace tc = turbo::container;
+namespace tco = turbo::container;
+namespace tar = turbo::algorithm::recovery;
 
 TEST(mpmc_ring_queue_test, dequeue_basic)
 {
-    typedef tc::mpmc_ring_queue<std::string> string_queue;
+    typedef tco::mpmc_ring_queue<std::string> string_queue;
 
     string_queue queue1(8, 2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -42,7 +48,7 @@ TEST(mpmc_ring_queue_test, dequeue_basic)
 
 TEST(mpmc_ring_queue_test, dequeue_move)
 {
-    typedef tc::mpmc_ring_queue<std::unique_ptr<std::string>> string_queue;
+    typedef tco::mpmc_ring_queue<std::unique_ptr<std::string>> string_queue;
 
     string_queue queue1(8, 2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -79,7 +85,7 @@ TEST(mpmc_ring_queue_test, dequeue_move)
 
 TEST(mpmc_ring_queue_test, loop_back)
 {
-    typedef tc::mpmc_ring_queue<std::string> string_queue;
+    typedef tco::mpmc_ring_queue<std::string> string_queue;
 
     string_queue queue1(2, 2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -106,7 +112,7 @@ TEST(mpmc_ring_queue_test, loop_back)
 
 TEST(mpmc_ring_queue_test, empty_queue)
 {
-    typedef tc::mpmc_ring_queue<std::string> string_queue;
+    typedef tco::mpmc_ring_queue<std::string> string_queue;
 
     string_queue queue1(8, 2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -139,7 +145,7 @@ TEST(mpmc_ring_queue_test, empty_queue)
 
 TEST(mpmc_ring_queue_test, full_queue)
 {
-    typedef tc::mpmc_ring_queue<std::string> string_queue;
+    typedef tco::mpmc_ring_queue<std::string> string_queue;
 
     string_queue queue1(2, 2);
     string_queue::producer& producer1 = queue1.get_producer();
@@ -157,9 +163,228 @@ TEST(mpmc_ring_queue_test, full_queue)
     EXPECT_EQ(producer1.try_enqueue_copy(expected1a), string_queue::producer::result::queue_full) << "Queue should be full";
 }
 
+template <class value_t, std::size_t limit>
+class produce_task
+{
+public:
+    typedef tco::mpmc_ring_queue<value_t> queue;
+    produce_task(typename queue::producer& producer, std::array<value_t, limit>& input);
+    ~produce_task() noexcept;
+    void run_copy();
+    void run_move();
+    void produce_copy();
+    void produce_move();
+private:
+    typename queue::producer& producer_;
+    std::array<value_t, limit>& input_;
+    std::thread* thread_;
+};
+
+template <class value_t, std::size_t limit>
+produce_task<value_t, limit>::produce_task(typename queue::producer& producer, std::array<value_t, limit>& input)
+    :
+	producer_(producer),
+	input_(input),
+	thread_(nullptr)
+{ }
+
+template <class value_t, std::size_t limit>
+produce_task<value_t, limit>::~produce_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::run_copy()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&produce_task::produce_copy, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::run_move()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&produce_task::produce_move, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::produce_copy()
+{
+    for (auto iter = input_.cbegin(); iter != input_.cend();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (producer_.try_enqueue_copy(*iter) == queue::producer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
+void produce_task<value_t, limit>::produce_move()
+{
+    for (auto iter = input_.begin(); iter != input_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (producer_.try_enqueue_move(std::move(*iter)) == queue::producer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
+class consume_task
+{
+public:
+    typedef tco::mpmc_ring_queue<value_t> queue;
+    consume_task(typename queue::consumer& consumer, std::array<value_t, limit>& output);
+    ~consume_task() noexcept;
+    void run_copy();
+    void run_move();
+    void consume_copy();
+    void consume_move();
+private:
+    typename queue::consumer& consumer_;
+    std::array<value_t, limit>& output_;
+    std::thread* thread_;
+};
+
+template <class value_t, std::size_t limit>
+consume_task<value_t, limit>::consume_task(typename queue::consumer& consumer, std::array<value_t, limit>& output)
+    :
+	consumer_(consumer),
+	output_(output),
+	thread_(nullptr)
+{ }
+
+template <class value_t, std::size_t limit>
+consume_task<value_t, limit>::~consume_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::run_copy()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&consume_task::consume_copy, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::run_move()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&consume_task::consume_move, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::consume_copy()
+{
+    for (auto iter = output_.begin(); iter != output_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (consumer_.try_dequeue_copy(*iter) == queue::consumer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
+void consume_task<value_t, limit>::consume_move()
+{
+    for (auto iter = output_.begin(); iter != output_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> bool
+	{
+	    if (consumer_.try_dequeue_move(*iter) == queue::consumer::result::success)
+	    {
+		++iter;
+		return true;
+	    }
+	    else
+	    {
+		return false;
+	    }
+	});
+    }
+}
+
+struct record
+{
+    bool operator==(const record& other) const;
+    uint16_t first;
+    uint32_t second;
+    uint64_t third;
+};
+
+bool record::operator==(const record& other) const
+{
+    return first == other.first && second == other.second && third == other.third;
+}
+
 TEST(mpmc_ring_queue_test, overflow)
 {
-    typedef tc::mpmc_ring_queue<uint32_t> uint_queue;
+    typedef tco::mpmc_ring_queue<uint32_t> uint_queue;
 
     uint_queue queue1(4, 2);
     uint_queue::producer& producer1 = queue1.get_producer();
