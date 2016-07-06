@@ -18,7 +18,7 @@ class mpmc_key
 template <class value_t, class allocator_t>
 mpmc_producer<value_t, allocator_t>::mpmc_producer(
 	const key&,
-	std::vector<value_t, allocator_t>& buffer,
+	std::vector<node_type, allocator_t>& buffer,
 	std::atomic<uint32_t>& head,
 	std::atomic<uint32_t>& tail)
     :
@@ -45,10 +45,19 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allo
     {
 	return result::queue_full;
     }
-    else if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+    typename node_type::status guard = buffer_[head % buffer_.capacity()].guard.load(std::memory_order_acquire);
+    if (guard == node_type::status::unused)
     {
-	buffer_[head % buffer_.capacity()] = input;
-	return result::success;
+	if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+	{
+	    buffer_[head % buffer_.capacity()].value = input;
+	    buffer_[head % buffer_.capacity()].guard.store(node_type::status::used, std::memory_order_release);
+	    return result::success;
+	}
+	else
+	{
+	    return result::failure;
+	}
     }
     else
     {
@@ -66,10 +75,19 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allo
     {
 	return result::queue_full;
     }
-    else if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+    typename node_type::status guard = buffer_[head % buffer_.capacity()].guard.load(std::memory_order_acquire);
+    if (guard == node_type::status::unused)
     {
-	buffer_[head % buffer_.capacity()] = std::move(input);
-	return result::success;
+	if (head_.compare_exchange_strong(head, head + 1, std::memory_order_release))
+	{
+	    buffer_[head % buffer_.capacity()].value = std::move(input);
+	    buffer_[head % buffer_.capacity()].guard.store(node_type::status::used, std::memory_order_release);
+	    return result::success;
+	}
+	else
+	{
+	    return result::failure;
+	}
     }
     else
     {
@@ -80,7 +98,7 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allo
 template <class value_t, class allocator_t>
 mpmc_consumer<value_t, allocator_t>::mpmc_consumer(
 	const key&,
-	std::vector<value_t, allocator_t>& buffer,
+	std::vector<node_type, allocator_t>& buffer,
 	std::atomic<uint32_t>& head,
 	std::atomic<uint32_t>& tail)
     :
@@ -106,10 +124,19 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    else if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+    typename node_type::status guard = buffer_[tail % buffer_.capacity()].guard.load(std::memory_order_acquire);
+    if (guard == node_type::status::used)
     {
-	output = buffer_[tail % buffer_.capacity()];
-	return result::success;
+	if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+	{
+	    output = buffer_[tail % buffer_.capacity()].value;
+	    buffer_[tail % buffer_.capacity()].guard.store(node_type::status::unused, std::memory_order_release);
+	    return result::success;
+	}
+	else
+	{
+	    return result::failure;
+	}
     }
     else
     {
@@ -126,10 +153,19 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allo
     {
 	return result::queue_empty;
     }
-    else if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+    typename node_type::status guard = buffer_[tail % buffer_.capacity()].guard.load(std::memory_order_acquire);
+    if (guard == node_type::status::used)
     {
-	output = std::move(buffer_[tail % buffer_.capacity()]);
-	return result::success;
+	if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
+	{
+	    output = std::move(buffer_[tail % buffer_.capacity()].value);
+	    buffer_[tail % buffer_.capacity()].guard.store(node_type::status::unused, std::memory_order_release);
+	    return result::success;
+	}
+	else
+	{
+	    return result::failure;
+	}
     }
     else
     {
@@ -151,6 +187,14 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, uint16
     {
 	throw std::invalid_argument("uin32_t is not atomic on this platform");
     }
+    for (auto iter = buffer_.begin(); iter != buffer_.end(); ++iter)
+    {
+	if (!iter->guard.is_lock_free())
+	{
+	    throw std::invalid_argument("uin8_t is not atomic on this platform");
+	}
+	iter->guard.store(node_type::status::unused, std::memory_order_release);
+    }
 }
 
 template <class value_t, class allocator_t>
@@ -158,7 +202,7 @@ template <class handle_t>
 mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
 	uint16_t limit,
 	const key& the_key,
-	std::vector<value_t, allocator_t>& buffer,
+	std::vector<node_type, allocator_t>& buffer,
 	std::atomic<uint32_t>& head,
 	std::atomic<uint32_t>& tail)
     :
