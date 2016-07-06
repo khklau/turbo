@@ -382,6 +382,110 @@ bool record::operator==(const record& other) const
     return first == other.first && second == other.second && third == other.third;
 }
 
+TEST(mpmc_ring_queue_test, async_struct_copy)
+{
+    typedef tco::mpmc_ring_queue<record> record_queue;
+    record_queue queue1(8U, 4U);
+    std::unique_ptr<std::array<record, 2048U>> input1(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> input2(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> input3(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> input4(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output1(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output2(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output3(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output4(new std::array<record, 2048U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	uint16_t base1 = 3U + (counter1 * 5U) + 0U;
+	(*input1)[counter1] = record{base1, base1 * 3U, base1 * 9UL};
+    }
+    for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	uint16_t base2 = 3U + (counter2 * 5U) + 10240U;
+	(*input2)[counter2] = record{base2, base2 * 3U, base2 * 9UL};
+    }
+    for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	uint16_t base3 = 3U + (counter3 * 5U) + 20480;
+	(*input3)[counter3] = record{base3, base3 * 3U, base3 * 9UL};
+    }
+    for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	uint16_t base4 = 3U + (counter4 * 5U) + 30720U;
+	(*input4)[counter4] = record{base4, base4 * 3U, base4 * 9UL};
+    }
+    {
+	produce_task<record, 2048U> producer1(queue1.get_producer(), *input1);
+	produce_task<record, 2048U> producer2(queue1.get_producer(), *input2);
+	produce_task<record, 2048U> producer3(queue1.get_producer(), *input3);
+	produce_task<record, 2048U> producer4(queue1.get_producer(), *input4);
+	consume_task<record, 2048U> consumer1(queue1.get_consumer(), *output1);
+	consume_task<record, 2048U> consumer2(queue1.get_consumer(), *output2);
+	consume_task<record, 2048U> consumer3(queue1.get_consumer(), *output3);
+	consume_task<record, 2048U> consumer4(queue1.get_consumer(), *output4);
+	producer1.run_copy();
+	consumer1.run_copy();
+	producer2.run_copy();
+	consumer2.run_copy();
+	producer3.run_copy();
+	consumer3.run_copy();
+	producer4.run_copy();
+	consumer4.run_copy();
+    }
+    std::unique_ptr<std::array<record, 8192U>> actual_output(new std::array<record, 8192U>());
+    {
+	auto actual_iter = actual_output->begin();
+	for (auto out_iter = output1->cbegin(); actual_iter != actual_output->end() && out_iter != output1->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output2->cbegin(); actual_iter != actual_output->end() && out_iter != output2->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output3->cbegin(); actual_iter != actual_output->end() && out_iter != output3->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output4->cbegin(); actual_iter != actual_output->end() && out_iter != output4->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+    }
+    std::sort(actual_output->begin(), actual_output->end(), [] (const record& left, const record& right) -> bool
+    {
+	return left.first < right.first;
+    });
+    std::unique_ptr<std::array<record, 8192U>> expected_input(new std::array<record, 8192U>());
+    {
+	auto expected_iter = expected_input->begin();
+	for (auto in_iter = input1->cbegin(); expected_iter != expected_input->end() && in_iter != input1->cend(); ++expected_iter, ++in_iter)
+	{
+	    *expected_iter = *in_iter;
+	}
+	for (auto in_iter = input2->cbegin(); expected_iter != expected_input->end() && in_iter != input2->cend(); ++expected_iter, ++in_iter)
+	{
+	    *expected_iter = *in_iter;
+	}
+	for (auto in_iter = input3->cbegin(); expected_iter != expected_input->end() && in_iter != input3->cend(); ++expected_iter, ++in_iter)
+	{
+	    *expected_iter = *in_iter;
+	}
+	for (auto in_iter = input4->cbegin(); expected_iter != expected_input->end() && in_iter != input4->cend(); ++expected_iter, ++in_iter)
+	{
+	    *expected_iter = *in_iter;
+	}
+    }
+    auto expected_iter = expected_input->cbegin();
+    auto actual_iter = actual_output->cbegin();
+    for (; expected_iter != expected_input->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    {
+	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching record consumed " <<
+		"- expected {" << expected_iter->first << ", " << expected_iter->second << ", " << expected_iter->third << "} " <<
+		"- actual {" << actual_iter->first << ", " << actual_iter->second << ", " << actual_iter->third << "}";
+    }
+}
+
 TEST(mpmc_ring_queue_test, overflow)
 {
     typedef tco::mpmc_ring_queue<uint32_t> uint_queue;
