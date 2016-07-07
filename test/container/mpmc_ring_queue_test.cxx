@@ -6,6 +6,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <turbo/algorithm/recovery.hpp>
@@ -452,7 +453,7 @@ TEST(mpmc_ring_queue_test, async_struct_copy)
 	    *actual_iter = *out_iter;
 	}
     }
-    std::sort(actual_output->begin(), actual_output->end(), [] (const record& left, const record& right) -> bool
+    std::stable_sort(actual_output->begin(), actual_output->end(), [] (const record& left, const record& right) -> bool
     {
 	return left.first < right.first;
     });
@@ -483,6 +484,141 @@ TEST(mpmc_ring_queue_test, async_struct_copy)
 	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching record consumed " <<
 		"- expected {" << expected_iter->first << ", " << expected_iter->second << ", " << expected_iter->third << "} " <<
 		"- actual {" << actual_iter->first << ", " << actual_iter->second << ", " << actual_iter->third << "}";
+    }
+}
+
+TEST(mpmc_ring_queue_test, async_unique_string_move)
+{
+    typedef std::unique_ptr<std::string> unique_string;
+    typedef tco::mpmc_ring_queue<unique_string> unique_string_queue;
+    unique_string_queue queue1(8U, 4U);
+    std::unique_ptr<std::array<unique_string, 8192U>> expected_input(new std::array<unique_string, 8192U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> input1(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> input2(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> input3(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> input4(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> output1(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> output2(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> output3(new std::array<unique_string, 2048U>());
+    std::unique_ptr<std::array<unique_string, 2048U>> output4(new std::array<unique_string, 2048U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	std::ostringstream ostream;
+	ostream << "a";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter1 + 0U));
+	unique_string tmp1(new std::string(ostream.str()));
+	unique_string tmp2(new std::string(ostream.str()));
+	(*input1)[counter1] = std::move(tmp1);
+	(*expected_input)[counter1 + 0U] = std::move(tmp2);
+    }
+    for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	std::ostringstream ostream;
+	ostream << "b";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter2 + 2048U));
+	unique_string tmp1(new std::string(ostream.str()));
+	unique_string tmp2(new std::string(ostream.str()));
+	(*input2)[counter2] = std::move(tmp1);
+	(*expected_input)[counter2 + 2048U] = std::move(tmp2);
+    }
+    for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	std::ostringstream ostream;
+	ostream << "c";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter3 + 4096U));
+	unique_string tmp1(new std::string(ostream.str()));
+	unique_string tmp2(new std::string(ostream.str()));
+	(*input3)[counter3] = std::move(tmp1);
+	(*expected_input)[counter3 + 4096U] = std::move(tmp2);
+    }
+    for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	std::ostringstream ostream;
+	ostream << "d";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter4 + 6144U));
+	unique_string tmp1(new std::string(ostream.str()));
+	unique_string tmp2(new std::string(ostream.str()));
+	(*input4)[counter4] = std::move(tmp1);
+	(*expected_input)[counter4 + 6144U] = std::move(tmp2);
+    }
+    {
+	produce_task<unique_string, 2048U> producer1(queue1.get_producer(), *input1);
+	produce_task<unique_string, 2048U> producer2(queue1.get_producer(), *input2);
+	produce_task<unique_string, 2048U> producer3(queue1.get_producer(), *input3);
+	produce_task<unique_string, 2048U> producer4(queue1.get_producer(), *input4);
+	consume_task<unique_string, 2048U> consumer1(queue1.get_consumer(), *output1);
+	consume_task<unique_string, 2048U> consumer2(queue1.get_consumer(), *output2);
+	consume_task<unique_string, 2048U> consumer3(queue1.get_consumer(), *output3);
+	consume_task<unique_string, 2048U> consumer4(queue1.get_consumer(), *output4);
+	producer1.run_move();
+	consumer4.run_move();
+	producer2.run_move();
+	consumer3.run_move();
+	producer3.run_move();
+	consumer2.run_move();
+	producer4.run_move();
+	consumer1.run_move();
+    }
+    std::unique_ptr<std::array<unique_string, 8192U>> actual_output(new std::array<unique_string, 8192U>());
+    {
+	auto actual_iter = actual_output->begin();
+	for (auto out_iter = output1->begin(); actual_iter != actual_output->end() && out_iter != output1->end(); ++actual_iter, ++out_iter)
+	{
+	    ASSERT_TRUE(out_iter->get() != nullptr) << "Unique string from output1 is null";
+	    *actual_iter = std::move(*out_iter);
+	}
+	for (auto out_iter = output2->begin(); actual_iter != actual_output->end() && out_iter != output2->end(); ++actual_iter, ++out_iter)
+	{
+	    ASSERT_TRUE(out_iter->get() != nullptr) << "Unique string from output2 is null";
+	    *actual_iter = std::move(*out_iter);
+	}
+	for (auto out_iter = output3->begin(); actual_iter != actual_output->end() && out_iter != output3->end(); ++actual_iter, ++out_iter)
+	{
+	    ASSERT_TRUE(out_iter->get() != nullptr) << "Unique string from output3 is null";
+	    *actual_iter = std::move(*out_iter);
+	}
+	for (auto out_iter = output4->begin(); actual_iter != actual_output->end() && out_iter != output4->end(); ++actual_iter, ++out_iter)
+	{
+	    ASSERT_TRUE(out_iter->get() != nullptr) << "Unique string from output4 is null";
+	    *actual_iter = std::move(*out_iter);
+	}
+    }
+    std::stable_sort(actual_output->begin(), actual_output->end(), [] (const unique_string& left, const unique_string& right) -> bool
+    {
+	if (left && right)
+	{
+	    return *left < *right;
+	}
+	else if (left)
+	{
+	    return false;
+	}
+	else
+	{
+	    return true;
+	}
+    });
+    auto expected_iter = expected_input->cbegin();
+    auto actual_iter = actual_output->cbegin();
+    for (; expected_iter != expected_input->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    {
+	bool valid_expected = expected_iter->get() != nullptr;
+	bool valid_actual = actual_iter->get() != nullptr;
+	if (valid_expected && valid_actual)
+	{
+	    EXPECT_EQ(**expected_iter, **actual_iter) << "Mismatching unique string consumed " <<
+		    "- expected '" << (*expected_iter)->c_str() << "' " <<
+		    "- actual '" << (*actual_iter)->c_str() << "'";
+	}
+	else
+	{
+	    EXPECT_TRUE(valid_expected) << "Expected unique string is null";
+	    EXPECT_TRUE(valid_actual) << "Actual unique string is null";
+	}
     }
 }
 
