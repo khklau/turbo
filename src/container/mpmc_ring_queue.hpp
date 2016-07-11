@@ -5,6 +5,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 #include <turbo/toolset/attribute.hpp>
 
@@ -24,6 +25,7 @@ struct alignas(LEVEL1_DCACHE_LINESIZE) node
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>> class mpmc_key;
+template <class value_t, class allocator_t = std::allocator<value_t>> class mpmc_ring_queue;
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
 class alignas(LEVEL1_DCACHE_LINESIZE) TURBO_SYMBOL_DECL mpmc_producer
@@ -39,19 +41,14 @@ public:
 	failure,
 	queue_full
     };
-    mpmc_producer(const key&,
-		    std::vector<node_type, allocator_t>& buffer,
-		    std::atomic<uint32_t>& head,
-		    std::atomic<uint32_t>& tail);
+    mpmc_producer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
     mpmc_producer(const mpmc_producer& other);
     result try_enqueue_copy(const value_t& input);
     result try_enqueue_move(value_t&& input);
 private:
     mpmc_producer() = delete;
     mpmc_producer& operator=(const mpmc_producer& other) = delete;
-    std::vector<node_type, allocator_t>& buffer_;
-    std::atomic<uint32_t>& head_;
-    std::atomic<uint32_t>& tail_;
+    mpmc_ring_queue<value_t, allocator_t>& queue_;
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
@@ -62,10 +59,7 @@ public:
     typedef allocator_t allocator_type;
     typedef node<value_t> node_type;
     typedef mpmc_key<value_t, allocator_t> key;
-    mpmc_consumer(const key&,
-		    std::vector<node_type, allocator_t>& buffer,
-		    std::atomic<uint32_t>& head,
-		    std::atomic<uint32_t>& tail);
+    mpmc_consumer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
     mpmc_consumer(const mpmc_consumer& other);
     enum class result
     {
@@ -78,12 +72,10 @@ public:
 private:
     mpmc_consumer() = delete;
     mpmc_consumer& operator=(const mpmc_consumer& other) = delete;
-    std::vector<node_type, allocator_t>& buffer_;
-    std::atomic<uint32_t>& head_;
-    std::atomic<uint32_t>& tail_;
+    mpmc_ring_queue<value_t, allocator_t>& queue_;
 };
 
-template <class value_t, class allocator_t = std::allocator<value_t>>
+template <class value_t, class allocator_t>
 class TURBO_SYMBOL_DECL mpmc_ring_queue
 {
 public:
@@ -96,16 +88,16 @@ public:
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     inline producer& get_producer();
     inline consumer& get_consumer();
+    typename producer::result try_enqueue_copy(const value_t& input);
+    typename producer::result try_enqueue_move(value_t&& input);
+    typename consumer::result try_dequeue_copy(value_t& output);
+    typename consumer::result try_dequeue_move(value_t& output);
 private:
     typedef std::vector<value_t, allocator_t> vector_type;
     template <class handle_t>
     struct handle_list
     {
-	handle_list(uint16_t limit,
-		    const key& the_key,
-		    std::vector<node_type, allocator_t>& buffer,
-		    std::atomic<uint32_t>& head,
-		    std::atomic<uint32_t>& tail);
+	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<value_t, allocator_t>& queue);
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t> list;
     };
