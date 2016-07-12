@@ -232,16 +232,16 @@ void produce_task<value_t, limit>::produce_copy()
 {
     for (auto iter = input_.cbegin(); iter != input_.cend();)
     {
-	tar::retry_with_random_backoff([&] () -> bool
+	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
 	    if (producer_.try_enqueue_copy(*iter) == queue::producer::result::success)
 	    {
 		++iter;
-		return true;
+		return tar::try_state::done;
 	    }
 	    else
 	    {
-		return false;
+		return tar::try_state::retry;
 	    }
 	});
     }
@@ -252,16 +252,16 @@ void produce_task<value_t, limit>::produce_move()
 {
     for (auto iter = input_.begin(); iter != input_.end();)
     {
-	tar::retry_with_random_backoff([&] () -> bool
+	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
 	    if (producer_.try_enqueue_move(std::move(*iter)) == queue::producer::result::success)
 	    {
 		++iter;
-		return true;
+		return tar::try_state::done;
 	    }
 	    else
 	    {
-		return false;
+		return tar::try_state::retry;
 	    }
 	});
     }
@@ -335,16 +335,16 @@ void consume_task<value_t, limit>::consume_copy()
 {
     for (auto iter = output_.begin(); iter != output_.end();)
     {
-	tar::retry_with_random_backoff([&] () -> bool
+	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
 	    if (consumer_.try_dequeue_copy(*iter) == queue::consumer::result::success)
 	    {
 		++iter;
-		return true;
+		return tar::try_state::done;
 	    }
 	    else
 	    {
-		return false;
+		return tar::try_state::retry;
 	    }
 	});
     }
@@ -355,16 +355,16 @@ void consume_task<value_t, limit>::consume_move()
 {
     for (auto iter = output_.begin(); iter != output_.end();)
     {
-	tar::retry_with_random_backoff([&] () -> bool
+	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
 	    if (consumer_.try_dequeue_move(*iter) == queue::consumer::result::success)
 	    {
 		++iter;
-		return true;
+		return tar::try_state::done;
 	    }
 	    else
 	    {
-		return false;
+		return tar::try_state::retry;
 	    }
 	});
     }

@@ -8,7 +8,13 @@ namespace turbo {
 namespace algorithm {
 namespace recovery {
 
-TURBO_SYMBOL_DECL void retry_with_random_backoff(const std::function<bool ()>& func, uint64_t max_backoff = 32U);
+enum class try_state
+{
+    done,
+    retry
+};
+
+TURBO_SYMBOL_DECL void retry_with_random_backoff(const std::function<try_state ()>& func, uint64_t max_backoff = 32U);
 
 } // namespace recovery
 } // namespace algorithm
