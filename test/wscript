@@ -7,14 +7,16 @@ def options(optCtx):
 
 def configure(confCtx):
     confCtx.env.product = Product.fromContext(confCtx, NAME, confCtx.env.solution)
+    confCtx.recurse('type_utility')
     confCtx.recurse('container')
+    confCtx.recurse('memory')
     confCtx.recurse('filesystem')
     confCtx.recurse('process')
-    confCtx.recurse('type_utility')
 
 def build(buildCtx):
     buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
+    buildCtx.recurse('type_utility')
     buildCtx.recurse('container')
+    buildCtx.recurse('memory')
     buildCtx.recurse('filesystem')
     buildCtx.recurse('process')
-    buildCtx.recurse('type_utility')
