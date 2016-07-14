@@ -10,15 +10,15 @@
 namespace turbo {
 namespace memory {
 
-template <std::uint32_t block_size_c, template <class type_t> class allocator_t>
-block_pool<block_size_c, allocator_t>::block_pool(std::uint32_t capacity, uint16_t user_limit)
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
+block_pool<block_size_c, allocator_t>::block_pool(index_type capacity, uint16_t user_limit)
     :
 	free_list_(capacity, user_limit),
 	block_list_(capacity)
 {
     namespace tar = turbo::algorithm::recovery;
     memset(block_list_.data(), 0, sizeof(block_type) * capacity);
-    for (std::uint32_t index = 0; index < capacity; ++index)
+    for (index_type index = 0; index < capacity; ++index)
     {
 	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
@@ -34,13 +34,13 @@ block_pool<block_size_c, allocator_t>::block_pool(std::uint32_t capacity, uint16
     }
 }
 
-template <std::uint32_t block_size_c, template <class type_t> class allocator_t>
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
 template <class value_t, class ...args_t>
 std::pair<make_result, pool_unique_ptr<value_t>> block_pool<block_size_c, allocator_t>::make_unique(args_t&&... args)
 {
-    // TODO: static_assert that block_type is large enough for value_t
+    static_assert(sizeof(value_t) <= sizeof(block_type), "Requested value type is larger than the memory pool's block size");
     namespace tar = turbo::algorithm::recovery;
-    std::uint32_t reservation = 0U;
+    index_type reservation = 0U;
     make_result result = make_result::pool_full;
     tar::retry_with_random_backoff([&] () -> tar::try_state
     {
@@ -69,44 +69,49 @@ std::pair<make_result, pool_unique_ptr<value_t>> block_pool<block_size_c, alloca
 		result,
 		pool_unique_ptr<value_t>(
 			new (&(block_list_[reservation])) value_t(std::forward<args_t>(args)...),
-			[&] (value_t* pointer) -> void
-			{
-			    try
-			    {
-				std::size_t offset = static_cast<block_type*>(static_cast<void*>(pointer)) - &(block_list_[0]);
-				if (offset < block_list_.size())
-				{
-				    tar::retry_with_random_backoff([&] () -> tar::try_state
-				    {
-					switch (free_list_.try_enqueue_copy(offset))
-					{
-					    case free_list_type::producer::result::queue_full:
-					    {
-						// log a warning?
-						return tar::try_state::done;
-					    }
-					    case free_list_type::producer::result::success:
-					    {
-						return tar::try_state::done;
-					    }
-					    default:
-					    {
-						return tar::try_state::retry;
-					    }
-					}
-				    });
-				}
-				// else log a warning?
-			    }
-			    catch (...)
-			    {
-				// do nothing since destructor can't fail
-			    }
-			}));
+			std::bind(&block_pool<block_size_c, allocator_t>::recycle<value_t>, this, std::placeholders::_1)));
     }
     else
     {
 	return std::make_pair(result, pool_unique_ptr<value_t>());
+    }
+}
+
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
+template <class value_t>
+void block_pool<block_size_c, allocator_t>::recycle(value_t* pointer)
+{
+    namespace tar = turbo::algorithm::recovery;
+    try
+    {
+	std::size_t offset = static_cast<block_type*>(static_cast<void*>(pointer)) - &(block_list_[0]);
+	if (offset < block_list_.size())
+	{
+	    tar::retry_with_random_backoff([&] () -> tar::try_state
+	    {
+		switch (free_list_.try_enqueue_copy(offset))
+		{
+		    case free_list_type::producer::result::queue_full:
+		    {
+			// log a warning?
+			return tar::try_state::done;
+		    }
+		    case free_list_type::producer::result::success:
+		    {
+			return tar::try_state::done;
+		    }
+		    default:
+		    {
+			return tar::try_state::retry;
+		    }
+		}
+	    });
+	}
+	// else log a warning?
+    }
+    catch (...)
+    {
+	// do nothing since destructor can't fail
     }
 }
 
