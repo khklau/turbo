@@ -78,7 +78,7 @@ std::pair<make_result, pool_unique_ptr<value_t>> block_pool<block_size_c, alloca
 				{
 				    tar::retry_with_random_backoff([&] () -> tar::try_state
 				    {
-					switch (free_list_.try_enqueue_copy(reservation))
+					switch (free_list_.try_enqueue_copy(offset))
 					{
 					    case free_list_type::producer::result::queue_full:
 					    {
