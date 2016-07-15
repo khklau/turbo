@@ -29,6 +29,8 @@ public:
     block_pool(index_type capacity, std::uint16_t user_limit);
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
+    template <class value_t, class... args_t>
+    std::pair<make_result, std::shared_ptr<value_t>> make_shared(args_t&&... args);
 private:
     typedef typename std::aligned_storage<block_size_c>::type block_type;
     typedef turbo::container::mpmc_ring_queue<index_type, allocator_t<index_type>> free_list_type;

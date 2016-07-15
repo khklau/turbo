@@ -112,3 +112,20 @@ TEST(pool_test, make_unique_large_block)
 	EXPECT_EQ(nullptr, result7.second.get()) << "Pointer returned from full pool is not null";
     }
 }
+
+TEST(pool_test, make_shared_basic)
+{
+    typedef tme::block_pool<sizeof(std::string)> string_pool;
+    string_pool pool1(3U, 1U);
+    {
+	auto result1 = pool1.make_shared<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "Unique pool string didn't initialise";
+	auto result2 = pool1.make_shared<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("xyz789"), *result2.second) << "Unique pool string didn't initialise";
+	auto result3 = pool1.make_shared<std::string>("lmn456");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("lmn456"), *result3.second) << "Unique pool string didn't initialise";
+    }
+}
