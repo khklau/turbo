@@ -38,7 +38,8 @@ public:
     enum class result
     {
 	success,
-	failure,
+	beaten,
+	busy,
 	queue_full
     };
     mpmc_producer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
@@ -64,7 +65,8 @@ public:
     enum class result
     {
 	success,
-	failure,
+	beaten,
+	busy,
 	queue_empty
     };
     result try_dequeue_copy(value_t& output);

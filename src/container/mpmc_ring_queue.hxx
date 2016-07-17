@@ -151,12 +151,12 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
 	}
 	else
 	{
-	    return producer::result::failure;
+	    return producer::result::beaten;
 	}
     }
     else
     {
-	return producer::result::failure;
+	return producer::result::busy;
     }
 }
 
@@ -181,12 +181,12 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
 	}
 	else
 	{
-	    return producer::result::failure;
+	    return producer::result::beaten;
 	}
     }
     else
     {
-	return producer::result::failure;
+	return producer::result::busy;
     }
 }
 
@@ -210,12 +210,12 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
 	}
 	else
 	{
-	    return consumer::result::failure;
+	    return consumer::result::beaten;
 	}
     }
     else
     {
-	return consumer::result::failure;
+	return consumer::result::busy;
     }
 }
 
@@ -239,12 +239,12 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
 	}
 	else
 	{
-	    return consumer::result::failure;
+	    return consumer::result::beaten;
 	}
     }
     else
     {
-	return consumer::result::failure;
+	return consumer::result::busy;
     }
 }
 
