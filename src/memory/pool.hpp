@@ -27,6 +27,7 @@ class block_pool
 public:
     typedef std::uint32_t index_type;
     block_pool(index_type capacity, std::uint16_t user_limit);
+    void free(void* pointer);
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
     template <class value_t, class... args_t>
@@ -34,8 +35,6 @@ public:
 private:
     typedef typename std::aligned_storage<block_size_c>::type block_type;
     typedef turbo::container::mpmc_ring_queue<index_type, allocator_t<index_type>> free_list_type;
-    template <class value_t>
-    void recycle(value_t* pointer);
     free_list_type free_list_;
     typename std::vector<block_type, allocator_t<block_type>> block_list_;
 };

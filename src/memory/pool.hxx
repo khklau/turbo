@@ -35,6 +35,43 @@ block_pool<block_size_c, allocator_t>::block_pool(index_type capacity, uint16_t 
 }
 
 template <std::size_t block_size_c, template <class type_t> class allocator_t>
+void block_pool<block_size_c, allocator_t>::free(void* pointer)
+{
+    namespace tar = turbo::algorithm::recovery;
+    try
+    {
+	std::size_t offset = static_cast<block_type*>(pointer) - &(block_list_[0]);
+	if (offset < block_list_.size())
+	{
+	    tar::retry_with_random_backoff([&] () -> tar::try_state
+	    {
+		switch (free_list_.try_enqueue_copy(offset))
+		{
+		    case free_list_type::producer::result::queue_full:
+		    {
+			// log a warning?
+			return tar::try_state::done;
+		    }
+		    case free_list_type::producer::result::success:
+		    {
+			return tar::try_state::done;
+		    }
+		    default:
+		    {
+			return tar::try_state::retry;
+		    }
+		}
+	    });
+	}
+	// else log a warning?
+    }
+    catch (...)
+    {
+	// do nothing since destructor can't fail
+    }
+}
+
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
 template <class value_t, class ...args_t>
 std::pair<make_result, pool_unique_ptr<value_t>> block_pool<block_size_c, allocator_t>::make_unique(args_t&&... args)
 {
@@ -69,7 +106,7 @@ std::pair<make_result, pool_unique_ptr<value_t>> block_pool<block_size_c, alloca
 		result,
 		pool_unique_ptr<value_t>(
 			new (&(block_list_[reservation])) value_t(std::forward<args_t>(args)...),
-			std::bind(&block_pool<block_size_c, allocator_t>::recycle<value_t>, this, std::placeholders::_1)));
+			std::bind(&block_pool<block_size_c, allocator_t>::free, this, std::placeholders::_1)));
     }
     else
     {
@@ -112,49 +149,11 @@ std::pair<make_result, std::shared_ptr<value_t>> block_pool<block_size_c, alloca
 		result,
 		std::shared_ptr<value_t>(
 			new (&(block_list_[reservation])) value_t(std::forward<args_t>(args)...),
-			std::bind(&block_pool<block_size_c, allocator_t>::recycle<value_t>, this, std::placeholders::_1)));
+			std::bind(&block_pool<block_size_c, allocator_t>::free, this, std::placeholders::_1)));
     }
     else
     {
 	return std::make_pair(result, std::shared_ptr<value_t>());
-    }
-}
-
-template <std::size_t block_size_c, template <class type_t> class allocator_t>
-template <class value_t>
-void block_pool<block_size_c, allocator_t>::recycle(value_t* pointer)
-{
-    namespace tar = turbo::algorithm::recovery;
-    try
-    {
-	std::size_t offset = static_cast<block_type*>(static_cast<void*>(pointer)) - &(block_list_[0]);
-	if (offset < block_list_.size())
-	{
-	    tar::retry_with_random_backoff([&] () -> tar::try_state
-	    {
-		switch (free_list_.try_enqueue_copy(offset))
-		{
-		    case free_list_type::producer::result::queue_full:
-		    {
-			// log a warning?
-			return tar::try_state::done;
-		    }
-		    case free_list_type::producer::result::success:
-		    {
-			return tar::try_state::done;
-		    }
-		    default:
-		    {
-			return tar::try_state::retry;
-		    }
-		}
-	    });
-	}
-	// else log a warning?
-    }
-    catch (...)
-    {
-	// do nothing since destructor can't fail
     }
 }
 
