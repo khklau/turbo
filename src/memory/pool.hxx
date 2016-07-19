@@ -35,6 +35,43 @@ block_pool<block_size_c, allocator_t>::block_pool(index_type capacity, uint16_t 
 }
 
 template <std::size_t block_size_c, template <class type_t> class allocator_t>
+std::pair<make_result, void*> block_pool<block_size_c, allocator_t>::allocate()
+{
+    namespace tar = turbo::algorithm::recovery;
+    index_type reservation = 0U;
+    make_result result = make_result::pool_full;
+    tar::retry_with_random_backoff([&] () -> tar::try_state
+    {
+	switch (free_list_.try_dequeue_copy(reservation))
+	{
+	    case free_list_type::consumer::result::queue_empty:
+	    {
+		// no free blocks available
+		result = make_result::pool_full;
+		return tar::try_state::done;
+	    }
+	    case free_list_type::consumer::result::success:
+	    {
+		result = make_result::success;
+		return tar::try_state::done;
+	    }
+	    default:
+	    {
+		return tar::try_state::retry;
+	    }
+	}
+    });
+    if (result == make_result::success)
+    {
+	return std::make_pair(result, &(block_list_[reservation]));
+    }
+    else
+    {
+	return std::make_pair(result, nullptr);
+    }
+}
+
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
 void block_pool<block_size_c, allocator_t>::free(void* pointer)
 {
     namespace tar = turbo::algorithm::recovery;
@@ -76,41 +113,18 @@ template <class value_t, class ...args_t>
 std::pair<make_result, pool_unique_ptr<value_t>> block_pool<block_size_c, allocator_t>::make_unique(args_t&&... args)
 {
     static_assert(sizeof(value_t) <= sizeof(block_type), "Requested value type is larger than the memory pool's block size");
-    namespace tar = turbo::algorithm::recovery;
-    index_type reservation = 0U;
-    make_result result = make_result::pool_full;
-    tar::retry_with_random_backoff([&] () -> tar::try_state
-    {
-	switch (free_list_.try_dequeue_copy(reservation))
-	{
-	    case free_list_type::consumer::result::queue_empty:
-	    {
-		// no free blocks available
-		result = make_result::pool_full;
-		return tar::try_state::done;
-	    }
-	    case free_list_type::consumer::result::success:
-	    {
-		result = make_result::success;
-		return tar::try_state::done;
-	    }
-	    default:
-	    {
-		return tar::try_state::retry;
-	    }
-	}
-    });
-    if (result == make_result::success)
+    std::pair<make_result, void*> result = allocate();
+    if (result.first == make_result::success)
     {
 	return std::make_pair(
-		result,
+		result.first,
 		pool_unique_ptr<value_t>(
-			new (&(block_list_[reservation])) value_t(std::forward<args_t>(args)...),
+			new (result.second) value_t(std::forward<args_t>(args)...),
 			std::bind(&block_pool<block_size_c, allocator_t>::free, this, std::placeholders::_1)));
     }
     else
     {
-	return std::make_pair(result, pool_unique_ptr<value_t>());
+	return std::make_pair(result.first, pool_unique_ptr<value_t>());
     }
 }
 
@@ -119,41 +133,18 @@ template <class value_t, class ...args_t>
 std::pair<make_result, std::shared_ptr<value_t>> block_pool<block_size_c, allocator_t>::make_shared(args_t&&... args)
 {
     static_assert(sizeof(value_t) <= sizeof(block_type), "Requested value type is larger than the memory pool's block size");
-    namespace tar = turbo::algorithm::recovery;
-    index_type reservation = 0U;
-    make_result result = make_result::pool_full;
-    tar::retry_with_random_backoff([&] () -> tar::try_state
-    {
-	switch (free_list_.try_dequeue_copy(reservation))
-	{
-	    case free_list_type::consumer::result::queue_empty:
-	    {
-		// no free blocks available
-		result = make_result::pool_full;
-		return tar::try_state::done;
-	    }
-	    case free_list_type::consumer::result::success:
-	    {
-		result = make_result::success;
-		return tar::try_state::done;
-	    }
-	    default:
-	    {
-		return tar::try_state::retry;
-	    }
-	}
-    });
-    if (result == make_result::success)
+    std::pair<make_result, void*> result = allocate();
+    if (result.first == make_result::success)
     {
 	return std::make_pair(
-		result,
+		result.first,
 		std::shared_ptr<value_t>(
-			new (&(block_list_[reservation])) value_t(std::forward<args_t>(args)...),
+			new (result.second) value_t(std::forward<args_t>(args)...),
 			std::bind(&block_pool<block_size_c, allocator_t>::free, this, std::placeholders::_1)));
     }
     else
     {
-	return std::make_pair(result, std::shared_ptr<value_t>());
+	return std::make_pair(result.first, std::shared_ptr<value_t>());
     }
 }
 

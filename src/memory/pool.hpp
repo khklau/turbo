@@ -27,6 +27,7 @@ class block_pool
 public:
     typedef std::uint32_t index_type;
     block_pool(index_type capacity, std::uint16_t user_limit);
+    std::pair<make_result, void*> allocate();
     void free(void* pointer);
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
