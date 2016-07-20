@@ -1,6 +1,7 @@
 #include <turbo/memory/pool.hpp>
 #include <turbo/memory/pool.hxx>
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <limits>
@@ -156,6 +157,48 @@ TEST(pool_test, make_unique_large_block)
     }
 }
 
+TEST(pool_test, make_unique_array)
+{
+    typedef std::array<std::uint32_t, 8> uint_array;
+    typedef tme::block_pool<sizeof(uint_array)> array_pool;
+    array_pool pool1(2U, 1U);
+    {
+	auto result1 = pool1.make_unique<uint_array>();
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool array failed";
+	std::fill(result1.second->begin(), result1.second->end(), 0U);
+	auto result2 = pool1.make_unique<uint_array>();
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique pool array failed";
+	std::fill(result2.second->begin(), result2.second->end(), std::numeric_limits<uint_array::value_type>::max());
+	for (const std::uint32_t& value: *(result1.second))
+	{
+	    EXPECT_EQ(0U, value) << "Unique pool array didn't initialise correctly at index " << &value - &(*(result1.second->cbegin()));
+	}
+	for (const std::uint32_t& value: *(result2.second))
+	{
+	    EXPECT_EQ(std::numeric_limits<uint_array::value_type>::max(), value) << "Unique pool array didn't initialise correctly at index " << &value - &(*(result2.second->cbegin()));
+	}
+    }
+    {
+	auto result3 = pool1.make_unique<uint_array>();
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool array failed";
+	std::fill(result3.second->begin(), result3.second->end(), std::numeric_limits<uint_array::value_type>::max());
+	auto result4 = pool1.make_unique<uint_array>();
+	EXPECT_EQ(tme::make_result::success, result4.first) << "Make reycled unique pool array failed";
+	std::fill(result4.second->begin(), result4.second->end(), 0U);
+	for (const std::uint32_t& value: *(result3.second))
+	{
+	    EXPECT_EQ(std::numeric_limits<uint_array::value_type>::max(), value) << "Unique pool array didn't initialise correctly at index " << &value - &(*(result3.second->cbegin()));
+	}
+	for (const std::uint32_t& value: *(result4.second))
+	{
+	    EXPECT_EQ(0U, value) << "Unique pool array didn't initialise correctly at index " << &value - &(*(result4.second->cbegin()));
+	}
+	auto result5 = pool1.make_unique<uint_array>();
+	EXPECT_EQ(tme::make_result::pool_full, result5.first) << "Full pool is still allocating";
+	EXPECT_EQ(nullptr, result5.second.get()) << "Pointer returned from full pool is not null";
+    }
+}
+
 TEST(pool_test, make_shared_basic)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
@@ -299,6 +342,65 @@ TEST(pool_test, make_shared_large_block)
     EXPECT_EQ(tme::make_result::success, result7.first) << "Make shared pool string failed";
     EXPECT_EQ(std::string("&*("), *result7.second) << "Shared pool string didn't initialise";
     std::shared_ptr<std::string> copy6 = result7.second;
+}
+
+TEST(pool_test, make_shared_array)
+{
+    typedef std::array<std::uint32_t, 8> uint_array;
+    typedef tme::block_pool<sizeof(uint_array)> array_pool;
+    array_pool pool1(2U, 1U);
+    {
+	std::shared_ptr<uint_array> copy1;
+	std::shared_ptr<uint_array> copy2;
+	{
+	    auto result1 = pool1.make_shared<uint_array>();
+	    EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool array failed";
+	    std::fill(result1.second->begin(), result1.second->end(), 15U);
+	    auto result2 = pool1.make_shared<uint_array>();
+	    EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool array failed";
+	    std::fill(result2.second->begin(), result2.second->end(), 256U);
+	    copy1 = result1.second;
+	    copy2 = result2.second;
+	}
+	for (std::uint32_t& value: *copy1)
+	{
+	    value *= 2;
+	}
+	for (std::uint32_t& value: *copy2)
+	{
+	    value *= 2;
+	}
+	for (const std::uint32_t& value: *copy1)
+	{
+	    EXPECT_EQ(15U * 2, value) << "Shared pool array didn't initialise correctly at index " << &value - &(*(copy1->cbegin()));
+	}
+	for (const std::uint32_t& value: *copy2)
+	{
+	    EXPECT_EQ(256U * 2, value) << "Shared pool array didn't initialise correctly at index " << &value - &(*(copy2->cbegin()));
+	}
+	auto result3 = pool1.make_unique<uint_array>();
+	EXPECT_EQ(tme::make_result::pool_full, result3.first) << "Full pool is still allocating";
+	EXPECT_EQ(nullptr, result3.second.get()) << "Pointer returned from full pool is not null";
+    }
+    auto result4 = pool1.make_shared<uint_array>();
+    EXPECT_EQ(tme::make_result::success, result4.first) << "Make shared pool array failed";
+    std::fill(result4.second->begin(), result4.second->end(), 256U);
+    std::shared_ptr<uint_array> copy3 = result4.second;
+    auto result5 = pool1.make_shared<uint_array>();
+    EXPECT_EQ(tme::make_result::success, result5.first) << "Make reycled shared pool array failed";
+    std::fill(result5.second->begin(), result5.second->end(), 15U);
+    std::shared_ptr<uint_array> copy4 = result5.second;
+    for (const std::uint32_t& value: *(result4.second))
+    {
+	EXPECT_EQ(256U, value) << "Shared pool array didn't initialise correctly at index " << &value - &(*(result4.second->cbegin()));
+    }
+    for (const std::uint32_t& value: *(result5.second))
+    {
+	EXPECT_EQ(15U, value) << "Shared pool array didn't initialise correctly at index " << &value - &(*(result5.second->cbegin()));
+    }
+    auto result6 = pool1.make_shared<uint_array>();
+    EXPECT_EQ(tme::make_result::pool_full, result6.first) << "Full pool is still allocating";
+    EXPECT_EQ(nullptr, result6.second.get()) << "Pointer returned from full pool is not null";
 }
 
 TEST(pool_test, make_mixed_basic)
