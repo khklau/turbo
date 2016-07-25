@@ -11,8 +11,9 @@
 #include <utility>
 #include <turbo/algorithm/recovery.hpp>
 
-namespace tme = turbo::memory;
 namespace tar = turbo::algorithm::recovery;
+namespace tco = turbo::container;
+namespace tme = turbo::memory;
 
 TEST(pool_test, make_unique_basic)
 {
@@ -521,4 +522,299 @@ TEST(pool_test, make_mixed_array)
     auto result6 = pool1.make_shared<uint_array>();
     EXPECT_EQ(tme::make_result::pool_full, result6.first) << "Full pool is still allocating";
     EXPECT_EQ(nullptr, result6.second.get()) << "Pointer returned from full pool is not null";
+}
+
+struct record
+{
+    record();
+    record(uint16_t f, uint32_t s, uint64_t t);
+    record(const record& other);
+    bool operator==(const record& other) const;
+    uint16_t first;
+    uint32_t second;
+    uint64_t third;
+};
+
+record::record()
+    :
+	first(0U),
+	second(0U),
+	third(0U)
+{ }
+
+record::record(uint16_t f, uint32_t s, uint64_t t)
+    :
+	first(f),
+	second(s),
+	third(t)
+{ }
+
+record::record(const record& other)
+    :
+	first(other.first),
+	second(other.second),
+	third(other.third)
+{ }
+
+bool record::operator==(const record& other) const
+{
+    return first == other.first && second == other.second && third == other.third;
+}
+
+template <std::size_t limit>
+class produce_task
+{
+public:
+    typedef tme::pool_unique_ptr<record> unique_value;
+    typedef tco::mpmc_ring_queue<unique_value> queue;
+    typedef tme::block_pool<sizeof(record)> pool_type;
+    produce_task(typename queue::producer& producer, pool_type& pool, std::array<record, limit>& input);
+    ~produce_task() noexcept;
+    void run();
+    void produce();
+private:
+    typename queue::producer& producer_;
+    pool_type& pool_;
+    std::array<record, limit>& input_;
+    std::thread* thread_;
+};
+
+template <std::size_t limit>
+produce_task<limit>::produce_task(typename queue::producer& producer, pool_type& pool, std::array<record, limit>& input)
+    :
+	producer_(producer),
+	pool_(pool),
+	input_(input),
+	thread_(nullptr)
+{ }
+
+template <std::size_t limit>
+produce_task<limit>::~produce_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <std::size_t limit>
+void produce_task<limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&produce_task::produce, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <std::size_t limit>
+void produce_task<limit>::produce()
+{
+    for (auto iter = input_.begin(); iter != input_.end();)
+    {
+	tar::retry_with_random_backoff([&] () -> tar::try_state
+	{
+	    auto result = pool_.make_unique<record>(*iter);
+	    if (result.first == tme::make_result::success)
+	    {
+		tar::retry_with_random_backoff([&] () -> tar::try_state
+		{
+		    if (producer_.try_enqueue_move(std::move(result.second)) == queue::producer::result::success)
+		    {
+			++iter;
+			return tar::try_state::done;
+		    }
+		    else
+		    {
+			return tar::try_state::retry;
+		    }
+		});
+		return tar::try_state::done;
+	    }
+	    else
+	    {
+		return tar::try_state::retry;
+	    }
+	    return tar::try_state::done;
+	});
+    }
+}
+
+template <std::size_t limit>
+class consume_task
+{
+public:
+    typedef tme::pool_unique_ptr<record> unique_value;
+    typedef tco::mpmc_ring_queue<unique_value> queue;
+    consume_task(typename queue::consumer& consumer, std::array<record, limit>& output);
+    ~consume_task() noexcept;
+    void run();
+    void consume();
+private:
+    typename queue::consumer& consumer_;
+    std::array<record, limit>& output_;
+    std::thread* thread_;
+};
+
+template <std::size_t limit>
+consume_task<limit>::consume_task(typename queue::consumer& consumer, std::array<record, limit>& output)
+    :
+	consumer_(consumer),
+	output_(output),
+	thread_(nullptr)
+{ }
+
+template <std::size_t limit>
+consume_task<limit>::~consume_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <std::size_t limit>
+void consume_task<limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&consume_task::consume, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <std::size_t limit>
+void consume_task<limit>::consume()
+{
+    for (auto iter = output_.begin(); iter != output_.end();)
+    {
+	unique_value tmp;
+	tar::retry_with_random_backoff([&] () -> tar::try_state
+	{
+	    if (consumer_.try_dequeue_move(tmp) == queue::consumer::result::success)
+	    {
+		*iter = *tmp;
+		++iter;
+		return tar::try_state::done;
+	    }
+	    else
+	    {
+		return tar::try_state::retry;
+	    }
+	});
+    }
+}
+
+TEST(pool_test, messasge_passing)
+{
+    typedef tme::pool_unique_ptr<record> unique_record;
+    typedef tco::mpmc_ring_queue<unique_record> unique_record_queue;
+    typedef tme::block_pool<sizeof(record)> record_pool;
+    unique_record_queue queue1(64U, 4U);
+    record_pool pool1(8192U, 4U);
+    std::unique_ptr<std::array<record, 8192U>> expected_input(new std::array<record, 8192U>());
+    std::unique_ptr<std::array<record, 2048U>> input1(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> input2(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> input3(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> input4(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output1(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output2(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output3(new std::array<record, 2048U>());
+    std::unique_ptr<std::array<record, 2048U>> output4(new std::array<record, 2048U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	uint16_t base1 = 3U + (counter1 * 5U) + 0U;
+	record tmp{base1, base1 * 3U, base1 * 9UL};
+	(*input1)[counter1] = tmp;
+	(*expected_input)[counter1 + 0U] = tmp;
+    }
+    for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	uint16_t base2 = 3U + (counter2 * 5U) + 10240U;
+	record tmp{base2, base2 * 3U, base2 * 9UL};
+	(*input2)[counter2] = tmp;
+	(*expected_input)[counter2 + 2048U] = tmp;
+    }
+    for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	uint16_t base3 = 3U + (counter3 * 5U) + 20480;
+	record tmp{base3, base3 * 3U, base3 * 9UL};
+	(*input3)[counter3] = tmp;
+	(*expected_input)[counter3 + 4096U] = tmp;
+    }
+    for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	uint16_t base4 = 3U + (counter4 * 5U) + 30720U;
+	record tmp{base4, base4 * 3U, base4 * 9UL};
+	(*input4)[counter4] = tmp;
+	(*expected_input)[counter4 + 6144U] = tmp;
+    }
+    {
+	produce_task<2048U> producer1(queue1.get_producer(), pool1, *input1);
+	produce_task<2048U> producer2(queue1.get_producer(), pool1, *input2);
+	produce_task<2048U> producer3(queue1.get_producer(), pool1, *input3);
+	produce_task<2048U> producer4(queue1.get_producer(), pool1, *input4);
+	consume_task<2048U> consumer1(queue1.get_consumer(), *output1);
+	consume_task<2048U> consumer2(queue1.get_consumer(), *output2);
+	consume_task<2048U> consumer3(queue1.get_consumer(), *output3);
+	consume_task<2048U> consumer4(queue1.get_consumer(), *output4);
+	producer1.run();
+	consumer2.run();
+	producer2.run();
+	consumer3.run();
+	producer3.run();
+	consumer4.run();
+	producer4.run();
+	consumer1.run();
+    }
+    std::unique_ptr<std::array<record, 8192U>> actual_output(new std::array<record, 8192U>());
+    {
+	auto actual_iter = actual_output->begin();
+	for (auto out_iter = output1->cbegin(); actual_iter != actual_output->end() && out_iter != output1->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output2->cbegin(); actual_iter != actual_output->end() && out_iter != output2->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output3->cbegin(); actual_iter != actual_output->end() && out_iter != output3->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output4->cbegin(); actual_iter != actual_output->end() && out_iter != output4->cend(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+    }
+    std::stable_sort(actual_output->begin(), actual_output->end(), [] (const record& left, const record& right) -> bool
+    {
+	return left.first < right.first;
+    });
+    auto expected_iter = expected_input->cbegin();
+    auto actual_iter = actual_output->cbegin();
+    for (; expected_iter != expected_input->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    {
+	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching record consumed " <<
+		"- expected {" << expected_iter->first << ", " << expected_iter->second << ", " << expected_iter->third << "} " <<
+		"- actual {" << actual_iter->first << ", " << actual_iter->second << ", " << actual_iter->third << "}";
+    }
 }
