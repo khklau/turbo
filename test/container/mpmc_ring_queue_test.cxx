@@ -387,7 +387,7 @@ TEST(mpmc_ring_queue_test, async_struct_copy)
 {
     typedef tco::mpmc_ring_queue<record> record_queue;
     record_queue queue1(8U, 4U);
-    std::unique_ptr<std::array<record, 8192U>> expected_input(new std::array<record, 8192U>());
+    std::unique_ptr<std::array<record, 8192U>> expected_output(new std::array<record, 8192U>());
     std::unique_ptr<std::array<record, 2048U>> input1(new std::array<record, 2048U>());
     std::unique_ptr<std::array<record, 2048U>> input2(new std::array<record, 2048U>());
     std::unique_ptr<std::array<record, 2048U>> input3(new std::array<record, 2048U>());
@@ -401,28 +401,28 @@ TEST(mpmc_ring_queue_test, async_struct_copy)
 	uint16_t base1 = 3U + (counter1 * 5U) + 0U;
 	record tmp{base1, base1 * 3U, base1 * 9UL};
 	(*input1)[counter1] = tmp;
-	(*expected_input)[counter1 + 0U] = tmp;
+	(*expected_output)[counter1 + 0U] = tmp;
     }
     for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
     {
 	uint16_t base2 = 3U + (counter2 * 5U) + 10240U;
 	record tmp{base2, base2 * 3U, base2 * 9UL};
 	(*input2)[counter2] = tmp;
-	(*expected_input)[counter2 + 2048U] = tmp;
+	(*expected_output)[counter2 + 2048U] = tmp;
     }
     for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
     {
 	uint16_t base3 = 3U + (counter3 * 5U) + 20480;
 	record tmp{base3, base3 * 3U, base3 * 9UL};
 	(*input3)[counter3] = tmp;
-	(*expected_input)[counter3 + 4096U] = tmp;
+	(*expected_output)[counter3 + 4096U] = tmp;
     }
     for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
     {
 	uint16_t base4 = 3U + (counter4 * 5U) + 30720U;
 	record tmp{base4, base4 * 3U, base4 * 9UL};
 	(*input4)[counter4] = tmp;
-	(*expected_input)[counter4 + 6144U] = tmp;
+	(*expected_output)[counter4 + 6144U] = tmp;
     }
     {
 	produce_task<record, 2048U> producer1(queue1.get_producer(), *input1);
@@ -466,9 +466,9 @@ TEST(mpmc_ring_queue_test, async_struct_copy)
     {
 	return left.first < right.first;
     });
-    auto expected_iter = expected_input->cbegin();
+    auto expected_iter = expected_output->cbegin();
     auto actual_iter = actual_output->cbegin();
-    for (; expected_iter != expected_input->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    for (; expected_iter != expected_output->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
     {
 	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching record consumed " <<
 		"- expected {" << expected_iter->first << ", " << expected_iter->second << ", " << expected_iter->third << "} " <<
@@ -481,7 +481,7 @@ TEST(mpmc_ring_queue_test, async_unique_string_move)
     typedef std::unique_ptr<std::string> unique_string;
     typedef tco::mpmc_ring_queue<unique_string> unique_string_queue;
     unique_string_queue queue1(8U, 4U);
-    std::unique_ptr<std::array<unique_string, 8192U>> expected_input(new std::array<unique_string, 8192U>());
+    std::unique_ptr<std::array<unique_string, 8192U>> expected_output(new std::array<unique_string, 8192U>());
     std::unique_ptr<std::array<unique_string, 2048U>> input1(new std::array<unique_string, 2048U>());
     std::unique_ptr<std::array<unique_string, 2048U>> input2(new std::array<unique_string, 2048U>());
     std::unique_ptr<std::array<unique_string, 2048U>> input3(new std::array<unique_string, 2048U>());
@@ -499,7 +499,7 @@ TEST(mpmc_ring_queue_test, async_unique_string_move)
 	unique_string tmp1(new std::string(ostream.str()));
 	unique_string tmp2(new std::string(ostream.str()));
 	(*input1)[counter1] = std::move(tmp1);
-	(*expected_input)[counter1 + 0U] = std::move(tmp2);
+	(*expected_output)[counter1 + 0U] = std::move(tmp2);
     }
     for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
     {
@@ -510,7 +510,7 @@ TEST(mpmc_ring_queue_test, async_unique_string_move)
 	unique_string tmp1(new std::string(ostream.str()));
 	unique_string tmp2(new std::string(ostream.str()));
 	(*input2)[counter2] = std::move(tmp1);
-	(*expected_input)[counter2 + 2048U] = std::move(tmp2);
+	(*expected_output)[counter2 + 2048U] = std::move(tmp2);
     }
     for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
     {
@@ -521,7 +521,7 @@ TEST(mpmc_ring_queue_test, async_unique_string_move)
 	unique_string tmp1(new std::string(ostream.str()));
 	unique_string tmp2(new std::string(ostream.str()));
 	(*input3)[counter3] = std::move(tmp1);
-	(*expected_input)[counter3 + 4096U] = std::move(tmp2);
+	(*expected_output)[counter3 + 4096U] = std::move(tmp2);
     }
     for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
     {
@@ -532,7 +532,7 @@ TEST(mpmc_ring_queue_test, async_unique_string_move)
 	unique_string tmp1(new std::string(ostream.str()));
 	unique_string tmp2(new std::string(ostream.str()));
 	(*input4)[counter4] = std::move(tmp1);
-	(*expected_input)[counter4 + 6144U] = std::move(tmp2);
+	(*expected_output)[counter4 + 6144U] = std::move(tmp2);
     }
     {
 	produce_task<unique_string, 2048U> producer1(queue1.get_producer(), *input1);
@@ -591,9 +591,9 @@ TEST(mpmc_ring_queue_test, async_unique_string_move)
 	    return true;
 	}
     });
-    auto expected_iter = expected_input->cbegin();
+    auto expected_iter = expected_output->cbegin();
     auto actual_iter = actual_output->cbegin();
-    for (; expected_iter != expected_input->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    for (; expected_iter != expected_output->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
     {
 	bool valid_expected = expected_iter->get() != nullptr;
 	bool valid_actual = actual_iter->get() != nullptr;
@@ -615,7 +615,7 @@ TEST(mpmc_ring_queue_test, async_string_copy)
 {
     typedef tco::mpmc_ring_queue<std::string> string_queue;
     string_queue queue1(8U, 4U);
-    std::unique_ptr<std::array<std::string, 8192U>> expected_input(new std::array<std::string, 8192U>());
+    std::unique_ptr<std::array<std::string, 8192U>> expected_output(new std::array<std::string, 8192U>());
     std::unique_ptr<std::array<std::string, 2048U>> input1(new std::array<std::string, 2048U>());
     std::unique_ptr<std::array<std::string, 2048U>> input2(new std::array<std::string, 2048U>());
     std::unique_ptr<std::array<std::string, 2048U>> input3(new std::array<std::string, 2048U>());
@@ -631,7 +631,7 @@ TEST(mpmc_ring_queue_test, async_string_copy)
 	ostream << std::setw(8) << std::setfill('0');
 	ostream << std::to_string(std::hash<uint64_t>()(counter1 + 0U));
 	(*input1)[counter1] = ostream.str();
-	(*expected_input)[counter1 + 0U] = ostream.str();
+	(*expected_output)[counter1 + 0U] = ostream.str();
     }
     for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
     {
@@ -640,7 +640,7 @@ TEST(mpmc_ring_queue_test, async_string_copy)
 	ostream << std::setw(8) << std::setfill('0');
 	ostream << std::to_string(std::hash<uint64_t>()(counter2 + 2048U));
 	(*input2)[counter2] = ostream.str();
-	(*expected_input)[counter2 + 2048U] = ostream.str();
+	(*expected_output)[counter2 + 2048U] = ostream.str();
     }
     for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
     {
@@ -649,7 +649,7 @@ TEST(mpmc_ring_queue_test, async_string_copy)
 	ostream << std::setw(8) << std::setfill('0');
 	ostream << std::to_string(std::hash<uint64_t>()(counter3 + 4096U));
 	(*input3)[counter3] = ostream.str();
-	(*expected_input)[counter3 + 4096U] = ostream.str();
+	(*expected_output)[counter3 + 4096U] = ostream.str();
     }
     for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
     {
@@ -658,7 +658,7 @@ TEST(mpmc_ring_queue_test, async_string_copy)
 	ostream << std::setw(8) << std::setfill('0');
 	ostream << std::to_string(std::hash<uint64_t>()(counter4 + 6144U));
 	(*input4)[counter4] = ostream.str();
-	(*expected_input)[counter4 + 6144U] = ostream.str();
+	(*expected_output)[counter4 + 6144U] = ostream.str();
     }
     {
 	produce_task<std::string, 2048U> producer1(queue1.get_producer(), *input1);
@@ -702,9 +702,9 @@ TEST(mpmc_ring_queue_test, async_string_copy)
     {
 	return left < right;
     });
-    auto expected_iter = expected_input->cbegin();
+    auto expected_iter = expected_output->cbegin();
     auto actual_iter = actual_output->cbegin();
-    for (; expected_iter != expected_input->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    for (; expected_iter != expected_output->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
     {
 	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching std::string consumed " <<
 		"- expected '" << expected_iter->c_str() << "' " <<
