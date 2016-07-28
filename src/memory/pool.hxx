@@ -11,14 +11,14 @@ namespace turbo {
 namespace memory {
 
 template <std::size_t block_size_c, template <class type_t> class allocator_t>
-block_pool<block_size_c, allocator_t>::block_pool(index_type capacity, uint16_t user_limit)
+block_pool<block_size_c, allocator_t>::block_pool(capacity_type capacity)
     :
-	free_list_(capacity, user_limit),
+	free_list_(capacity, 0U),
 	block_list_(capacity)
 {
     namespace tar = turbo::algorithm::recovery;
     memset(block_list_.data(), 0, sizeof(block_type) * capacity);
-    for (index_type index = 0; index < capacity; ++index)
+    for (capacity_type index = 0; index < capacity; ++index)
     {
 	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
@@ -35,10 +35,22 @@ block_pool<block_size_c, allocator_t>::block_pool(index_type capacity, uint16_t 
 }
 
 template <std::size_t block_size_c, template <class type_t> class allocator_t>
+std::size_t block_pool<block_size_c, allocator_t>::get_byte_size() const
+{
+    return sizeof(block_type) * block_list_.size();
+}
+
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
+const void* block_pool<block_size_c, allocator_t>::get_base_address() const
+{
+    return block_list_.data();
+}
+
+template <std::size_t block_size_c, template <class type_t> class allocator_t>
 std::pair<make_result, void*> block_pool<block_size_c, allocator_t>::allocate()
 {
     namespace tar = turbo::algorithm::recovery;
-    index_type reservation = 0U;
+    capacity_type reservation = 0U;
     make_result result = make_result::pool_full;
     tar::retry_with_random_backoff([&] () -> tar::try_state
     {

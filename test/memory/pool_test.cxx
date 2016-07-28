@@ -18,7 +18,7 @@ namespace tme = turbo::memory;
 TEST(pool_test, make_unique_basic)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	auto result1 = pool1.make_unique<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
@@ -35,7 +35,7 @@ TEST(pool_test, make_unique_basic)
 TEST(pool_test, make_unique_full)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(2U, 1U);
+    string_pool pool1(2U);
     {
 	auto result1 = pool1.make_unique<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
@@ -52,7 +52,7 @@ TEST(pool_test, make_unique_full)
 TEST(pool_test, make_unique_recycle)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	auto result1 = pool1.make_unique<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
@@ -83,7 +83,7 @@ TEST(pool_test, make_unique_recycle)
 TEST(pool_test, make_unique_moved)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	tme::pool_unique_ptr<std::string> moved1;
 	tme::pool_unique_ptr<std::string> moved2;
@@ -130,7 +130,7 @@ constexpr std::size_t double_string()
 TEST(pool_test, make_unique_large_block)
 {
     typedef tme::block_pool<double_string()> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	auto result1 = pool1.make_unique<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
@@ -162,7 +162,7 @@ TEST(pool_test, make_unique_array)
 {
     typedef std::array<std::uint32_t, 8> uint_array;
     typedef tme::block_pool<sizeof(uint_array)> array_pool;
-    array_pool pool1(2U, 1U);
+    array_pool pool1(2U);
     {
 	auto result1 = pool1.make_unique<uint_array>();
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool array failed";
@@ -203,7 +203,7 @@ TEST(pool_test, make_unique_array)
 TEST(pool_test, make_shared_basic)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	auto result1 = pool1.make_shared<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
@@ -220,7 +220,7 @@ TEST(pool_test, make_shared_basic)
 TEST(pool_test, make_shared_full)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(2U, 1U);
+    string_pool pool1(2U);
     {
 	auto result1 = pool1.make_shared<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
@@ -237,7 +237,7 @@ TEST(pool_test, make_shared_full)
 TEST(pool_test, make_shared_recycle)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	auto result1 = pool1.make_shared<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
@@ -268,7 +268,7 @@ TEST(pool_test, make_shared_recycle)
 TEST(pool_test, make_shared_copied)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	std::shared_ptr<std::string> copy1;
 	std::shared_ptr<std::string> copy2;
@@ -308,7 +308,7 @@ TEST(pool_test, make_shared_copied)
 TEST(pool_test, make_shared_large_block)
 {
     typedef tme::block_pool<double_string()> string_pool;
-    string_pool pool1(3U, 1U);
+    string_pool pool1(3U);
     {
 	std::shared_ptr<std::string> copy1;
 	std::shared_ptr<std::string> copy2;
@@ -349,7 +349,7 @@ TEST(pool_test, make_shared_array)
 {
     typedef std::array<std::uint32_t, 8> uint_array;
     typedef tme::block_pool<sizeof(uint_array)> array_pool;
-    array_pool pool1(2U, 1U);
+    array_pool pool1(2U);
     {
 	std::shared_ptr<uint_array> copy1;
 	std::shared_ptr<uint_array> copy2;
@@ -407,7 +407,7 @@ TEST(pool_test, make_shared_array)
 TEST(pool_test, make_mixed_full)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(4U, 1U);
+    string_pool pool1(4U);
     {
 	auto result1 = pool1.make_unique<std::string>("abc123");
 	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
@@ -430,7 +430,7 @@ TEST(pool_test, make_mixed_full)
 TEST(pool_test, make_mixed_transferred)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;
-    string_pool pool1(4U, 1U);
+    string_pool pool1(4U);
     {
 	tme::pool_unique_ptr<std::string> move1;
 	std::shared_ptr<std::string> copy2;
@@ -470,7 +470,7 @@ TEST(pool_test, make_mixed_array)
 {
     typedef std::array<std::uint32_t, 8> uint_array;
     typedef tme::block_pool<sizeof(uint_array)> array_pool;
-    array_pool pool1(2U, 1U);
+    array_pool pool1(2U);
     {
 	std::shared_ptr<uint_array> copy1;
 	tme::pool_unique_ptr<uint_array> move2;
@@ -728,7 +728,7 @@ TEST(pool_test, messasge_passing)
     typedef tco::mpmc_ring_queue<unique_record> unique_record_queue;
     typedef tme::block_pool<sizeof(record)> record_pool;
     unique_record_queue queue1(64U, 4U);
-    record_pool pool1(8192U, 4U);
+    record_pool pool1(8192U);
     std::unique_ptr<std::array<record, 8192U>> expected_output(new std::array<record, 8192U>());
     std::unique_ptr<std::array<record, 2048U>> input1(new std::array<record, 2048U>());
     std::unique_ptr<std::array<record, 2048U>> input2(new std::array<record, 2048U>());
@@ -1003,7 +1003,7 @@ void use_shared_task<limit>::use()
 TEST(pool_test, parallel_use)
 {
     typedef tme::block_pool<sizeof(oct_short)> oct_pool;
-    oct_pool pool1(8192U, 4U);
+    oct_pool pool1(8192U);
     std::unique_ptr<std::array<oct_short, 2048U>> input1(new std::array<oct_short, 2048U>());
     std::unique_ptr<std::array<oct_short, 2048U>> input2(new std::array<oct_short, 2048U>());
     std::unique_ptr<std::array<oct_short, 2048U>> input3(new std::array<oct_short, 2048U>());
