@@ -3,8 +3,10 @@
 
 #include <turbo/memory/pool.hpp>
 #include <cstring>
+#include <algorithm>
 #include <limits>
 #include <turbo/algorithm/recovery.hpp>
+#include <turbo/toolset/extension.hpp>
 #include <turbo/container/mpmc_ring_queue.hxx>
 
 namespace turbo {
@@ -157,6 +159,101 @@ std::pair<make_result, std::shared_ptr<value_t>> block_pool<block_size_c, alloca
     else
     {
 	return std::make_pair(result.first, std::shared_ptr<value_t>());
+    }
+}
+
+block_config::block_config()
+    :
+	block_size(0U),
+	initial_capacity(0U)
+{ }
+
+block_config::block_config(std::size_t size, capacity_type capacity)
+    :
+	block_size(size),
+	initial_capacity(capacity)
+{ }
+
+bool block_config::operator<(const block_config& other) const
+{
+    return block_size < other.block_size;
+}
+
+bool block_config::operator==(const block_config& other) const
+{
+    return block_size == other.block_size && initial_capacity == other.initial_capacity;
+}
+
+template <class block_pool_t>
+class node
+{
+public:
+    enum class status : std::uint8_t
+    {
+	unused,
+	initialising,
+	ready
+    };
+    node();
+private:
+    std::atomic<status> guard;
+    std::unique_ptr<block_pool_t> pool;
+    std::unique_ptr<node> next;
+};
+
+template <template <class type_t> class allocator_t>
+range_pool<allocator_t>::range_pool(capacity_type default_capacity, const std::vector<block_config>& config)
+    :
+	range_pool(default_capacity, config, 2U)
+{ }
+
+
+template <template <class type_t> class allocator_t>
+range_pool<allocator_t>::range_pool(capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor)
+    :
+	default_capacity_(default_capacity),
+	smallest_block_(0U)
+{
+}
+
+template <template <class type_t> class allocator_t>
+std::vector<block_config> range_pool<allocator_t>::sanitize(const std::vector<block_config>& config, std::uint8_t step_factor)
+{
+    std::vector<block_config> sorted(config);
+    std::stable_sort(sorted.begin(), sorted.end());
+    if (TURBO_LIKELY(!sorted.empty()))
+    {
+	std::size_t desired_size = sorted.cbegin()->block_size;
+	std::vector<block_config> result;
+	auto this_step = sorted.cbegin();
+	do
+	{
+	    auto next_step = std::find_if(this_step, sorted.cend(), [&] (const block_config& config) -> bool
+	    {
+		return desired_size < config.block_size;
+	    });
+	    if (next_step == this_step)
+	    {
+		result.emplace_back(desired_size, 0U);
+	    }
+	    else
+	    {
+		std::size_t total_capacity = 0U;
+		std::for_each(this_step, next_step, [&] (const block_config& config) -> void
+		{
+		    total_capacity += config.initial_capacity;
+		});
+		result.emplace_back(desired_size, total_capacity);
+	    }
+	    desired_size *= step_factor;
+	    this_step = next_step;
+	}
+	while (this_step != sorted.cend());
+	return result;
+    }
+    else
+    {
+	return std::vector<block_config>();
     }
 }
 
