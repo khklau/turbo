@@ -223,6 +223,10 @@ std::vector<block_config> range_pool<allocator_t>::sanitize(const std::vector<bl
     std::stable_sort(sorted.begin(), sorted.end());
     if (TURBO_LIKELY(!sorted.empty()))
     {
+	if (TURBO_UNLIKELY(step_factor < 2))
+	{
+	    step_factor = 2;
+	}
 	std::size_t desired_size = sorted.cbegin()->block_size;
 	std::vector<block_config> result;
 	auto this_step = sorted.cbegin();
