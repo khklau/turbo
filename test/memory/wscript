@@ -11,6 +11,18 @@ def configure(confCtx):
 def build(buildCtx):
     buildCtx.env.component = buildCtx.env.product.getComponent(name(buildCtx))
     buildCtx.program(
+	    name='exe_alignment_test',
+	    source=[buildCtx.path.find_node('alignment_test.cxx')],
+	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'alignment_test'),
+	    defines=['GTEST_HAS_PTHREAD=1'],
+	    includes=['.'] + buildCtx.env.component.include_path_list,
+	    cxxflags=buildCtx.env.CXXFLAGS,
+	    linkflags=buildCtx.env.LDFLAGS,
+	    use=['GTEST', 'shlib_turbo_memory'],
+	    libpath=['.'] + buildCtx.env.component.lib_path_list,
+	    rpath=buildCtx.env.component.rpath_list,
+	    install_path=None)
+    buildCtx.program(
 	    name='exe_pool_test',
 	    source=[buildCtx.path.find_node('pool_test.cxx')],
 	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'pool_test'),
@@ -18,7 +30,7 @@ def build(buildCtx):
 	    includes=['.'] + buildCtx.env.component.include_path_list,
 	    cxxflags=buildCtx.env.CXXFLAGS,
 	    linkflags=buildCtx.env.LDFLAGS,
-	    use=['GTEST', 'shlib_turbo_algorithm', 'shlib_turbo_filesystem'],
+	    use=['GTEST', 'shlib_turbo_memory'],
 	    libpath=['.'] + buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=None)
