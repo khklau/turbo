@@ -132,4 +132,56 @@ TEST(alignment_test, align_insufficient_space)
     void* result1 = tme::align(sizeof(std::uint32_t), sizeof(std::uint64_t) * 2, tmp1, size1);
     ptr1 = static_cast<std::uint8_t*>(tmp1);
     EXPECT_EQ(nullptr, result1) << "When available space is too small nullptr was not returned";
+
+    std::uint8_t buffer2[8];
+    std::uint8_t* ptr2 = &buffer2[0];
+    std::size_t size2 = 0U;
+    void* tmp2 = static_cast<void*>(ptr2);
+    void* result2 = tme::align(sizeof(std::uint32_t) * 4, sizeof(std::uint32_t), tmp2, size2);
+    ptr2 = static_cast<std::uint8_t*>(tmp2);
+    EXPECT_EQ(nullptr, result2) << "When alignment is larger than size nullptr was not returned";
+}
+
+TEST(alignment_test, align_void_pointer)
+{
+    void* tmp1 = nullptr;
+    std::size_t size1 = 4U;
+    void* result1 = tme::align(sizeof(std::uint16_t), sizeof(std::uint16_t), tmp1, size1);
+    EXPECT_EQ(nullptr, result1) << "When null pointer argument was given a nullptr was not returned";
+}
+
+TEST(alignment_test, align_zero_alignment)
+{
+    std::uint8_t buffer1[64];
+    std::uint8_t* actual_ptr1 = &buffer1[0];
+    std::size_t actual_size1 = sizeof(buffer1);
+    if ((reinterpret_cast<std::uintptr_t>(actual_ptr1) % 2U) == 0)
+    {
+	++actual_ptr1;
+    }
+    std::uint8_t* expected_ptr1 = actual_ptr1;
+    std::size_t expected_size1 = actual_size1;
+    void* tmp1 = static_cast<void*>(actual_ptr1);
+    tme::align(0U, sizeof(std::uint16_t), tmp1, actual_size1);
+    actual_ptr1 = static_cast<std::uint8_t*>(tmp1);
+    EXPECT_EQ(expected_ptr1, actual_ptr1) << "Pointer was aligned when alignment is zero";
+    EXPECT_EQ(expected_size1, actual_size1) << "Space variable changed when alignment is zero";
+}
+
+TEST(alignment_test, align_zero_element_size)
+{
+    std::uint8_t buffer1[64];
+    std::uint8_t* actual_ptr1 = &buffer1[0];
+    std::size_t actual_size1 = sizeof(buffer1);
+    if ((reinterpret_cast<std::uintptr_t>(actual_ptr1) % 2U) == 0)
+    {
+	++actual_ptr1;
+    }
+    std::uint8_t* expected_ptr1 = actual_ptr1 + 1;
+    std::size_t expected_size1 = actual_size1 - 1;
+    void* tmp1 = static_cast<void*>(actual_ptr1);
+    tme::align(sizeof(std::uint16_t), 0U, tmp1, actual_size1);
+    actual_ptr1 = static_cast<std::uint8_t*>(tmp1);
+    EXPECT_EQ(expected_ptr1, actual_ptr1) << "Pointer is not aligned";
+    EXPECT_EQ(expected_size1, actual_size1) << "Incorrect available space";
 }
