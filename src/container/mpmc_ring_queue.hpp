@@ -28,7 +28,7 @@ template <class value_t, class allocator_t = std::allocator<value_t>> class mpmc
 template <class value_t, class allocator_t = std::allocator<value_t>> class mpmc_ring_queue;
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
-class alignas(LEVEL1_DCACHE_LINESIZE) TURBO_SYMBOL_DECL mpmc_producer
+class alignas(LEVEL1_DCACHE_LINESIZE) mpmc_producer
 {
 public:
     typedef value_t value_type;
@@ -53,7 +53,7 @@ private:
 };
 
 template <class value_t, class allocator_t = std::allocator<value_t>>
-class alignas(LEVEL1_DCACHE_LINESIZE) TURBO_SYMBOL_DECL mpmc_consumer
+class alignas(LEVEL1_DCACHE_LINESIZE) mpmc_consumer
 {
 public:
     typedef value_t value_type;
