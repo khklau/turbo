@@ -18,6 +18,16 @@ out_of_memory_error::out_of_memory_error(const char* what)
 	runtime_error(what)
 { }
 
+invalid_size_error::invalid_size_error(const std::string& what)
+    :
+	invalid_argument(what)
+{ }
+
+invalid_size_error::invalid_size_error(const char* what)
+    :
+	invalid_argument(what)
+{ }
+
 invalid_alignment_error::invalid_alignment_error(const std::string& what)
     :
 	invalid_argument(what)
@@ -52,11 +62,15 @@ block::block(std::size_t value_size, capacity_type capacity, std::size_t alignme
 	base_(&(storage_[0])),
 	free_list_(capacity, 0U)
 {
-    std::fill_n(base_, usable_size_, 0U);
+    if (TURBO_UNLIKELY(value_size == 0))
+    {
+	throw invalid_size_error("value size cannot be 0");
+    }
     if (TURBO_UNLIKELY(!storage_))
     {
 	throw out_of_memory_error("insufficient space in heap");
     }
+    std::fill_n(base_, usable_size_, 0U);
     void* tmp = base_;
     if (TURBO_UNLIKELY(!turbo::memory::align(alignment, value_size_, tmp, usable_size_)))
     {

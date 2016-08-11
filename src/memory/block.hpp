@@ -16,6 +16,13 @@ public:
     explicit out_of_memory_error(const char* what);
 };
 
+class invalid_size_error : public std::invalid_argument
+{
+public:
+    explicit invalid_size_error(const std::string& what);
+    explicit invalid_size_error(const char* what);
+};
+
 class invalid_alignment_error : public std::invalid_argument
 {
 public:
