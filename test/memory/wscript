@@ -23,6 +23,18 @@ def build(buildCtx):
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=None)
     buildCtx.program(
+	    name='exe_block_test',
+	    source=[buildCtx.path.find_node('block_test.cxx')],
+	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'block_test'),
+	    defines=['GTEST_HAS_PTHREAD=1'],
+	    includes=['.'] + buildCtx.env.component.include_path_list,
+	    cxxflags=buildCtx.env.CXXFLAGS,
+	    linkflags=buildCtx.env.LDFLAGS,
+	    use=['GTEST', 'shlib_turbo_memory'],
+	    libpath=['.'] + buildCtx.env.component.lib_path_list,
+	    rpath=buildCtx.env.component.rpath_list,
+	    install_path=None)
+    buildCtx.program(
 	    name='exe_pool_test',
 	    source=[buildCtx.path.find_node('pool_test.cxx')],
 	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'pool_test'),
