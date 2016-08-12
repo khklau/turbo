@@ -88,8 +88,8 @@ public:
     typedef mpmc_consumer<value_t, allocator_t> consumer;
     typedef mpmc_key<value_t, allocator_t> key;
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
-    inline producer& get_producer();
-    inline consumer& get_consumer();
+    producer& get_producer();
+    consumer& get_consumer();
     typename producer::result try_enqueue_copy(const value_t& input);
     typename producer::result try_enqueue_move(value_t&& input);
     typename consumer::result try_dequeue_copy(value_t& output);
