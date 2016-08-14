@@ -208,7 +208,7 @@ void produce_task<value_t, limit>::produce()
 	    value_t* result = static_cast<value_t*>(block_.allocate());
 	    if (result != nullptr)
 	    {
-		*result = *iter;
+		new (result) value_t(*iter);
 		tar::retry_with_random_backoff([&] () -> tar::try_state
 		{
 		    if (producer_.try_enqueue_copy(result) == queue::producer::result::success)
@@ -399,4 +399,114 @@ TEST(block_test, messasge_pass_struct)
 		"- expected {" << expected_iter->first << ", " << expected_iter->second << ", " << expected_iter->third << "} " <<
 		"- actual {" << actual_iter->first << ", " << actual_iter->second << ", " << actual_iter->third << "}";
     }
+}
+
+TEST(block_test, message_pass_string)
+{
+    typedef tco::mpmc_ring_queue<std::string*> string_queue;
+    string_queue queue1(8U, 4U);
+    tme::block block1(sizeof(std::string), 8192U, alignof(std::string));
+    std::unique_ptr<std::array<std::string, 8192U>> expected_output(new std::array<std::string, 8192U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input4(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output4(new std::array<std::string, 2048U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	std::ostringstream ostream;
+	ostream << "a";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter1 + 0U));
+	(*input1)[counter1] = ostream.str();
+	(*expected_output)[counter1 + 0U] = ostream.str();
+    }
+    for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	std::ostringstream ostream;
+	ostream << "b";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter2 + 2048U));
+	(*input2)[counter2] = ostream.str();
+	(*expected_output)[counter2 + 2048U] = ostream.str();
+    }
+    for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	std::ostringstream ostream;
+	ostream << "c";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter3 + 4096U));
+	(*input3)[counter3] = ostream.str();
+	(*expected_output)[counter3 + 4096U] = ostream.str();
+    }
+    for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	std::ostringstream ostream;
+	ostream << "d";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter4 + 6144U));
+	(*input4)[counter4] = ostream.str();
+	(*expected_output)[counter4 + 6144U] = ostream.str();
+    }
+    {
+	produce_task<std::string, 2048U> producer1(queue1.get_producer(), block1, *input1);
+	produce_task<std::string, 2048U> producer2(queue1.get_producer(), block1, *input2);
+	produce_task<std::string, 2048U> producer3(queue1.get_producer(), block1, *input3);
+	produce_task<std::string, 2048U> producer4(queue1.get_producer(), block1, *input4);
+	consume_task<std::string, 2048U> consumer1(queue1.get_consumer(), block1, *output1);
+	consume_task<std::string, 2048U> consumer2(queue1.get_consumer(), block1, *output2);
+	consume_task<std::string, 2048U> consumer3(queue1.get_consumer(), block1, *output3);
+	consume_task<std::string, 2048U> consumer4(queue1.get_consumer(), block1, *output4);
+	producer4.run();
+	consumer1.run();
+	producer3.run();
+	consumer2.run();
+	producer2.run();
+	consumer3.run();
+	producer1.run();
+	consumer4.run();
+    }
+    std::unique_ptr<std::array<std::string, 8192U>> actual_output(new std::array<std::string, 8192U>());
+    {
+	auto actual_iter = actual_output->begin();
+	for (auto out_iter = output1->begin(); actual_iter != actual_output->end() && out_iter != output1->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output2->begin(); actual_iter != actual_output->end() && out_iter != output2->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output3->begin(); actual_iter != actual_output->end() && out_iter != output3->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output4->begin(); actual_iter != actual_output->end() && out_iter != output4->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+    }
+    std::stable_sort(actual_output->begin(), actual_output->end(), [] (const std::string& left, const std::string& right) -> bool
+    {
+	return left < right;
+    });
+    auto expected_iter = expected_output->cbegin();
+    auto actual_iter = actual_output->cbegin();
+    for (; expected_iter != expected_output->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    {
+	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching std::string consumed " <<
+		"- expected '" << expected_iter->c_str() << "' " <<
+		"- actual '" << actual_iter->c_str() << "'";
+    }
+}
+
+void random_spin()
+{
+    std::random_device device;
+    std::uint64_t limit = 0U;
+    limit = device() % 128;
+    for (std::uint64_t iter = 0U; iter < limit; ++iter) { };
 }
