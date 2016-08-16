@@ -1128,11 +1128,11 @@ TEST(pool_test, parallel_use)
     }
 }
 
-TEST(pool_test, sanitize_positive)
+TEST(pool_test, sanitise_positive)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected1{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual1(tme::range_pool<>::sanitize(input1, 2U));
+    std::vector<tme::block_config> actual1(tme::range_pool<>::sanitise(input1, 2U));
     EXPECT_TRUE(!actual1.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -1146,7 +1146,7 @@ TEST(pool_test, sanitize_positive)
 
     std::vector<tme::block_config> input2{ {64U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual2(tme::range_pool<>::sanitize(input2, 2U));
+    std::vector<tme::block_config> actual2(tme::range_pool<>::sanitise(input2, 2U));
     EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -1160,7 +1160,7 @@ TEST(pool_test, sanitize_positive)
 
     std::vector<tme::block_config> input3{ {32U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
-    std::vector<tme::block_config> actual3(tme::range_pool<>::sanitize(input3, 2U));
+    std::vector<tme::block_config> actual3(tme::range_pool<>::sanitise(input3, 2U));
     EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -1172,7 +1172,7 @@ TEST(pool_test, sanitize_positive)
 
     std::vector<tme::block_config> input4{ {16U, 16U}, {64U, 4U} };
     std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
-    std::vector<tme::block_config> actual4(tme::range_pool<>::sanitize(input4, 2U));
+    std::vector<tme::block_config> actual4(tme::range_pool<>::sanitise(input4, 2U));
     EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -1185,15 +1185,15 @@ TEST(pool_test, sanitize_positive)
 	    << "{" << actual4[2].block_size << ", " << actual4[2].initial_capacity << "} ]";
 }
 
-TEST(pool_test, sanitize_negative)
+TEST(pool_test, sanitise_negative)
 {
     std::vector<tme::block_config> input1;
-    std::vector<tme::block_config> actual1(tme::range_pool<>::sanitize(input1, 2U));
+    std::vector<tme::block_config> actual1(tme::range_pool<>::sanitise(input1, 2U));
     EXPECT_TRUE(actual1.empty()) << "Empty output from non-empty input";
 
     std::vector<tme::block_config> input2{ {64U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual2(tme::range_pool<>::sanitize(input2, 0U));
+    std::vector<tme::block_config> actual2(tme::range_pool<>::sanitise(input2, 0U));
     EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -1207,7 +1207,7 @@ TEST(pool_test, sanitize_negative)
 
     std::vector<tme::block_config> input3{ {32U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
-    std::vector<tme::block_config> actual3(tme::range_pool<>::sanitize(input3, 1U));
+    std::vector<tme::block_config> actual3(tme::range_pool<>::sanitise(input3, 1U));
     EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -1219,7 +1219,7 @@ TEST(pool_test, sanitize_negative)
 
     std::vector<tme::block_config> input4{ {16U, 16U}, {64U, 4U} };
     std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
-    std::vector<tme::block_config> actual4(tme::range_pool<>::sanitize(input4, 1U));
+    std::vector<tme::block_config> actual4(tme::range_pool<>::sanitise(input4, 1U));
     EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "

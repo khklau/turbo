@@ -212,12 +212,18 @@ template <template <class type_t> class allocator_t>
 range_pool<allocator_t>::range_pool(capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor)
     :
 	default_capacity_(default_capacity),
+	step_factor_(step_factor < 2U ? 2U : step_factor),
 	smallest_block_(0U)
 {
+    std::vector<block_config> sanitised(sanitise(config, step_factor_));
+    if (!sanitised.empty())
+    {
+	smallest_block_ = sanitised.cbegin()->block_size;
+    }
 }
 
 template <template <class type_t> class allocator_t>
-std::vector<block_config> range_pool<allocator_t>::sanitize(const std::vector<block_config>& config, std::uint8_t step_factor)
+std::vector<block_config> range_pool<allocator_t>::sanitise(const std::vector<block_config>& config, std::uint8_t step_factor)
 {
     std::vector<block_config> sorted(config);
     std::stable_sort(sorted.begin(), sorted.end());
