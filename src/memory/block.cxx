@@ -141,7 +141,7 @@ void block::free(void* pointer)
 	throw invalid_pointer_error("address points to the middle of a value");
     }
     std::size_t offset = diff / value_size_;
-    if (offset < usable_size_)
+    if (offset < (usable_size_ / value_size_))
     {
 	tar::retry_with_random_backoff([&] () -> tar::try_state
 	{
