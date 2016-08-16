@@ -23,6 +23,33 @@ TEST(block_test, invalid_construction)
     ASSERT_THROW(tme::block(sizeof(std::uint8_t), 2U, alignof(std::uint64_t)), tme::invalid_alignment_error);
 }
 
+TEST(block_test, invalid_free)
+{
+    tme::block block1(sizeof(std::uint64_t), 3U, alignof(std::uint64_t));
+    ASSERT_THROW(block1.free(nullptr), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing a nullptr argument";
+    std::uint64_t stack1 = 54U;
+    ASSERT_THROW(block1.free(&stack1), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing a pointer to stack argument";
+    static std::uint16_t constant1 = 72U;
+    std::uint16_t* constantptr1 = &constant1;
+    ASSERT_THROW(block1.free(&constantptr1), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing a pointer to constant argument";
+    tme::block block2(sizeof(std::uint16_t), 16U, alignof(std::uint16_t));
+    std::uint16_t* heap1 = static_cast<std::uint16_t*>(block2.allocate());
+    ASSERT_THROW(block1.free(heap1), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing address from a different block";
+    ASSERT_NO_THROW(block2.free(heap1));
+    tme::block block3(sizeof(std::uint64_t), 3U, alignof(std::uint64_t));
+    std::uint64_t* heap2 = static_cast<std::uint64_t*>(block3.allocate());
+    ASSERT_THROW(block1.free(heap2), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing address from a different block";
+    ASSERT_NO_THROW(block3.free(heap2));
+    std::uint8_t* heap3 = static_cast<std::uint8_t*>(block1.allocate());
+    std::uint8_t* heap4 = heap3 + 3;
+    ASSERT_THROW(block1.free(heap4), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing an address that refers to the middle of value";
+    ASSERT_NO_THROW(block1.free(heap3));
+    std::uint64_t* heap5 = static_cast<std::uint64_t*>(block1.allocate());
+    std::uint64_t* heap6 = heap5 + (block1.get_usable_size() / sizeof(std::uint64_t)) + 2;
+    ASSERT_THROW(block1.free(heap6), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing an address outside the block's address range";
+    ASSERT_NO_THROW(block1.free(heap5));
+}
+
 TEST(block_test, allocate_basic)
 {
     tme::block block1(sizeof(std::uint64_t), 3U, alignof(std::uint64_t));
