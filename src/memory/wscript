@@ -9,7 +9,8 @@ publicHeaders = [
 
 sourceFiles = [
     'alignment.cxx',
-    'block.cxx']
+    'block.cxx',
+    'pool.cxx']
 
 def name(context):
     return os.path.basename(str(context.path))

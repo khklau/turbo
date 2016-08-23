@@ -2,12 +2,14 @@
 #define TURBO_MEMORY_POOL_HPP
 
 #include <cstdint>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
 #include <turbo/container/mpmc_ring_queue.hpp>
+#include <turbo/memory/block.hpp>
 
 namespace turbo {
 namespace memory {
@@ -53,9 +55,6 @@ struct block_config
     capacity_type initial_capacity;
 };
 
-template <class block_pool_t>
-class node;
-
 template <template <class type_t> class allocator_t = std::allocator>
 class range_pool
 {
@@ -68,6 +67,55 @@ private:
     std::size_t step_factor_;
     std::size_t smallest_block_;
 };
+
+class block_node
+{
+public:
+    block_node(std::size_t value_size, block::capacity_type capacity);
+    inline block& get_block() { return block_; }
+private:
+    block_node() = delete;
+    block_node(const block_node&) = delete;
+    block_node(block_node&&) = delete;
+    block_node& operator=(const block_node&) = delete;
+    block_node& operator=(block_node&&) = delete;
+    block block_;
+    std::atomic<block_node*> next_;
+};
+
+class block_list
+{
+public:
+    enum class append_result
+    {
+	success,
+	beaten
+    };
+    block_list(std::size_t value_size, block::capacity_type capacity);
+    inline block_node& get_front() { return front_; }
+    block_node& get_back();
+    append_result try_append(block_node& predecessor, const block_node* successor);
+private:
+    block_list() = delete;
+    block_list(const block_list&) = delete;
+    block_list(block_list&&) = delete;
+    block_list& operator=(const block_list&) = delete;
+    block_list& operator=(block_list&&) = delete;
+    block_node front_;
+};
+
+class pool
+{
+public:
+    pool(block::capacity_type default_capacity, const std::vector<block_config>& config);
+    pool(block::capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor);
+private:
+    block::capacity_type default_capacity_;
+    std::size_t step_factor_;
+    std::size_t smallest_block_;
+};
+
+std::vector<block_config> calibrate(const std::vector<block_config>& config, std::uint8_t step_factor);
 
 } // namespace memory
 } // namespace turbo

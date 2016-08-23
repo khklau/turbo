@@ -162,28 +162,6 @@ std::pair<make_result, std::shared_ptr<value_t>> block_pool<block_size_c, alloca
     }
 }
 
-block_config::block_config()
-    :
-	block_size(0U),
-	initial_capacity(0U)
-{ }
-
-block_config::block_config(std::size_t size, capacity_type capacity)
-    :
-	block_size(size),
-	initial_capacity(capacity)
-{ }
-
-bool block_config::operator<(const block_config& other) const
-{
-    return block_size < other.block_size;
-}
-
-bool block_config::operator==(const block_config& other) const
-{
-    return block_size == other.block_size && initial_capacity == other.initial_capacity;
-}
-
 template <class block_pool_t>
 class node
 {
