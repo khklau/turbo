@@ -49,6 +49,11 @@ public:
     void free(void* pointer);
 private:
     typedef turbo::container::mpmc_ring_queue<capacity_type> free_list_type;
+    block() = delete;
+    block(const block&) = delete;
+    block(block&&) = delete;
+    block& operator=(const block&) = delete;
+    block& operator=(block&&) = delete;
     std::size_t value_size_;
     std::size_t capacity_;
     std::size_t usable_size_;
