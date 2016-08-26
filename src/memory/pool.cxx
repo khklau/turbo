@@ -27,7 +27,7 @@ bool block_config::operator==(const block_config& other) const
     return block_size == other.block_size && initial_capacity == other.initial_capacity;
 }
 
-block_node::block_node(std::size_t value_size, block::capacity_type capacity)
+block_list::node::node(std::size_t value_size, block::capacity_type capacity)
     :
 	block_(value_size, capacity, value_size),
 	next_(nullptr)
@@ -38,9 +38,82 @@ block_list::block_list(std::size_t value_size, block::capacity_type capacity)
 	front_(value_size, capacity)
 { }
 
-block_list::append_result block_list::try_append(block_node& predecessor, const block_node* successor)
+block_list::node* block_list::create_node(std::size_t value_size, block::capacity_type capacity)
+{
+    return new block_list::node(value_size, capacity);
+}
+
+block_list::append_result block_list::try_append(iterator& predecessor, const block_list::node* successor)
 {
     return block_list::append_result::beaten;
+}
+
+block_list::invalid_dereference::invalid_dereference(const std::string& what)
+    :
+	out_of_range(what)
+{ }
+
+block_list::invalid_dereference::invalid_dereference(const char* what)
+    :
+	out_of_range(what)
+{ }
+
+block_list::iterator::iterator()
+    :
+	pointer_(nullptr)
+{ }
+
+block_list::iterator::iterator(const iterator& other)
+    :
+	pointer_(other.pointer_)
+{ }
+
+block_list::iterator& block_list::iterator::operator=(const iterator& other)
+{
+    if (this != &other)
+    {
+	pointer_ = other.pointer_;
+    }
+    return *this;
+}
+
+bool block_list::iterator::operator==(const iterator& other) const
+{
+    return pointer_ == other.pointer_;
+}
+
+block& block_list::iterator::operator*()
+{
+    if (pointer_ != nullptr)
+    {
+	return pointer_->get_block();
+    }
+    else
+    {
+	throw block_list::invalid_dereference("cannot dereference default block_list::iterator");
+    }
+}
+
+block_list::iterator& block_list::iterator::operator++()
+{
+    block_list::node* next = pointer_->get_next().load(std::memory_order_acquire);
+    if (next != nullptr)
+    {
+	pointer_ = next;
+	return *this;
+    }
+    else
+    {
+	pointer_ = nullptr;
+	return *this;
+    }
+}
+
+block_list::iterator block_list::iterator::operator++(int)
+{
+    iterator tmp = *this;
+    ++(*this);
+    return tmp;
 }
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)

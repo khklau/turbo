@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <atomic>
 #include <functional>
+#include <iterator>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -68,40 +70,65 @@ private:
     std::size_t smallest_block_;
 };
 
-class block_node
-{
-public:
-    block_node(std::size_t value_size, block::capacity_type capacity);
-    inline block& get_block() { return block_; }
-private:
-    block_node() = delete;
-    block_node(const block_node&) = delete;
-    block_node(block_node&&) = delete;
-    block_node& operator=(const block_node&) = delete;
-    block_node& operator=(block_node&&) = delete;
-    block block_;
-    std::atomic<block_node*> next_;
-};
-
 class block_list
 {
+private:
+    class node;
 public:
     enum class append_result
     {
 	success,
 	beaten
     };
+    class invalid_dereference : public std::out_of_range
+    {
+    public:
+	explicit invalid_dereference(const std::string& what);
+	explicit invalid_dereference(const char* what);
+    };
+    class iterator : public std::forward_iterator_tag
+    {
+    public:
+	iterator();
+	iterator(node* pointer);
+	iterator(const iterator& other);
+	iterator& operator=(const iterator& other);
+	~iterator() = default;
+	bool operator==(const iterator& other) const;
+	inline bool operator!=(const iterator& other) const { return !(*this == other); }
+	block& operator*();
+	iterator& operator++();
+	iterator operator++(int);
+    private:
+	node* pointer_;
+    };
     block_list(std::size_t value_size, block::capacity_type capacity);
-    inline block_node& get_front() { return front_; }
-    block_node& get_back();
-    append_result try_append(block_node& predecessor, const block_node* successor);
+    inline iterator begin() noexcept { return iterator(&front_); }
+    inline iterator end() noexcept { return iterator(); }
+    node* create_node(std::size_t value_size, block::capacity_type capacity);
+    append_result try_append(iterator& current, const node* successor);
 private:
+    class node
+    {
+    public:
+	node(std::size_t value_size, block::capacity_type capacity);
+	inline block& get_block() { return block_; }
+	inline std::atomic<node*>& get_next() { return next_; }
+    private:
+	node() = delete;
+	node(const node&) = delete;
+	node(node&&) = delete;
+	node& operator=(const node&) = delete;
+	node& operator=(node&&) = delete;
+	block block_;
+	std::atomic<node*> next_;
+    };
     block_list() = delete;
     block_list(const block_list&) = delete;
     block_list(block_list&&) = delete;
     block_list& operator=(const block_list&) = delete;
     block_list& operator=(block_list&&) = delete;
-    block_node front_;
+    node front_;
 };
 
 class pool
