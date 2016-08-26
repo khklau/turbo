@@ -38,12 +38,12 @@ block_list::block_list(std::size_t value_size, block::capacity_type capacity)
 	front_(value_size, capacity)
 { }
 
-block_list::node* block_list::create_node(std::size_t value_size, block::capacity_type capacity)
+std::unique_ptr<block_list::node> block_list::create_node(std::size_t value_size, block::capacity_type capacity)
 {
-    return new block_list::node(value_size, capacity);
+    return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size, capacity)));
 }
 
-block_list::append_result block_list::try_append(iterator& predecessor, const block_list::node* successor)
+block_list::append_result block_list::try_append(iterator& predecessor, std::unique_ptr<block_list::node> successor)
 {
     return block_list::append_result::beaten;
 }
@@ -170,11 +170,11 @@ std::vector<block_config> calibrate(const std::vector<block_config>& config, std
 	    this_step = next_step;
 	}
 	while (this_step != sorted.cend());
-	return result;
+	return std::move(result);
     }
     else
     {
-	return std::vector<block_config>();
+	return std::move(std::vector<block_config>());
     }
 }
 

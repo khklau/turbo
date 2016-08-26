@@ -105,8 +105,8 @@ public:
     block_list(std::size_t value_size, block::capacity_type capacity);
     inline iterator begin() noexcept { return iterator(&front_); }
     inline iterator end() noexcept { return iterator(); }
-    node* create_node(std::size_t value_size, block::capacity_type capacity);
-    append_result try_append(iterator& current, const node* successor);
+    std::unique_ptr<node> create_node(std::size_t value_size, block::capacity_type capacity);
+    append_result try_append(iterator& current, std::unique_ptr<node> successor);
 private:
     class node
     {

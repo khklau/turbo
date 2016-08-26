@@ -237,11 +237,11 @@ std::vector<block_config> range_pool<allocator_t>::sanitise(const std::vector<bl
 	    this_step = next_step;
 	}
 	while (this_step != sorted.cend());
-	return result;
+	return std::move(result);
     }
     else
     {
-	return std::vector<block_config>();
+	return std::move(std::vector<block_config>());
     }
 }
 
