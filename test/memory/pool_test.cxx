@@ -15,6 +15,14 @@ namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
 
+TEST(pool_test, use_first_node)
+{
+    tme::block_list list1(sizeof(std::int64_t), 4U);
+    auto iter = list1.begin();
+    EXPECT_TRUE(4U <= iter->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(iter->get_base_address() != nullptr) << "Base address of first block in block list is nulltpr";
+}
+
 TEST(pool_test, make_unique_basic)
 {
     typedef tme::block_pool<sizeof(std::string)> string_pool;

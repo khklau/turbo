@@ -97,16 +97,18 @@ public:
 	bool operator==(const iterator& other) const;
 	inline bool operator!=(const iterator& other) const { return !(*this == other); }
 	block& operator*();
+	block* operator->();
 	iterator& operator++();
 	iterator operator++(int);
+	inline bool is_valid() const { return pointer_ != nullptr; }
+	append_result try_append(std::unique_ptr<node> successor);
     private:
 	node* pointer_;
     };
     block_list(std::size_t value_size, block::capacity_type capacity);
-    inline iterator begin() noexcept { return iterator(&front_); }
+    inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
     std::unique_ptr<node> create_node(std::size_t value_size, block::capacity_type capacity);
-    append_result try_append(iterator& current, std::unique_ptr<node> successor);
 private:
     class node
     {
@@ -114,6 +116,7 @@ private:
 	node(std::size_t value_size, block::capacity_type capacity);
 	inline block& get_block() { return block_; }
 	inline std::atomic<node*>& get_next() { return next_; }
+	inline bool is_last() const { return next_ == nullptr; }
     private:
 	node() = delete;
 	node(const node&) = delete;
@@ -128,7 +131,7 @@ private:
     block_list(block_list&&) = delete;
     block_list& operator=(const block_list&) = delete;
     block_list& operator=(block_list&&) = delete;
-    node front_;
+    node first_;
 };
 
 class pool

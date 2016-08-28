@@ -27,27 +27,6 @@ bool block_config::operator==(const block_config& other) const
     return block_size == other.block_size && initial_capacity == other.initial_capacity;
 }
 
-block_list::node::node(std::size_t value_size, block::capacity_type capacity)
-    :
-	block_(value_size, capacity, value_size),
-	next_(nullptr)
-{ }
-
-block_list::block_list(std::size_t value_size, block::capacity_type capacity)
-    :
-	front_(value_size, capacity)
-{ }
-
-std::unique_ptr<block_list::node> block_list::create_node(std::size_t value_size, block::capacity_type capacity)
-{
-    return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size, capacity)));
-}
-
-block_list::append_result block_list::try_append(iterator& predecessor, std::unique_ptr<block_list::node> successor)
-{
-    return block_list::append_result::beaten;
-}
-
 block_list::invalid_dereference::invalid_dereference(const std::string& what)
     :
 	out_of_range(what)
@@ -63,6 +42,11 @@ block_list::iterator::iterator()
 	pointer_(nullptr)
 { }
 
+block_list::iterator::iterator(block_list::node* pointer)
+    :
+	pointer_(pointer)
+{ }
+
 block_list::iterator::iterator(const iterator& other)
     :
 	pointer_(other.pointer_)
@@ -70,7 +54,7 @@ block_list::iterator::iterator(const iterator& other)
 
 block_list::iterator& block_list::iterator::operator=(const iterator& other)
 {
-    if (this != &other)
+    if (TURBO_LIKELY(this != &other))
     {
 	pointer_ = other.pointer_;
     }
@@ -84,29 +68,33 @@ bool block_list::iterator::operator==(const iterator& other) const
 
 block& block_list::iterator::operator*()
 {
-    if (pointer_ != nullptr)
+    if (TURBO_LIKELY(is_valid()))
     {
 	return pointer_->get_block();
     }
     else
     {
-	throw block_list::invalid_dereference("cannot dereference default block_list::iterator");
+	throw block_list::invalid_dereference("cannot dereference invalid block_list::iterator");
+    }
+}
+
+block* block_list::iterator::operator->()
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	return &(pointer_->get_block());
+    }
+    else
+    {
+	throw block_list::invalid_dereference("cannot dereference invalid block_list::iterator");
     }
 }
 
 block_list::iterator& block_list::iterator::operator++()
 {
     block_list::node* next = pointer_->get_next().load(std::memory_order_acquire);
-    if (next != nullptr)
-    {
-	pointer_ = next;
-	return *this;
-    }
-    else
-    {
-	pointer_ = nullptr;
-	return *this;
-    }
+    pointer_ = next;
+    return *this;
 }
 
 block_list::iterator block_list::iterator::operator++(int)
@@ -114,6 +102,41 @@ block_list::iterator block_list::iterator::operator++(int)
     iterator tmp = *this;
     ++(*this);
     return tmp;
+}
+
+block_list::append_result block_list::iterator::try_append(std::unique_ptr<block_list::node> successor)
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	node* next = pointer_->get_next().load(std::memory_order_acquire);
+	successor->get_next().store(next, std::memory_order_release);
+	if (pointer_->get_next().compare_exchange_strong(next, successor.get(), std::memory_order_release))
+	{
+	    successor.release();
+	    return block_list::append_result::success;
+	}
+	return block_list::append_result::beaten;
+    }
+    else
+    {
+	throw block_list::invalid_dereference("cannot append to invalid block_list::iterator");
+    }
+}
+
+block_list::node::node(std::size_t value_size, block::capacity_type capacity)
+    :
+	block_(value_size, capacity, value_size),
+	next_(nullptr)
+{ }
+
+block_list::block_list(std::size_t value_size, block::capacity_type capacity)
+    :
+	first_(value_size, capacity)
+{ }
+
+std::unique_ptr<block_list::node> block_list::create_node(std::size_t value_size, block::capacity_type capacity)
+{
+    return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size, capacity)));
 }
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
