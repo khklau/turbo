@@ -15,12 +15,35 @@ namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
 
+TEST(pool_test, invalid_iterator)
+{
+    tme::block_list list1(sizeof(std::int64_t), 4U);
+    auto iter1 = list1.end();
+    ASSERT_THROW(*iter1, tme::block_list::invalid_dereference) << "Deferencing invalid iterator did not throw";
+    ASSERT_THROW(iter1->get_usable_size(), tme::block_list::invalid_dereference) << "Deferencing invalid iterator did not throw";
+    ASSERT_THROW(iter1->get_base_address(), tme::block_list::invalid_dereference) << "Deferencing invalid iterator did not throw";
+    auto iter1a = ++iter1;
+    EXPECT_FALSE(iter1a.is_valid()) << "An invalid iterator became valid after incrementing";
+    auto iter1b = iter1++;
+    EXPECT_FALSE(iter1b.is_valid()) << "An invalid iterator became valid after incrementing";
+}
+
 TEST(pool_test, use_first_node)
 {
     tme::block_list list1(sizeof(std::int64_t), 4U);
-    auto iter = list1.begin();
-    EXPECT_TRUE(4U <= iter->get_usable_size()) << "Capacity of first block in block list is less than requested";
-    EXPECT_TRUE(iter->get_base_address() != nullptr) << "Base address of first block in block list is nulltpr";
+    auto iter1 = list1.begin();
+    EXPECT_TRUE(iter1.is_valid()) << "Iterator pointing to first block is not valid";
+    EXPECT_EQ(list1.begin(), iter1) << "Two iterators to the first block are not equivalent";
+    EXPECT_NE(list1.end(), iter1) << "End iterator and iterator pointing to first block are equivalent";
+    tme::block& block1 = *iter1;
+    EXPECT_TRUE(4U <= block1.get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(block1.get_base_address() != nullptr) << "Base address of first block in block list is nulltpr";
+    EXPECT_TRUE(4U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(iter1->get_base_address() != nullptr) << "Base address of first block in block list is nulltpr";
+    ++iter1;
+    EXPECT_FALSE(iter1.is_valid()) << "Iterator pointing past last block is valid";
+    EXPECT_NE(list1.begin(), iter1) << "Two iterators pointing to different parts of the block list are equivalent";
+    EXPECT_EQ(list1.end(), iter1) << "End iterator and iterator pointing past last block are not equivalent";
 }
 
 TEST(pool_test, make_unique_basic)

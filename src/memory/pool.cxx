@@ -92,16 +92,26 @@ block* block_list::iterator::operator->()
 
 block_list::iterator& block_list::iterator::operator++()
 {
-    block_list::node* next = pointer_->get_next().load(std::memory_order_acquire);
-    pointer_ = next;
+    if (TURBO_LIKELY(is_valid()))
+    {
+	block_list::node* next = pointer_->get_next().load(std::memory_order_acquire);
+	pointer_ = next;
+    }
     return *this;
 }
 
 block_list::iterator block_list::iterator::operator++(int)
 {
-    iterator tmp = *this;
-    ++(*this);
-    return tmp;
+    if (TURBO_LIKELY(is_valid()))
+    {
+	iterator tmp = *this;
+	++(*this);
+	return tmp;
+    }
+    else
+    {
+	return *this;
+    }
 }
 
 block_list::append_result block_list::iterator::try_append(std::unique_ptr<block_list::node> successor)
