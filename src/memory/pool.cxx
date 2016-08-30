@@ -142,6 +142,22 @@ block_list::node::node(std::size_t value_size, block::capacity_type capacity)
 	next_(nullptr)
 { }
 
+block_list::node::~node() noexcept
+{
+    try
+    {
+	node* next = next_.load(std::memory_order_acquire);
+	if (next != nullptr)
+	{
+	    delete next;
+	}
+    }
+    catch (...)
+    {
+	// Do nothing
+    }
+}
+
 block_list::block_list(std::size_t value_size, block::capacity_type capacity)
     :
 	value_size_(value_size),

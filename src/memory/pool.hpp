@@ -114,6 +114,7 @@ private:
     {
     public:
 	node(std::size_t value_size, block::capacity_type capacity);
+	~node() noexcept;
 	inline block& get_block() { return block_; }
 	inline std::atomic<node*>& get_next() { return next_; }
 	inline bool is_last() const { return next_ == nullptr; }
