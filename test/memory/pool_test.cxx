@@ -26,6 +26,24 @@ TEST(pool_test, invalid_iterator)
     EXPECT_FALSE(iter1a.is_valid()) << "An invalid iterator became valid after incrementing";
     auto iter1b = iter1++;
     EXPECT_FALSE(iter1b.is_valid()) << "An invalid iterator became valid after incrementing";
+
+    auto iter2 = list1.begin();
+    ++iter2;
+    ASSERT_THROW(*iter2, tme::block_list::invalid_dereference) << "Deferencing invalid iterator did not throw";
+    ASSERT_THROW(iter2->get_usable_size(), tme::block_list::invalid_dereference) << "Deferencing invalid iterator did not throw";
+    ASSERT_THROW(iter2->get_base_address(), tme::block_list::invalid_dereference) << "Deferencing invalid iterator did not throw";
+    auto iter2a = ++iter2;
+    EXPECT_FALSE(iter2a.is_valid()) << "An invalid iterator became valid after incrementing";
+    auto iter2b = iter2++;
+    EXPECT_FALSE(iter2b.is_valid()) << "An invalid iterator became valid after incrementing";
+}
+
+TEST(pool_test, invalid_append)
+{
+    tme::block_list list1(sizeof(std::int64_t), 4U);
+    auto iter1 = list1.end();
+    auto node1 = list1.create_node(8U);
+    ASSERT_THROW(iter1.try_append(std::move(node1)), tme::block_list::invalid_dereference) << "Appending to invalid iterator succeeded";
 }
 
 TEST(pool_test, use_first_node)
@@ -44,6 +62,21 @@ TEST(pool_test, use_first_node)
     EXPECT_FALSE(iter1.is_valid()) << "Iterator pointing past last block is valid";
     EXPECT_NE(list1.begin(), iter1) << "Two iterators pointing to different parts of the block list are equivalent";
     EXPECT_EQ(list1.end(), iter1) << "End iterator and iterator pointing past last block are not equivalent";
+}
+
+TEST(pool_test, sequential_append)
+{
+    tme::block_list list1(sizeof(std::int64_t), 16U);
+    auto iter1 = list1.begin();
+    EXPECT_TRUE(16U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_EQ(tme::block_list::append_result::success, iter1.try_append(std::move(list1.create_node(8U)))) << "Append failed";
+    EXPECT_EQ(tme::block_list::append_result::beaten, iter1.try_append(std::move(list1.create_node(16U)))) << "Appending to middle of list succeeded";
+    ++iter1;
+    EXPECT_TRUE(8U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_EQ(tme::block_list::append_result::success, iter1.try_append(std::move(list1.create_node(4U)))) << "Append failed";
+    EXPECT_EQ(tme::block_list::append_result::beaten, iter1.try_append(std::move(list1.create_node(16U)))) << "Appending to middle of list succeeded";
+    ++iter1;
+    EXPECT_TRUE(4U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
 }
 
 TEST(pool_test, make_unique_basic)
