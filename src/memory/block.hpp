@@ -43,6 +43,7 @@ public:
     typedef std::uint32_t capacity_type;
     block(std::size_t value_size, capacity_type capacity);
     block(std::size_t value_size, capacity_type capacity, std::size_t alignment);
+    inline std::size_t get_capacity() const { return capacity_; }
     inline std::size_t get_usable_size() const { return usable_size_; }
     inline const void* get_base_address() const { return base_; }
     void* allocate();
