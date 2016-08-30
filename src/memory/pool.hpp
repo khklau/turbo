@@ -108,7 +108,7 @@ public:
     block_list(std::size_t value_size, block::capacity_type capacity);
     inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
-    std::unique_ptr<node> create_node(std::size_t value_size, block::capacity_type capacity);
+    std::unique_ptr<node> create_node(block::capacity_type capacity);
 private:
     class node
     {
@@ -131,6 +131,7 @@ private:
     block_list(block_list&&) = delete;
     block_list& operator=(const block_list&) = delete;
     block_list& operator=(block_list&&) = delete;
+    std::size_t value_size_;
     node first_;
 };
 

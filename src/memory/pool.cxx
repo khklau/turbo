@@ -118,12 +118,15 @@ block_list::append_result block_list::iterator::try_append(std::unique_ptr<block
 {
     if (TURBO_LIKELY(is_valid()))
     {
+	successor->get_next().store(nullptr, std::memory_order_release);
 	node* next = pointer_->get_next().load(std::memory_order_acquire);
-	successor->get_next().store(next, std::memory_order_release);
-	if (pointer_->get_next().compare_exchange_strong(next, successor.get(), std::memory_order_release))
+	if (next == nullptr)
 	{
-	    successor.release();
-	    return block_list::append_result::success;
+	    if (pointer_->get_next().compare_exchange_strong(next, successor.get(), std::memory_order_release))
+	    {
+		successor.release();
+		return block_list::append_result::success;
+	    }
 	}
 	return block_list::append_result::beaten;
     }
@@ -141,12 +144,13 @@ block_list::node::node(std::size_t value_size, block::capacity_type capacity)
 
 block_list::block_list(std::size_t value_size, block::capacity_type capacity)
     :
+	value_size_(value_size),
 	first_(value_size, capacity)
 { }
 
-std::unique_ptr<block_list::node> block_list::create_node(std::size_t value_size, block::capacity_type capacity)
+std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type capacity)
 {
-    return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size, capacity)));
+    return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size_, capacity)));
 }
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
