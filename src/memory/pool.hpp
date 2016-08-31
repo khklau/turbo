@@ -101,6 +101,7 @@ public:
 	iterator& operator++();
 	iterator operator++(int);
 	inline bool is_valid() const { return pointer_ != nullptr; }
+	inline bool is_last() const { return is_valid() && pointer_->is_last(); }
 	append_result try_append(std::unique_ptr<node> successor);
     private:
 	node* pointer_;
@@ -117,7 +118,7 @@ private:
 	~node() noexcept;
 	inline block& get_block() { return block_; }
 	inline std::atomic<node*>& get_next() { return next_; }
-	inline bool is_last() const { return next_ == nullptr; }
+	inline bool is_last() const { return next_.load(std::memory_order_acquire) == nullptr; }
     private:
 	node() = delete;
 	node(const node&) = delete;
