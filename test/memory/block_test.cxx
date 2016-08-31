@@ -335,7 +335,7 @@ void consume_task<value_t, limit>::consume()
     }
 }
 
-TEST(block_test, messasge_pass_struct)
+TEST(block_test, message_pass_struct)
 {
     typedef tco::mpmc_ring_queue<record*> record_queue;
     record_queue queue1(64U, 4U);
