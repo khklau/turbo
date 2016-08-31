@@ -15,6 +15,14 @@ namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
 
+void random_spin()
+{
+    std::random_device device;
+    std::uint64_t limit = 0U;
+    limit = device() % 128;
+    for (std::uint64_t iter = 0U; iter < limit; ++iter) { };
+}
+
 TEST(pool_test, invalid_iterator)
 {
     tme::block_list list1(sizeof(std::int64_t), 4U);
@@ -54,9 +62,9 @@ TEST(pool_test, use_first_node)
     EXPECT_EQ(list1.begin(), iter1) << "Two iterators to the first block are not equivalent";
     EXPECT_NE(list1.end(), iter1) << "End iterator and iterator pointing to first block are equivalent";
     tme::block& block1 = *iter1;
-    EXPECT_TRUE(4U <= block1.get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(4U <= block1.get_capacity()) << "Capacity of first block in block list is less than requested";
     EXPECT_TRUE(block1.get_base_address() != nullptr) << "Base address of first block in block list is nulltpr";
-    EXPECT_TRUE(4U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(4U <= iter1->get_capacity()) << "Capacity of first block in block list is less than requested";
     EXPECT_TRUE(iter1->get_base_address() != nullptr) << "Base address of first block in block list is nulltpr";
     ++iter1;
     EXPECT_FALSE(iter1.is_valid()) << "Iterator pointing past last block is valid";
@@ -68,15 +76,288 @@ TEST(pool_test, sequential_append)
 {
     tme::block_list list1(sizeof(std::int64_t), 16U);
     auto iter1 = list1.begin();
-    EXPECT_TRUE(16U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(16U <= iter1->get_capacity()) << "Capacity of first block in block list is less than requested";
     EXPECT_EQ(tme::block_list::append_result::success, iter1.try_append(std::move(list1.create_node(8U)))) << "Append failed";
     EXPECT_EQ(tme::block_list::append_result::beaten, iter1.try_append(std::move(list1.create_node(16U)))) << "Appending to middle of list succeeded";
     ++iter1;
-    EXPECT_TRUE(8U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(8U <= iter1->get_capacity()) << "Capacity of first block in block list is less than requested";
     EXPECT_EQ(tme::block_list::append_result::success, iter1.try_append(std::move(list1.create_node(4U)))) << "Append failed";
     EXPECT_EQ(tme::block_list::append_result::beaten, iter1.try_append(std::move(list1.create_node(16U)))) << "Appending to middle of list succeeded";
     ++iter1;
-    EXPECT_TRUE(4U <= iter1->get_usable_size()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(4U <= iter1->get_capacity()) << "Capacity of first block in block list is less than requested";
+}
+
+template <class value_t, std::size_t limit>
+class node_producer_task
+{
+public:
+    typedef tco::mpmc_ring_queue<value_t*> queue;
+    node_producer_task(typename queue::producer& producer, tme::block_list& list, const std::array<value_t, limit>& input);
+    ~node_producer_task() noexcept;
+    void run();
+    void produce();
+private:
+    typename queue::producer& producer_;
+    tme::block_list& list_;
+    const std::array<value_t, limit>& input_;
+    std::thread* thread_;
+};
+
+template <class value_t, std::size_t limit>
+node_producer_task<value_t, limit>::node_producer_task(typename queue::producer& producer, tme::block_list& list, const std::array<value_t, limit>& input)
+    :
+	producer_(producer),
+	list_(list),
+	input_(input),
+	thread_(nullptr)
+{ }
+
+template <class value_t, std::size_t limit>
+node_producer_task<value_t, limit>::~node_producer_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class value_t, std::size_t limit>
+void node_producer_task<value_t, limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&node_producer_task::produce, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void node_producer_task<value_t, limit>::produce()
+{
+    for (auto input_iter = input_.cbegin(); input_iter != input_.cend();)
+    {
+	auto block_iter = list_.begin();
+	tar::retry_with_random_backoff([&] () -> tar::try_state
+	{
+	    value_t* result = static_cast<value_t*>(block_iter->allocate());
+	    if (result != nullptr)
+	    {
+		new (result) value_t(*input_iter);
+		tar::retry_with_random_backoff([&] () -> tar::try_state
+		{
+		    if (producer_.try_enqueue_copy(result) == queue::producer::result::success)
+		    {
+			++input_iter;
+			return tar::try_state::done;
+		    }
+		    else
+		    {
+			return tar::try_state::retry;
+		    }
+		});
+		return tar::try_state::done;
+	    }
+	    else
+	    {
+		if (block_iter.is_last())
+		{
+		    auto node = list_.create_node(block_iter->get_capacity() * 2);
+		    block_iter.try_append(std::move(node));
+		}
+		++block_iter;
+		return tar::try_state::retry;
+	    }
+	});
+    }
+}
+
+template <class value_t, std::size_t limit>
+class node_consumer_task
+{
+public:
+    typedef tco::mpmc_ring_queue<value_t*> queue;
+    node_consumer_task(typename queue::consumer& consumer, tme::block_list& list, std::array<value_t, limit>& output);
+    ~node_consumer_task() noexcept;
+    void run();
+    void consume();
+private:
+    typename queue::consumer& consumer_;
+    tme::block_list& list_;
+    std::array<value_t, limit>& output_;
+    std::thread* thread_;
+};
+
+template <class value_t, std::size_t limit>
+node_consumer_task<value_t, limit>::node_consumer_task(typename queue::consumer& consumer, tme::block_list& list, std::array<value_t, limit>& output)
+    :
+	consumer_(consumer),
+	list_(list),
+	output_(output),
+	thread_(nullptr)
+{ }
+
+template <class value_t, std::size_t limit>
+node_consumer_task<value_t, limit>::~node_consumer_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class value_t, std::size_t limit>
+void node_consumer_task<value_t, limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&node_consumer_task::consume, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class value_t, std::size_t limit>
+void node_consumer_task<value_t, limit>::consume()
+{
+    for (auto output_iter = output_.begin(); output_iter != output_.end();)
+    {
+	value_t* tmp;
+	tar::retry_with_random_backoff([&] () -> tar::try_state
+	{
+	    if (consumer_.try_dequeue_copy(tmp) == queue::consumer::result::success)
+	    {
+		*output_iter = *tmp;
+		random_spin();
+		tmp->~value_t();
+		//block_.free(tmp);
+		++output_iter;
+		return tar::try_state::done;
+	    }
+	    else
+	    {
+		return tar::try_state::retry;
+	    }
+	});
+    }
+}
+
+TEST(pool_test, message_pass_string)
+{
+    typedef tco::mpmc_ring_queue<std::string*> string_queue;
+    string_queue queue1(8U, 4U);
+    tme::block_list block1(sizeof(std::string), 64U);
+    std::unique_ptr<std::array<std::string, 8192U>> expected_output(new std::array<std::string, 8192U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input4(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> output4(new std::array<std::string, 2048U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	std::ostringstream ostream;
+	ostream << "a";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter1 + 0U));
+	(*input1)[counter1] = ostream.str();
+	(*expected_output)[counter1 + 0U] = ostream.str();
+    }
+    for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	std::ostringstream ostream;
+	ostream << "b";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter2 + 2048U));
+	(*input2)[counter2] = ostream.str();
+	(*expected_output)[counter2 + 2048U] = ostream.str();
+    }
+    for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	std::ostringstream ostream;
+	ostream << "c";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter3 + 4096U));
+	(*input3)[counter3] = ostream.str();
+	(*expected_output)[counter3 + 4096U] = ostream.str();
+    }
+    for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	std::ostringstream ostream;
+	ostream << "d";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter4 + 6144U));
+	(*input4)[counter4] = ostream.str();
+	(*expected_output)[counter4 + 6144U] = ostream.str();
+    }
+    {
+	node_producer_task<std::string, 2048U> producer1(queue1.get_producer(), block1, *input1);
+	node_producer_task<std::string, 2048U> producer2(queue1.get_producer(), block1, *input2);
+	node_producer_task<std::string, 2048U> producer3(queue1.get_producer(), block1, *input3);
+	node_producer_task<std::string, 2048U> producer4(queue1.get_producer(), block1, *input4);
+	node_consumer_task<std::string, 2048U> consumer1(queue1.get_consumer(), block1, *output1);
+	node_consumer_task<std::string, 2048U> consumer2(queue1.get_consumer(), block1, *output2);
+	node_consumer_task<std::string, 2048U> consumer3(queue1.get_consumer(), block1, *output3);
+	node_consumer_task<std::string, 2048U> consumer4(queue1.get_consumer(), block1, *output4);
+	producer4.run();
+	consumer1.run();
+	producer3.run();
+	consumer2.run();
+	producer2.run();
+	consumer3.run();
+	producer1.run();
+	consumer4.run();
+    }
+    std::unique_ptr<std::array<std::string, 8192U>> actual_output(new std::array<std::string, 8192U>());
+    {
+	auto actual_iter = actual_output->begin();
+	for (auto out_iter = output1->begin(); actual_iter != actual_output->end() && out_iter != output1->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output2->begin(); actual_iter != actual_output->end() && out_iter != output2->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output3->begin(); actual_iter != actual_output->end() && out_iter != output3->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+	for (auto out_iter = output4->begin(); actual_iter != actual_output->end() && out_iter != output4->end(); ++actual_iter, ++out_iter)
+	{
+	    *actual_iter = *out_iter;
+	}
+    }
+    std::stable_sort(actual_output->begin(), actual_output->end(), [] (const std::string& left, const std::string& right) -> bool
+    {
+	return left < right;
+    });
+    auto expected_iter = expected_output->cbegin();
+    auto actual_iter = actual_output->cbegin();
+    for (; expected_iter != expected_output->cend() && actual_iter != actual_output->cend(); ++expected_iter, ++actual_iter)
+    {
+	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching std::string consumed " <<
+		"- expected '" << expected_iter->c_str() << "' " <<
+		"- actual '" << actual_iter->c_str() << "'";
+    }
 }
 
 TEST(pool_test, make_unique_basic)
@@ -880,14 +1161,6 @@ TEST(pool_test, messasge_passing)
 		"- expected {" << expected_iter->first << ", " << expected_iter->second << ", " << expected_iter->third << "} " <<
 		"- actual {" << actual_iter->first << ", " << actual_iter->second << ", " << actual_iter->third << "}";
     }
-}
-
-void random_spin()
-{
-    std::random_device device;
-    std::uint64_t limit = 0U;
-    limit = device() % 128;
-    for (std::uint64_t iter = 0U; iter < limit; ++iter) { };
 }
 
 typedef std::array<std::uint16_t, 8> oct_short;
