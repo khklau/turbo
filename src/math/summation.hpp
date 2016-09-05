@@ -15,7 +15,7 @@ public:
     invalid_multiplier_error(const std::string& what) : invalid_argument(what) { }
 };
 
-std::uint64_t ceiling_bound(std::uint32_t base, std::uint32_t multiplier, std::uint32_t sum);
+std::uint32_t ceiling_bound(std::uint32_t base, std::uint32_t multiplier, std::uint32_t sum);
 
 
 } // namespace math
