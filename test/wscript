@@ -7,6 +7,7 @@ def options(optCtx):
 
 def configure(confCtx):
     confCtx.env.product = Product.fromContext(confCtx, NAME, confCtx.env.solution)
+    confCtx.recurse('toolset')
     confCtx.recurse('type_utility')
     confCtx.recurse('math')
     confCtx.recurse('container')
@@ -16,6 +17,7 @@ def configure(confCtx):
 
 def build(buildCtx):
     buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
+    buildCtx.recurse('toolset')
     buildCtx.recurse('type_utility')
     buildCtx.recurse('math')
     buildCtx.recurse('container')
