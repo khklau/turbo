@@ -30,8 +30,8 @@ inline std::uint64_t count_leading_zero(std::uint64_t input)
     std::uint64_t result = 0U;
     return (_BitScanReverse64(result&, input) == 0) ? 64U : 64U - result + 1U;
 #else
-    std::uint32_t high_result = count_leading_zero((input & 0xFFFFFFFF00000000) >> 32);
-    return (high_result != 32U) ? high_result : count_leading_zero(input & 0x00000000FFFFFFFF) + 32U;
+    std::uint32_t high_result = count_leading_zero(static_cast<std::uint32_t>((input & 0xFFFFFFFF00000000) >> 32));
+    return (high_result != 32U) ? high_result : count_leading_zero(static_cast<std::uint32_t>(input & 0x00000000FFFFFFFF)) + 32U;
 #endif
 }
 
