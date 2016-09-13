@@ -2,6 +2,8 @@ import os
 from waflib.extras.layout import Product, Component
 
 publicHeaders = [
+    'concurrent_vector.hpp',
+    'concurrent_vector.hxx',
     'mpmc_ring_queue.hpp',
     'mpmc_ring_queue.hxx',
     'spsc_ring_queue.hpp',

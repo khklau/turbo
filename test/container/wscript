@@ -11,6 +11,18 @@ def configure(confCtx):
 def build(buildCtx):
     buildCtx.env.component = buildCtx.env.product.getComponent(name(buildCtx))
     buildCtx.program(
+	    name='exe_concurrent_vector_test',
+	    source=[buildCtx.path.find_node('concurrent_vector_test.cxx')],
+	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'concurrent_vector_test'),
+	    defines=['GTEST_HAS_PTHREAD=1'],
+	    includes=['.'] + buildCtx.env.component.include_path_list,
+	    cxxflags=buildCtx.env.CXXFLAGS,
+	    linkflags=buildCtx.env.LDFLAGS,
+	    use=['GTEST', 'shlib_turbo_algorithm', 'shlib_turbo_filesystem'],
+	    libpath=['.'] + buildCtx.env.component.lib_path_list,
+	    rpath=buildCtx.env.component.rpath_list,
+	    install_path=None)
+    buildCtx.program(
 	    name='exe_spsc_ring_queue_test',
 	    source=[buildCtx.path.find_node('spsc_ring_queue_test.cxx')],
 	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'spsc_ring_queue_test'),
