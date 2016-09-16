@@ -18,7 +18,7 @@ concurrent_vector<value_t, allocator_t>::concurrent_vector(
     :
 	initial_exponent_(initial_capacity_exponent),
 	max_exponent_(max_capacity_exponent),
-	segments_(new std::atomic<value_t*>[max_exponent_ - initial_exponent_ + 1U])
+	segments_()
 {
     if (std::numeric_limits<capacity_type>::digits < max_exponent_)
     {
@@ -30,91 +30,94 @@ concurrent_vector<value_t, allocator_t>::concurrent_vector(
     }
     else
     {
-	segments_[0] = new value_t[turbo::math::pow(capacity_base_, initial_exponent_)];
+	segments_.reset(new std::atomic<node*>[max_exponent_ - initial_exponent_]);
+	std::size_t first_size = turbo::math::pow(capacity_base_, initial_exponent_);
+	segments_[0] = new node[first_size];
+	for (std::size_t iter = 0U; iter < first_size; ++iter)
+	{
+	    segments_[0][iter].guard = node::status::ready;
+	}
+	std::size_t range = max_exponent_ - initial_exponent_;
+	for (std::size_t iter = 1U; iter < range; ++iter)
+	{
+	    segments_[iter] = nullptr;
+	}
     }
 }
 
 template <class value_t, template <class type_t> class allocator_t>
 concurrent_vector<value_t, allocator_t>::~concurrent_vector()
 {
-    std::size_t range = max_exponent_ - initial_exponent_ + 1U;
+    std::size_t range = max_exponent_ - initial_exponent_;
     for (std::size_t iter = 0U; iter < range; ++iter)
     {
-	value_t* tmp = segments_[iter].load(std::memory_order_acquire);
+	node* tmp = segments_[iter].load(std::memory_order_acquire);
 	if (tmp != nullptr)
 	{
-	    delete tmp;
+	    delete[] tmp;
+	    segments_[iter].store(nullptr, std::memory_order_release);
 	}
-	segments_[iter].store(nullptr, std::memory_order_release);
     }
 }
 
 template <class value_t, template <class type_t> class allocator_t>
 value_t& concurrent_vector<value_t, allocator_t>::operator[](capacity_type index)
 {
-    const value_t& tmp = (*this)[index];
-    return const_cast<value_t&>(tmp);
+    subscript_type subscript = find_subscript(index);
+    return segments_[subscript.first][subscript.second].value;
 }
 
 template <class value_t, template <class type_t> class allocator_t>
 const value_t& concurrent_vector<value_t, allocator_t>::operator[](capacity_type index) const
 {
-    if (index == 0)
-    {
-	return segments_[0][0];
-    }
-    capacity_type high_bit = std::numeric_limits<capacity_type>::digits - turbo::toolset::count_leading_zero(index) - 1U;
-    if (high_bit < initial_exponent_)
-    {
-	return segments_[0][index];
-    }
-    capacity_type segment = high_bit - initial_exponent_ + 1U;
-    capacity_type position = index ^ (turbo::math::pow(capacity_base_, high_bit));
-    return segments_[segment][position];
+    subscript_type subscript = find_subscript(index);
+    return segments_[subscript.first][subscript.second].value;
 }
 
 template <class value_t, template <class type_t> class allocator_t>
 value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index)
 {
-    const value_t& tmp = at(index);
-    return const_cast<value_t&>(tmp);
+    range_check(index);
+    return (*this)[index];
 }
+
 
 template <class value_t, template <class type_t> class allocator_t>
 const value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index) const
 {
+    range_check(index);
+    return (*this)[index];
+}
+
+template <class value_t, template <class type_t> class allocator_t>
+typename concurrent_vector<value_t, allocator_t>::subscript_type concurrent_vector<value_t, allocator_t>::find_subscript(capacity_type index) const
+{
     if (index == 0)
     {
-	if (segments_[0] != nullptr)
-	{
-	    return segments_[0][0];
-	}
-	else
-	{
-	    return std::out_of_range("First segment is null");
-	}
+	return std::make_pair(0, 0);
     }
     capacity_type high_bit = std::numeric_limits<capacity_type>::digits - turbo::toolset::count_leading_zero(index) - 1U;
     if (high_bit < initial_exponent_)
     {
-	if (segments_[0] != nullptr)
-	{
-	    return segments_[0][index];
-	}
-	else
-	{
-	    return std::out_of_range("First segment is null");
-	}
+	return std::make_pair(0, index);
     }
     capacity_type segment = high_bit - initial_exponent_ + 1U;
     capacity_type position = index ^ (turbo::math::pow(capacity_base_, high_bit));
-    if (segments_[segment] != nullptr)
+    return std::make_pair(segment, position);
+}
+
+template <class value_t, template <class type_t> class allocator_t>
+void concurrent_vector<value_t, allocator_t>::range_check(capacity_type index) const
+{
+    subscript_type subscript = find_subscript(index);
+    const std::size_t range = max_exponent_ - initial_exponent_;
+    if (range < subscript.first)
     {
-	return segments_[segment][position];
+	throw std::out_of_range("Requested element is not in range");
     }
-    else
+    else if (segments_[subscript.first] == nullptr)
     {
-	return std::out_of_range("Requested segment is null");
+	throw std::out_of_range("Requested element is not in range");
     }
 }
 
