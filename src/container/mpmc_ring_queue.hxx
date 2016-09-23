@@ -4,6 +4,7 @@
 #include <turbo/container/mpmc_ring_queue.hpp>
 #include <limits>
 #include <stdexcept>
+#include <turbo/algorithm/recovery.hxx>
 
 namespace turbo {
 namespace container {
@@ -204,8 +205,15 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
     {
 	if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
 	{
-	    output = buffer_[tail % buffer_.capacity()].value;
-	    buffer_[tail % buffer_.capacity()].guard.store(node_type::status::unused, std::memory_order_release);
+	    turbo::algorithm::recovery::try_and_ensure(
+	    [&] ()
+	    {
+		output = buffer_[tail % buffer_.capacity()].value;
+	    },
+	    [&] ()
+	    {
+		buffer_[tail % buffer_.capacity()].guard.store(node_type::status::unused, std::memory_order_release);
+	    });
 	    return consumer::result::success;
 	}
 	else
@@ -233,8 +241,15 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
     {
 	if (tail_.compare_exchange_strong(tail, tail + 1, std::memory_order_release))
 	{
-	    output = std::move(buffer_[tail % buffer_.capacity()].value);
-	    buffer_[tail % buffer_.capacity()].guard.store(node_type::status::unused, std::memory_order_release);
+	    turbo::algorithm::recovery::try_and_ensure(
+	    [&] ()
+	    {
+		output = std::move(buffer_[tail % buffer_.capacity()].value);
+	    },
+	    [&] ()
+	    {
+		buffer_[tail % buffer_.capacity()].guard.store(node_type::status::unused, std::memory_order_release);
+	    });
 	    return consumer::result::success;
 	}
 	else
