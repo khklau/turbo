@@ -8,7 +8,7 @@ namespace algorithm {
 namespace recovery {
 
 template <class try_clause_t, class ensure_clause_t>
-void try_and_ensure(const try_clause_t& try_clause, const ensure_clause_t& ensure_clause)
+inline void try_and_ensure(const try_clause_t& try_clause, const ensure_clause_t& ensure_clause)
 {
     struct impl_
     {
@@ -16,14 +16,23 @@ void try_and_ensure(const try_clause_t& try_clause, const ensure_clause_t& ensur
 	    :
 		clause_(clause)
 	{ }
-	~impl_()
+	~impl_() noexcept
 	{
-	    clause_();
+	    try
+	    {
+		clause_();
+	    }
+	    catch (...)
+	    {
+		// do nothing
+	    }
 	}
 	const ensure_clause_t& clause_;
     };
-    impl_ tmp(ensure_clause);
-    try_clause();
+    {
+	impl_ tmp(ensure_clause);
+	try_clause();
+    }
 }
 
 } // namespace recovery
