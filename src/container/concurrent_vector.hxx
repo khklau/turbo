@@ -3,7 +3,7 @@
 
 #include <turbo/container/concurrent_vector.hpp>
 #include <limits>
-#include <turbo/algorithm/recovery.hpp>
+#include <turbo/algorithm/recovery.hxx>
 #include <turbo/math/power.hpp>
 #include <turbo/math/summation.hpp>
 #include <turbo/toolset/extension.hpp>
@@ -19,7 +19,7 @@ concurrent_vector<value_t, allocator_t>::descriptor::descriptor()
 	capacity(0U),
 	expected_version(0U),
 	new_value(),
-	location(nullptr)
+	location(0U)
 {
     has_pending_write.store(false, std::memory_order_release);
 }
@@ -31,7 +31,7 @@ concurrent_vector<value_t, allocator_t>::descriptor::descriptor(
 	bool pending_,
 	std::uint16_t version_,
 	value_t&& value_,
-	node* location_)
+	capacity_type location_)
     :
 	size(size_),
 	capacity(capacity_),
@@ -58,9 +58,9 @@ concurrent_vector<value_t, allocator_t>::concurrent_vector(
     :
 	initial_exponent_(initial_capacity_exponent),
 	max_exponent_(max_capacity_exponent),
-	segments_(),
+	buckets_(),
 	descriptors_(),
-	current_descriptor_({ 0U, 0U })
+	current_descriptor_(descriptor_reference::create(0U, 0U))
 {
     if (std::numeric_limits<capacity_type>::digits < max_exponent_)
     {
@@ -72,19 +72,19 @@ concurrent_vector<value_t, allocator_t>::concurrent_vector(
     }
     else
     {
-	segments_.reset(new std::atomic<node*>[max_exponent_ - initial_exponent_]);
-	const std::size_t first_segment_capacity = turbo::math::pow(capacity_base_, initial_exponent_);
-	segments_[0] = new node[first_segment_capacity];
+	buckets_.reset(new std::atomic<node*>[max_exponent_ - initial_exponent_]);
+	const std::size_t first_bucket_capacity = turbo::math::pow(capacity_base_, initial_exponent_);
+	buckets_[0] = new node[first_bucket_capacity];
 	const std::size_t range = max_exponent_ - initial_exponent_;
 	for (std::size_t iter = 1U; iter < range; ++iter)
 	{
-	    segments_[iter] = nullptr;
+	    buckets_[iter] = nullptr;
 	}
 	const std::size_t descriptor_count = (max_concurrent_writes == 0U ) ?
 		std::numeric_limits<std::uint16_t>::max() :
 		max_concurrent_writes;
 	descriptors_.reset(new descriptor[descriptor_count]);
-	new (&(descriptors_[0])) descriptor(0U, first_segment_capacity, false, 0U, value_t(), nullptr);
+	new (&(descriptors_[0])) descriptor(0U, first_bucket_capacity, false, 0U, value_t(), 0U);
     }
 }
 
@@ -94,11 +94,11 @@ concurrent_vector<value_t, allocator_t>::~concurrent_vector()
     const std::size_t range = max_exponent_ - initial_exponent_;
     for (std::size_t iter = 0U; iter < range; ++iter)
     {
-	node* tmp = segments_[iter].load(std::memory_order_acquire);
+	node* tmp = buckets_[iter].load(std::memory_order_acquire);
 	if (tmp != nullptr)
 	{
 	    delete[] tmp;
-	    segments_[iter].store(nullptr, std::memory_order_release);
+	    buckets_[iter].store(nullptr, std::memory_order_release);
 	}
     }
 }
@@ -107,20 +107,20 @@ template <class value_t, template <class type_t> class allocator_t>
 value_t& concurrent_vector<value_t, allocator_t>::operator[](capacity_type index)
 {
     subscript_type subscript = find_subscript(index);
-    return segments_[subscript.first][subscript.second].value;
+    return buckets_[subscript.first][subscript.second].value;
 }
 
 template <class value_t, template <class type_t> class allocator_t>
 const value_t& concurrent_vector<value_t, allocator_t>::operator[](capacity_type index) const
 {
     subscript_type subscript = find_subscript(index);
-    return segments_[subscript.first][subscript.second].value;
+    return buckets_[subscript.first][subscript.second].value;
 }
 
 template <class value_t, template <class type_t> class allocator_t>
 value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index)
 {
-    range_check(index);
+    check_range(index);
     return (*this)[index];
 }
 
@@ -128,8 +128,22 @@ value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index)
 template <class value_t, template <class type_t> class allocator_t>
 const value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index) const
 {
-    range_check(index);
+    check_range(index);
     return (*this)[index];
+}
+
+template <class value_t, template <class type_t> class allocator_t>
+typename concurrent_vector<value_t, allocator_t>::node& concurrent_vector<value_t, allocator_t>::get_node(capacity_type index)
+{
+    subscript_type subscript = find_subscript(index);
+    return buckets_[subscript.first][subscript.second];
+}
+
+template <class value_t, template <class type_t> class allocator_t>
+const typename concurrent_vector<value_t, allocator_t>::node& concurrent_vector<value_t, allocator_t>::get_node(capacity_type index) const
+{
+    subscript_type subscript = find_subscript(index);
+    return buckets_[subscript.first][subscript.second];
 }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -144,13 +158,13 @@ typename concurrent_vector<value_t, allocator_t>::subscript_type concurrent_vect
     {
 	return std::make_pair(0, index);
     }
-    capacity_type segment = high_bit - initial_exponent_ + 1U;
-    capacity_type position = index ^ (turbo::math::pow(capacity_base_, high_bit));
-    return std::make_pair(segment, position);
+    capacity_type bucket_index = high_bit - initial_exponent_ + 1U;
+    capacity_type node_index = index ^ (turbo::math::pow(capacity_base_, high_bit));
+    return std::make_pair(bucket_index, node_index);
 }
 
 template <class value_t, template <class type_t> class allocator_t>
-void concurrent_vector<value_t, allocator_t>::range_check(capacity_type index) const
+void concurrent_vector<value_t, allocator_t>::check_range(capacity_type index) const
 {
     subscript_type subscript = find_subscript(index);
     const std::size_t range = max_exponent_ - initial_exponent_;
@@ -158,36 +172,69 @@ void concurrent_vector<value_t, allocator_t>::range_check(capacity_type index) c
     {
 	throw std::out_of_range("Requested element is not in range");
     }
-    else if (segments_[subscript.first] == nullptr)
+    else if (buckets_[subscript.first] == nullptr)
     {
 	throw std::out_of_range("Requested element is not in range");
     }
 }
 
+// TODO: current reference should be the argument?
 template <class value_t, template <class type_t> class allocator_t>
-void concurrent_vector<value_t, allocator_t>::complete_write(descriptor& operation)
+typename concurrent_vector<value_t, allocator_t>::change_result concurrent_vector<value_t, allocator_t>::complete_write(descriptor& operation)
 {
+    change_result result = change_result::success;
     bool is_pending = operation.has_pending_write.load(std::memory_order_acquire);
     if (is_pending)
     {
-	if (operation.location != nullptr)
+	typename node::versioned_guard::type current = get_node(operation.location).guard.load(std::memory_order_acquire);
+	if (node::versioned_guard::value(current) == node::status::ready && node::versioned_guard::version(current) == operation.expected_version)
 	{
-	    typename node::versioned_guard guard = operation.location->guard.load(std::memory_order_acquire);
-	    if (guard.guard_status == node::status::ready && guard.guard_version == operation.expected_version)
+	    typename node::versioned_guard::type tmp = node::versioned_guard::create(node::versioned_guard::version(current), node::status::updating);
+	    if (get_node(operation.location).guard.compare_exchange_strong(current, tmp, std::memory_order_acq_rel))
 	    {
-		operation.location.guard.store({ node::status::updating, guard.guard_version}, std::memory_order_release);
 		turbo::algorithm::recovery::try_and_ensure(
 		[&] ()
 		{
-		    operation.location.value = operation.new_value;
+		    get_node(operation.location).value = operation.new_value;
+		    result = change_result::success;
 		},
 		[&] ()
 		{
-		    operation.location.guard.store({ node::status::ready, guard.guard_version + 1}, std::memory_order_release);
+		    get_node(operation.location).guard.store(
+			    node::versioned_guard::create(static_cast<std::uint16_t>(node::versioned_guard::version(current) + 1U), node::status::ready),
+			    std::memory_order_release);
 		});
 	    }
+	    else
+	    {
+		result = change_result::beaten;
+	    }
 	}
-	operation.has_pending_write.store(false, std::memory_order_release);
+	else if (node::versioned_guard::version(current) != operation.expected_version)
+	{
+	    result = change_result::beaten;
+	}
+	else
+	{
+	    result = change_result::busy;
+	}
+	operation.has_pending_write.compare_exchange_strong(is_pending, false, std::memory_order_release);
+    }
+    else
+    {
+	result = change_result::success;
+    }
+    return result;
+}
+
+template <class value_t, template <class type_t> class allocator_t>
+void concurrent_vector<value_t, allocator_t>::allocate_bucket(capacity_type bucket_index)
+{
+    const std::size_t bucket_size = turbo::math::pow(capacity_base_, initial_exponent_ + bucket_index);
+    node* new_bucket = new node[bucket_size];
+    if (!buckets_[bucket_index].compare_exchange_strong(nullptr, new_bucket, std::memory_order_acq_rel))
+    {
+	delete[] new_bucket;
     }
 }
 
