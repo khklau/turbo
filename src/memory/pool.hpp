@@ -42,7 +42,7 @@ public:
     std::pair<make_result, std::shared_ptr<value_t>> make_shared(args_t&&... args);
 private:
     typedef typename std::aligned_storage<block_size_c>::type block_type;
-    typedef turbo::container::mpmc_ring_queue<capacity_type, allocator_t<capacity_type>> free_list_type;
+    typedef turbo::container::mpmc_ring_queue<capacity_type, allocator_t> free_list_type;
     free_list_type free_list_;
     typename std::vector<block_type, allocator_t<block_type>> block_list_;
 };

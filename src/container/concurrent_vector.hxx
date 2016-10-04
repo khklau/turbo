@@ -4,6 +4,7 @@
 #include <turbo/container/concurrent_vector.hpp>
 #include <limits>
 #include <turbo/algorithm/recovery.hxx>
+#include <turbo/container/mpmc_ring_queue.hxx>
 #include <turbo/math/power.hpp>
 #include <turbo/math/summation.hpp>
 #include <turbo/toolset/extension.hpp>
@@ -60,7 +61,8 @@ concurrent_vector<value_t, allocator_t>::concurrent_vector(
 	max_exponent_(max_capacity_exponent),
 	buckets_(),
 	descriptors_(),
-	current_descriptor_(descriptor_reference::create(0U, 0U))
+	current_descriptor_(descriptor_reference::create(0U, 0U)),
+	free_descriptors_(max_concurrent_writes, 0U)
 {
     if (std::numeric_limits<capacity_type>::digits < max_exponent_)
     {
@@ -85,6 +87,10 @@ concurrent_vector<value_t, allocator_t>::concurrent_vector(
 		max_concurrent_writes;
 	descriptors_.reset(new descriptor[descriptor_count]);
 	new (&(descriptors_[0])) descriptor(0U, first_bucket_capacity, false, 0U, value_t(), 0U);
+	for (throughput_type index = 1U; index < max_concurrent_writes; ++index)
+	{
+	    free_descriptors_.try_enqueue_copy(index);
+	}
     }
 }
 
@@ -130,6 +136,29 @@ const value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index) 
 {
     check_range(index);
     return (*this)[index];
+}
+
+template <class value_t, template <class type_t> class allocator_t>
+typename concurrent_vector<value_t, allocator_t>::change_result concurrent_vector<value_t, allocator_t>::try_pushback(value_t&& value)
+{
+    typename descriptor_reference::type current = current_descriptor_.load(std::memory_order_acquire);
+    change_result write_result = complete_write(descriptors_[descriptor_reference::value(current)]);
+    if (write_result != change_result::success)
+    {
+	return write_result;
+    }
+    const capacity_type first_bucket_capacity = static_cast<capacity_type>(turbo::math::pow(capacity_base_, initial_exponent_));
+    capacity_type bucket_index = find_subscript(descriptors_[descriptor_reference::value(current)].size + first_bucket_capacity).first - find_subscript(first_bucket_capacity).first;
+    node* current_bucket = buckets_[bucket_index].load(std::memory_order_acquire);
+    if (current_bucket == nullptr)
+    {
+	node* new_bucket = new node[first_bucket_capacity];
+	if (!buckets_[bucket_index].compare_exchange_strong(current_bucket, new_bucket, std::memory_order_acq_rel))
+	{
+	    delete new_bucket;
+	}
+    }
+    return change_result::success;
 }
 
 template <class value_t, template <class type_t> class allocator_t>

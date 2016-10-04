@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <turbo/container/mpmc_ring_queue.hpp>
 #include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
@@ -48,6 +49,7 @@ public:
     const value_t& operator[](capacity_type index) const;
     value_t& at(capacity_type index);
     const value_t& at(capacity_type index) const;
+    change_result try_pushback(value_t&& value);
 private:
     template <class field_t>
     struct versioned_value
@@ -104,6 +106,7 @@ private:
     std::unique_ptr<std::atomic<node*>[]> buckets_;
     std::unique_ptr<descriptor[]> descriptors_;
     std::atomic<typename descriptor_reference::type> current_descriptor_;
+    turbo::container::mpmc_ring_queue<throughput_type, allocator_t> free_descriptors_;
 };
 
 } // namespace container
