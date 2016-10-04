@@ -15,7 +15,7 @@ namespace memory {
 template <std::size_t block_size_c, template <class type_t> class allocator_t>
 block_pool<block_size_c, allocator_t>::block_pool(capacity_type capacity)
     :
-	free_list_(capacity, 0U),
+	free_list_(capacity),
 	block_list_(capacity)
 {
     namespace tar = turbo::algorithm::recovery;

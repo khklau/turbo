@@ -60,7 +60,7 @@ block::block(std::size_t value_size, capacity_type capacity, std::size_t alignme
 	usable_size_(value_size_ * (capacity_ + 1)), // need extra in case of bad alignment
 	storage_(new std::uint8_t[usable_size_]),
 	base_(&(storage_[0])),
-	free_list_(capacity, 0U)
+	free_list_(capacity)
 {
     if (TURBO_UNLIKELY(value_size == 0))
     {

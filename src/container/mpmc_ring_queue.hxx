@@ -9,62 +9,68 @@
 namespace turbo {
 namespace container {
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 class mpmc_key
 {
     mpmc_key() { }
     friend class mpmc_ring_queue<value_t, allocator_t>;
 };
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 mpmc_producer<value_t, allocator_t>::mpmc_producer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue)
     :
 	queue_(queue)
 { }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 mpmc_producer<value_t, allocator_t>::mpmc_producer(const mpmc_producer& other)
     :
 	queue_(other.queue_)
 { }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allocator_t>::try_enqueue_copy(const value_t& input)
 {
     return queue_.try_enqueue_copy(input);
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allocator_t>::try_enqueue_move(value_t&& input)
 {
     return queue_.try_enqueue_move(std::move(input));
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 mpmc_consumer<value_t, allocator_t>::mpmc_consumer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue)
     :
 	queue_(queue)
 { }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 mpmc_consumer<value_t, allocator_t>::mpmc_consumer(const mpmc_consumer& other)
     :
 	queue_(other.queue_)
 { }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allocator_t>::try_dequeue_copy(value_t& output)
 {
     return queue_.try_dequeue_copy(output);
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allocator_t>::try_dequeue_move(value_t& output)
 {
     return queue_.try_dequeue_move(output);
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
+mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity)
+    :
+	mpmc_ring_queue(capacity, 0U)
+{ }
+
+template <class value_t, template <class type_t> class allocator_t>
 mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit)
     :
 	buffer_(capacity),
@@ -88,7 +94,7 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, uint16
     }
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
 	uint16_t limit,
@@ -99,7 +105,7 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::h
 	list(limit, handle_t(the_key, queue))
 { }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_ring_queue<value_t, allocator_t>::producer& mpmc_ring_queue<value_t, allocator_t>::get_producer()
 {
     uint16_t count = 0;
@@ -115,7 +121,7 @@ typename mpmc_ring_queue<value_t, allocator_t>::producer& mpmc_ring_queue<value_
     return producer_list.list[count];
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_ring_queue<value_t, allocator_t>::consumer& mpmc_ring_queue<value_t, allocator_t>::get_consumer()
 {
     uint16_t count = 0;
@@ -131,7 +137,7 @@ typename mpmc_ring_queue<value_t, allocator_t>::consumer& mpmc_ring_queue<value_
     return consumer_list.list[count];
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_ring_queue<value_t, allocator_t>::try_enqueue_copy(const value_t& input)
 {
     uint32_t head = head_.load(std::memory_order_acquire);
@@ -161,7 +167,7 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
     }
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_ring_queue<value_t, allocator_t>::try_enqueue_move(value_t&& input)
 {
     uint32_t head = head_.load(std::memory_order_acquire);
@@ -191,7 +197,7 @@ typename mpmc_producer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
     }
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, allocator_t>::try_dequeue_copy(value_t& output)
 {
     uint32_t head = head_.load(std::memory_order_acquire);
@@ -227,7 +233,7 @@ typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, al
     }
 }
 
-template <class value_t, class allocator_t>
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_ring_queue<value_t, allocator_t>::try_dequeue_move(value_t& output)
 {
     uint32_t head = head_.load(std::memory_order_acquire);
