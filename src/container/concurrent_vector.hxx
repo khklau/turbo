@@ -14,21 +14,27 @@ namespace turbo {
 namespace container {
 
 template <class value_t, template <class type_t> class allocator_t>
+concurrent_vector<value_t, allocator_t>::node::node()
+    :
+	value(),
+	guard(versioned_guard::create(0U, node::status::ready))
+{ }
+
+template <class value_t, template <class type_t> class allocator_t>
 concurrent_vector<value_t, allocator_t>::descriptor::descriptor()
     :
 	size(0U),
 	capacity(0U),
+	has_pending_write(false),
 	expected_version(0U),
 	new_value(),
 	location(0U)
-{
-    has_pending_write.store(false, std::memory_order_release);
-}
+{ }
 
 template <class value_t, template <class type_t> class allocator_t>
 concurrent_vector<value_t, allocator_t>::descriptor::descriptor(
-	std::size_t size_,
-	std::size_t capacity_,
+	capacity_type size_,
+	capacity_type capacity_,
 	bool pending_,
 	std::uint16_t version_,
 	value_t&& value_,
@@ -141,24 +147,79 @@ const value_t& concurrent_vector<value_t, allocator_t>::at(capacity_type index) 
 template <class value_t, template <class type_t> class allocator_t>
 typename concurrent_vector<value_t, allocator_t>::change_result concurrent_vector<value_t, allocator_t>::try_pushback(value_t&& value)
 {
-    typename descriptor_reference::type current = current_descriptor_.load(std::memory_order_acquire);
-    change_result write_result = complete_write(descriptors_[descriptor_reference::value(current)]);
+    typename descriptor_reference::type current_reference = current_descriptor_.load(std::memory_order_acquire);
+    descriptor& current = descriptors_[descriptor_reference::value(current_reference)];
+    change_result write_result = complete_write(current);
     if (write_result != change_result::success)
     {
 	return write_result;
     }
     const capacity_type first_bucket_capacity = static_cast<capacity_type>(turbo::math::pow(capacity_base_, initial_exponent_));
-    capacity_type bucket_index = find_subscript(descriptors_[descriptor_reference::value(current)].size + first_bucket_capacity).first - find_subscript(first_bucket_capacity).first;
-    node* current_bucket = buckets_[bucket_index].load(std::memory_order_acquire);
-    if (current_bucket == nullptr)
+    capacity_type bucket_index = find_subscript(current.size + first_bucket_capacity).first - find_subscript(first_bucket_capacity).first;
+    const capacity_type total_capacity = current.capacity + allocate_bucket(bucket_index);
+    throughput_type free_descriptor = 0U;
+    change_result result = change_result::success;
+    turbo::algorithm::recovery::retry_with_random_backoff([&] ()
     {
-	node* new_bucket = new node[first_bucket_capacity];
-	if (!buckets_[bucket_index].compare_exchange_strong(current_bucket, new_bucket, std::memory_order_acq_rel))
+	switch (free_descriptors_.try_dequeue_copy(free_descriptor))
 	{
-	    delete new_bucket;
+	    case decltype(free_descriptors_)::consumer::result::success:
+	    {
+		result = change_result::success;
+		return turbo::algorithm::recovery::try_state::done;
+	    }
+	    case decltype(free_descriptors_)::consumer::result::queue_empty:
+	    {
+		result = change_result::max_write_reached;
+		return turbo::algorithm::recovery::try_state::done;
+	    }
+	    default:
+	    {
+		return turbo::algorithm::recovery::try_state::retry;
+	    }
 	}
+    });
+    if (result != change_result::success)
+    {
+	return result;
     }
-    return change_result::success;
+    typename node::versioned_guard::type current_guard = get_node(current.size).guard.load(std::memory_order_acquire);
+    new (&(descriptors_[free_descriptor])) descriptor(
+	    current.size + 1,
+	    total_capacity,
+	    true,
+	    node::versioned_guard::version(current_guard),
+	    std::move(value),
+	    current.size);
+    typename descriptor_reference::type new_reference = descriptor_reference::create(descriptor_reference::version(current_reference) + 1, free_descriptor);
+    if (current_descriptor_.compare_exchange_strong(current_reference, new_reference, std::memory_order_acq_rel))
+    {
+	return complete_write(descriptors_[descriptor_reference::value(new_reference)]);
+    }
+    else
+    {
+	turbo::algorithm::recovery::retry_with_random_backoff([&] ()
+	{
+	    switch (free_descriptors_.try_enqueue_copy(free_descriptor))
+	    {
+		case decltype(free_descriptors_)::producer::result::success:
+		{
+		    return turbo::algorithm::recovery::try_state::done;
+		}
+		case decltype(free_descriptors_)::producer::result::queue_full:
+		{
+		    // It means that somehow the descriptor free list is corrupt!
+		    // Better to throw here than cause memory corruption later on
+		    throw corrupt_vector_error("Descriptor free list should not be full because an entry was just dequeued attempting a pushback");
+		}
+		default:
+		{
+		    return turbo::algorithm::recovery::try_state::retry;
+		}
+	    }
+	});
+	return change_result::beaten;
+    }
 }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -257,14 +318,19 @@ typename concurrent_vector<value_t, allocator_t>::change_result concurrent_vecto
 }
 
 template <class value_t, template <class type_t> class allocator_t>
-void concurrent_vector<value_t, allocator_t>::allocate_bucket(capacity_type bucket_index)
+typename concurrent_vector<value_t, allocator_t>::capacity_type concurrent_vector<value_t, allocator_t>::allocate_bucket(capacity_type bucket_index)
 {
-    const std::size_t bucket_size = turbo::math::pow(capacity_base_, initial_exponent_ + bucket_index);
-    node* new_bucket = new node[bucket_size];
-    if (!buckets_[bucket_index].compare_exchange_strong(nullptr, new_bucket, std::memory_order_acq_rel))
+    const capacity_type bucket_size = static_cast<capacity_type>(turbo::math::pow(capacity_base_, initial_exponent_ + bucket_index));
+    node* current_bucket = buckets_[bucket_index].load(std::memory_order_acquire);
+    if (current_bucket == nullptr)
     {
-	delete[] new_bucket;
+	node* new_bucket = new node[bucket_size];
+	if (!buckets_[bucket_index].compare_exchange_strong(current_bucket, new_bucket, std::memory_order_acq_rel))
+	{
+	    delete[] new_bucket;
+	}
     }
+    return bucket_size;
 }
 
 } // namespace container

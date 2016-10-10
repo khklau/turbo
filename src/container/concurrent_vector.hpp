@@ -27,6 +27,13 @@ public:
     explicit exceeded_capacity_error(const std::string& what) : length_error(what) { };
 };
 
+class TURBO_SYMBOL_DECL corrupt_vector_error : public std::runtime_error
+{
+public:
+    explicit corrupt_vector_error(const char* what) : std::runtime_error(what) { };
+    explicit corrupt_vector_error(const std::string& what) : std::runtime_error(what) { };
+};
+
 ///
 /// Design taken from Dechev, Pirkelbauer & Stroustrup's Lock-free dynamically resizeable arrays paper
 ///
@@ -40,7 +47,8 @@ public:
     {
 	success,
 	beaten,
-	busy
+	busy,
+	max_write_reached
     };
     concurrent_vector(std::uint8_t initial_capacity_exponent, std::uint8_t max_capacity_exponent);
     concurrent_vector(std::uint8_t initial_capacity_exponent, std::uint8_t max_capacity_exponent, throughput_type max_concurrent_writes);
@@ -72,6 +80,7 @@ private:
     };
     struct alignas(alignof(value_t)) node
     {
+	node();
 	enum class status : std::uint16_t
 	{
 	    ready,
@@ -84,9 +93,9 @@ private:
     struct descriptor
     {
 	descriptor();
-	descriptor(std::size_t size_, std::size_t capacity_, bool pending_, std::uint16_t version_, value_t&& value_, capacity_type location_);
-	std::size_t size;
-	std::size_t capacity;
+	descriptor(capacity_type size_, capacity_type capacity_, bool pending_, std::uint16_t version_, value_t&& value_, capacity_type location_);
+	capacity_type size;
+	capacity_type capacity;
 	std::atomic<bool> has_pending_write;
 	std::uint16_t expected_version;
 	value_t new_value;
@@ -96,7 +105,7 @@ private:
     typedef std::pair<capacity_type, capacity_type> subscript_type;
     static const std::uint8_t capacity_base_ = 2U;
     change_result complete_write(descriptor& operation);
-    void allocate_bucket(capacity_type bucket_index);
+    capacity_type allocate_bucket(capacity_type bucket_index);
     node& get_node(capacity_type index);
     const node& get_node(capacity_type index) const;
     subscript_type find_subscript(capacity_type index) const;
