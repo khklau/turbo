@@ -5,7 +5,8 @@ publicHeaders = [
     'alignment.hpp',
     'block.hpp',
     'pool.hpp',
-    'pool.hxx']
+    'pool.hxx',
+    'typed_allocator.hpp']
 
 sourceFiles = [
     'alignment.cxx',
