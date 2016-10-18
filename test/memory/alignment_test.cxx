@@ -219,3 +219,23 @@ TEST(alignment_test, calc_total_aligned_size_already_aligned)
     EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 16U, 4U)) << "Returned size is not the total size when requested alignment matches total size";
     EXPECT_EQ(96U, tme::calc_total_aligned_size(8U, 96U, 12U)) << "Returned size is not the total size when requested alignment matches total size";
 }
+
+TEST(alignment_test, calc_total_aligned_size_smaller_value_size)
+{
+    EXPECT_EQ(8U, tme::calc_total_aligned_size(1U, 8U, 1U)) << "Returned size is not alignment * quantity when the value size is smaller than alignment";
+    EXPECT_EQ(4U, tme::calc_total_aligned_size(2U, 4U, 1U)) << "Returned size is not alignment * quantity when the value size is smaller than alignment";
+    EXPECT_EQ(64U, tme::calc_total_aligned_size(33U, 64U, 1U)) << "Returned size is not alignment * quantity when the value size is smaller than alignment";
+    EXPECT_EQ(32U, tme::calc_total_aligned_size(1U, 8U, 4U)) << "Returned size is not alignment * quantity when the value size is smaller than alignment";
+    EXPECT_EQ(24U, tme::calc_total_aligned_size(4U, 6U, 4U)) << "Returned size is not alignment * quantity when the value size is smaller than alignment";
+    EXPECT_EQ(30U, tme::calc_total_aligned_size(4U, 6U, 5U)) << "Returned size is not alignment * quantity when the value size is smaller than alignment";
+}
+
+TEST(alignment_test, calc_total_aligned_size_smaller_alignment)
+{
+    EXPECT_EQ(2U, tme::calc_total_aligned_size(2U, 1U, 1U)) << "Returned size is not total size rounded to nearest alignment multiple when the alignment is smaller than value size";
+    EXPECT_EQ(8U, tme::calc_total_aligned_size(5U, 4U, 1U)) << "Returned size is not total size rounded to nearest alignment multiple when the alignment is smaller than value size";
+    EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 1U, 4U)) << "Returned size is not total size rounded to nearest alignment multiple when the alignment is smaller than value size";
+    EXPECT_EQ(42U, tme::calc_total_aligned_size(8U, 6U, 5U)) << "Returned size is not total size rounded to nearest alignment multiple when the alignment is smaller than value size";
+    EXPECT_EQ(36U, tme::calc_total_aligned_size(5U, 3U, 7U)) << "Returned size is not total size rounded to nearest alignment multiple when the alignment is smaller than value size";
+    EXPECT_EQ(192U, tme::calc_total_aligned_size(72U, 64U, 2U)) << "Returned size is not total size rounded to nearest alignment multiple when the alignment is smaller than value size";
+}

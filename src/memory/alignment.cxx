@@ -38,6 +38,10 @@ std::size_t calc_total_aligned_size(std::size_t value_size, std::size_t value_al
     {
 	return value_alignment * quantity;
     }
+    else if (value_size % value_alignment == 0U)
+    {
+	return total_size;
+    }
     else
     {
 	return ((total_size + value_alignment) / value_alignment) * value_alignment;
