@@ -1,5 +1,6 @@
 #include "alignment.hpp"
 #include <cstdint>
+#include <turbo/toolset/extension.hpp>
 
 namespace turbo {
 namespace memory {
@@ -20,6 +21,27 @@ void* align(std::size_t alignment, std::size_t element_size, void*& buffer, std:
     available_space -= padding;
     buffer = reinterpret_cast<void*>(aligned_ptr);
     return buffer;
+}
+
+std::size_t calc_total_aligned_size(std::size_t value_size, std::size_t value_alignment, std::size_t quantity)
+{
+    std::size_t total_size = value_size * quantity;
+    if (TURBO_UNLIKELY(total_size == 0U))
+    {
+	return 0U;
+    }
+    else if (value_alignment == 0U || value_size == value_alignment || total_size == value_alignment)
+    {
+	return total_size;
+    }
+    else if (value_size < value_alignment)
+    {
+	return value_alignment * quantity;
+    }
+    else
+    {
+	return ((total_size + value_alignment) / value_alignment) * value_alignment;
+    }
 }
 
 } // namespace memory

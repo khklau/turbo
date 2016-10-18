@@ -185,3 +185,37 @@ TEST(alignment_test, align_zero_element_size)
     EXPECT_EQ(expected_ptr1, actual_ptr1) << "Pointer is not aligned";
     EXPECT_EQ(expected_size1, actual_size1) << "Incorrect available space";
 }
+
+TEST(alignment_test, calc_total_aligned_size_invalid_value)
+{
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(0U, 0U, 1U)) << "Total size is not zero when the value size is zero";
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(0U, 4U, 1U)) << "Total size is not zero when the value size is zero";
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(0U, 0U, 8U)) << "Total size is not zero when the value size is zero";
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(0U, 4U, 8U)) << "Total size is not zero when the value size is zero";
+}
+
+TEST(alignment_test, calc_total_aligned_size_invalid_quantity)
+{
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(1U, 0U, 0U)) << "Total size is not zero when the quantity is zero";
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(1U, 4U, 0U)) << "Total size is not zero when the quantity is zero";
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(8U, 0U, 0U)) << "Total size is not zero when the quantity is zero";
+    EXPECT_EQ(0U, tme::calc_total_aligned_size(8U, 4U, 0U)) << "Total size is not zero when the quantity is zero";
+}
+
+TEST(alignment_test, calc_total_aligned_size_no_alignment)
+{
+    EXPECT_EQ(1U, tme::calc_total_aligned_size(1U, 0U, 1U)) << "Returned size is not the total size when there is no alignment requirement";
+    EXPECT_EQ(3U, tme::calc_total_aligned_size(1U, 0U, 3U)) << "Returned size is not the total size when there is no alignment requirement";;
+    EXPECT_EQ(4U, tme::calc_total_aligned_size(4U, 0U, 1U)) << "Returned size is not the total size when there is no alignment requirement";
+    EXPECT_EQ(32U, tme::calc_total_aligned_size(4U, 0U, 8U)) << "Returned size is not the total size when there is no alignment requirement";;
+}
+
+TEST(alignment_test, calc_total_aligned_size_already_aligned)
+{
+    EXPECT_EQ(1U, tme::calc_total_aligned_size(1U, 1U, 1U)) << "Returned size is not the total size when requested alignment matches value size";
+    EXPECT_EQ(4U, tme::calc_total_aligned_size(4U, 4U, 1U)) << "Returned size is not the total size when requested alignment matches value size";
+    EXPECT_EQ(4U, tme::calc_total_aligned_size(1U, 1U, 4U)) << "Returned size is not the total size when requested alignment matches value size";
+    EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 4U, 4U)) << "Returned size is not the total size when requested alignment matches value size";
+    EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 16U, 4U)) << "Returned size is not the total size when requested alignment matches total size";
+    EXPECT_EQ(96U, tme::calc_total_aligned_size(8U, 96U, 12U)) << "Returned size is not the total size when requested alignment matches total size";
+}
