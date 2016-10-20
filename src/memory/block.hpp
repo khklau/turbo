@@ -5,6 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <turbo/container/mpmc_ring_queue.hpp>
+#include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
 namespace memory {
@@ -37,7 +38,7 @@ public:
     explicit invalid_pointer_error(const char* what);
 };
 
-class block
+class TURBO_SYMBOL_DECL block
 {
 public:
     typedef std::uint32_t capacity_type;
