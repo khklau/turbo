@@ -2,6 +2,7 @@
 #define TURBO_MEMORY_POOL_HPP
 
 #include <cstdint>
+#include <cstdlib>
 #include <atomic>
 #include <functional>
 #include <iterator>
@@ -12,6 +13,7 @@
 #include <vector>
 #include <turbo/container/mpmc_ring_queue.hpp>
 #include <turbo/memory/block.hpp>
+#include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
 namespace memory {
@@ -70,7 +72,7 @@ private:
     std::size_t smallest_block_;
 };
 
-class block_list
+class TURBO_SYMBOL_DECL block_list
 {
 private:
     class node;
@@ -107,6 +109,7 @@ public:
 	node* pointer_;
     };
     block_list(std::size_t value_size, block::capacity_type capacity);
+    block_list(const block_config& config); // allow implicit conversion
     inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
     std::unique_ptr<node> create_node(block::capacity_type capacity);
@@ -137,15 +140,46 @@ private:
     node first_;
 };
 
-class pool
+class TURBO_SYMBOL_DECL pool
 {
 public:
     pool(block::capacity_type default_capacity, const std::vector<block_config>& config);
     pool(block::capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor);
+    std::size_t find_block_bucket(std::size_t allocation_size) const;
+    template <class value_t>
+    inline value_t* allocate(capacity_type quantity, const value_t* hint)
+    {
+	return allocate(sizeof(value_t), alignof(value_t), quantity, hint);
+    }
+    template <class value_t>
+    inline value_t* allocate()
+    {
+	return allocate(1U, static_cast<const value_t*>(nullptr));
+    }
+    template <class value_t>
+    inline value_t* allocate(capacity_type quantity)
+    {
+	return allocate(quantity, static_cast<const value_t*>(nullptr));
+    }
+    template <class value_t>
+    inline value_t* allocate(const value_t* hint)
+    {
+	return allocate(1U, hint);
+    }
+    template <class value_t>
+    void deallocate(value_t* pointer, capacity_type quantity);
+    template <class value_t>
+    inline void deallocate(value_t* pointer)
+    {
+	return deallocate(pointer, 1U);
+    }
 private:
+    pool(block::capacity_type default_capacity, std::uint8_t step_factor, const std::vector<block_config>& config);
+    void* allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void* hint);
     block::capacity_type default_capacity_;
     std::size_t step_factor_;
     std::size_t smallest_block_;
+    std::vector<block_list> block_map_;
 };
 
 std::vector<block_config> calibrate(const std::vector<block_config>& config, std::uint8_t step_factor);

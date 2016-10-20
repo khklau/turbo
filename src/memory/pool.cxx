@@ -1,5 +1,7 @@
 #include "pool.hpp"
+#include <cmath>
 #include <algorithm>
+#include <turbo/memory/alignment.hpp>
 #include <turbo/toolset/extension.hpp>
 
 namespace turbo {
@@ -164,6 +166,12 @@ block_list::block_list(std::size_t value_size, block::capacity_type capacity)
 	first_(value_size, capacity)
 { }
 
+block_list::block_list(const block_config& config)
+    :
+	value_size_(config.block_size),
+	first_(config.block_size, config.initial_capacity)
+{ }
+
 std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type capacity)
 {
     return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size_, capacity)));
@@ -171,20 +179,39 @@ std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type c
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
     :
-	pool(default_capacity, config, 2U)
+	pool(default_capacity, 2U, calibrate(config, 2U))
 { }
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor)
     :
+	pool(default_capacity, step_factor, calibrate(config, step_factor))
+{ }
+
+pool::pool(capacity_type default_capacity, std::uint8_t step_factor, const std::vector<block_config>& config)
+    :
 	default_capacity_(default_capacity),
 	step_factor_(step_factor < 2U ? 2U : step_factor),
-	smallest_block_(0U)
+	smallest_block_(config.cbegin()->block_size),
+	block_map_(config.cbegin(), config.cend())
+{ }
+
+std::size_t pool::find_block_bucket(std::size_t allocation_size) const
 {
-    std::vector<block_config> calibrated(calibrate(config, step_factor_));
-    if (!calibrated.empty())
+    if (allocation_size <= smallest_block_)
     {
-	smallest_block_ = calibrated.cbegin()->block_size;
+	// to prevent underflow error
+	return 0U;
     }
+    else
+    {
+	return static_cast<std::size_t>(std::ceil(std::log(static_cast<double>(allocation_size) / smallest_block_) / std::log(step_factor_)));
+    }
+}
+
+void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
+{
+    const std::size_t total_size = calc_total_aligned_size(value_size, value_alignment, quantity);
+    return nullptr;
 }
 
 std::vector<block_config> calibrate(const std::vector<block_config>& config, std::uint8_t step_factor)
