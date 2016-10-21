@@ -258,7 +258,7 @@ void node_consumer_task<value_t, limit>::consume()
     }
 }
 
-TEST(pool_test, message_pass_string)
+TEST(pool_test, list_message_pass_string)
 {
     typedef tco::mpmc_ring_queue<std::string*> string_queue;
     string_queue queue1(8U, 4U);
@@ -359,6 +359,166 @@ TEST(pool_test, message_pass_string)
 		"- actual '" << actual_iter->c_str() << "'";
     }
 }
+
+TEST(pool_test, find_block_bucket_basic)
+{
+    tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} }, 4U);
+    EXPECT_EQ(0U, pool1.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, pool1.find_block_bucket(2U)) << "Unexpected bucket with bucket size parameter of 2U";
+    EXPECT_EQ(1U, pool1.find_block_bucket(3U)) << "Unexpected bucket with bucket size parameter of 3U";
+    EXPECT_EQ(1U, pool1.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
+    EXPECT_EQ(2U, pool1.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
+    EXPECT_EQ(2U, pool1.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
+
+    tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} }, 4U);
+    EXPECT_EQ(0U, pool2.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, pool2.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
+    EXPECT_EQ(1U, pool2.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
+    EXPECT_EQ(1U, pool2.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
+    EXPECT_EQ(2U, pool2.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
+    EXPECT_EQ(2U, pool2.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
+
+    tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} }, 2U);
+    EXPECT_EQ(0U, pool3.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, pool3.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
+    EXPECT_EQ(1U, pool3.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
+    EXPECT_EQ(1U, pool3.find_block_bucket(64U)) << "Unexpected bucket with bucket size parameter of 64U";
+    EXPECT_EQ(2U, pool3.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 65U";
+    EXPECT_EQ(2U, pool3.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
+
+    tme::pool pool4(8U, { {4U, 16U}, {20U, 16U}, {100U, 16U} }, 5U);
+    EXPECT_EQ(0U, pool4.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, pool4.find_block_bucket(4U)) << "Unexpected bucket with bucket size parameter of 4U";
+    EXPECT_EQ(1U, pool4.find_block_bucket(5U)) << "Unexpected bucket with bucket size parameter of 5U";
+    EXPECT_EQ(1U, pool4.find_block_bucket(20U)) << "Unexpected bucket with bucket size parameter of 20U";
+    EXPECT_EQ(2U, pool4.find_block_bucket(21U)) << "Unexpected bucket with bucket size parameter of 21U";
+    EXPECT_EQ(2U, pool4.find_block_bucket(100U)) << "Unexpected bucket with bucket size parameter of 100U";
+}
+
+TEST(pool_test, find_block_bucket_invalid)
+{
+    tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} }, 4U);
+    EXPECT_EQ(0U, pool1.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(3U, pool1.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
+
+    tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} }, 4U);
+    EXPECT_EQ(0U, pool2.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(3U, pool2.find_block_bucket(129U)) << "Unexpected bucket with bucket size parameter of 129U";
+
+    tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} }, 2U);
+    EXPECT_EQ(0U, pool3.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(4U, pool3.find_block_bucket(257U)) << "Unexpected bucket with bucket size parameter of 257U";
+
+    tme::pool pool4(8U, { {4U, 16U}, {20U, 16U}, {100U, 16U} }, 5U);
+    EXPECT_EQ(0U, pool4.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(3U, pool4.find_block_bucket(101U)) << "Unexpected bucket with bucket size parameter of 101U";
+}
+
+TEST(pool_test, calibrate_positive)
+{
+    std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
+    std::vector<tme::block_config> expected1{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
+    std::vector<tme::block_config> actual1(tme::calibrate(input1, 2U));
+    EXPECT_TRUE(!actual1.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected1[0].block_size << ", " << expected1[0].initial_capacity << "}, "
+	    << "{" << expected1[1].block_size << ", " << expected1[1].initial_capacity << "}, "
+	    << "{" << expected1[2].block_size << ", " << expected1[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual1[0].block_size << ", " << actual1[0].initial_capacity << "}, "
+	    << "{" << actual1[1].block_size << ", " << actual1[1].initial_capacity << "}, "
+	    << "{" << actual1[2].block_size << ", " << actual1[2].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input2{ {64U, 4U}, {24U, 8U}, {16U, 16U} };
+    std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
+    std::vector<tme::block_config> actual2(tme::calibrate(input2, 2U));
+    EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected2[0].block_size << ", " << expected2[0].initial_capacity << "}, "
+	    << "{" << expected2[1].block_size << ", " << expected2[1].initial_capacity << "}, "
+	    << "{" << expected2[2].block_size << ", " << expected2[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual2[0].block_size << ", " << actual2[0].initial_capacity << "}, "
+	    << "{" << actual2[1].block_size << ", " << actual2[1].initial_capacity << "}, "
+	    << "{" << actual2[2].block_size << ", " << actual2[2].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input3{ {32U, 4U}, {24U, 8U}, {16U, 16U} };
+    std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
+    std::vector<tme::block_config> actual3(tme::calibrate(input3, 2U));
+    EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected3[0].block_size << ", " << expected3[0].initial_capacity << "}, "
+	    << "{" << expected3[1].block_size << ", " << expected3[1].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual3[0].block_size << ", " << actual3[0].initial_capacity << "}, "
+	    << "{" << actual3[1].block_size << ", " << actual3[1].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input4{ {16U, 16U}, {64U, 4U} };
+    std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
+    std::vector<tme::block_config> actual4(tme::calibrate(input4, 2U));
+    EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected4[0].block_size << ", " << expected4[0].initial_capacity << "}, "
+	    << "{" << expected4[1].block_size << ", " << expected4[1].initial_capacity << "}, "
+	    << "{" << expected4[2].block_size << ", " << expected4[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual4[0].block_size << ", " << actual4[0].initial_capacity << "}, "
+	    << "{" << actual4[1].block_size << ", " << actual4[1].initial_capacity << "}, "
+	    << "{" << actual4[2].block_size << ", " << actual4[2].initial_capacity << "} ]";
+}
+
+TEST(pool_test, calibrate_negative)
+{
+    std::vector<tme::block_config> input1;
+    std::vector<tme::block_config> actual1(tme::calibrate(input1, 2U));
+    EXPECT_TRUE(actual1.empty()) << "Empty output from non-empty input";
+
+    std::vector<tme::block_config> input2{ {64U, 4U}, {24U, 8U}, {16U, 16U} };
+    std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
+    std::vector<tme::block_config> actual2(tme::calibrate(input2, 0U));
+    EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected2[0].block_size << ", " << expected2[0].initial_capacity << "}, "
+	    << "{" << expected2[1].block_size << ", " << expected2[1].initial_capacity << "}, "
+	    << "{" << expected2[2].block_size << ", " << expected2[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual2[0].block_size << ", " << actual2[0].initial_capacity << "}, "
+	    << "{" << actual2[1].block_size << ", " << actual2[1].initial_capacity << "}, "
+	    << "{" << actual2[2].block_size << ", " << actual2[2].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input3{ {32U, 4U}, {24U, 8U}, {16U, 16U} };
+    std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
+    std::vector<tme::block_config> actual3(tme::calibrate(input3, 1U));
+    EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected3[0].block_size << ", " << expected3[0].initial_capacity << "}, "
+	    << "{" << expected3[1].block_size << ", " << expected3[1].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual3[0].block_size << ", " << actual3[0].initial_capacity << "}, "
+	    << "{" << actual3[1].block_size << ", " << actual3[1].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input4{ {16U, 16U}, {64U, 4U} };
+    std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
+    std::vector<tme::block_config> actual4(tme::calibrate(input4, 1U));
+    EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect reordering: "
+	    << "expected [ "
+	    << "{" << expected4[0].block_size << ", " << expected4[0].initial_capacity << "}, "
+	    << "{" << expected4[1].block_size << ", " << expected4[1].initial_capacity << "}, "
+	    << "{" << expected4[2].block_size << ", " << expected4[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual4[0].block_size << ", " << actual4[0].initial_capacity << "}, "
+	    << "{" << actual4[1].block_size << ", " << actual4[1].initial_capacity << "}, "
+	    << "{" << actual4[2].block_size << ", " << actual4[2].initial_capacity << "} ]";
+}
+
+// TODO delete all block_pool based test cases below
 
 TEST(pool_test, make_unique_basic)
 {
@@ -1463,60 +1623,6 @@ TEST(pool_test, parallel_use)
 		"- expected " << *expected_iter4 <<
 		"- actual " << *actual_iter4;
     }
-}
-
-TEST(pool_test, find_block_bucket_basic)
-{
-    tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} }, 4U);
-    EXPECT_EQ(0U, pool1.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool1.find_block_bucket(2U)) << "Unexpected bucket with bucket size parameter of 2U";
-    EXPECT_EQ(1U, pool1.find_block_bucket(3U)) << "Unexpected bucket with bucket size parameter of 3U";
-    EXPECT_EQ(1U, pool1.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
-    EXPECT_EQ(2U, pool1.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
-    EXPECT_EQ(2U, pool1.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
-
-    tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} }, 4U);
-    EXPECT_EQ(0U, pool2.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool2.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
-    EXPECT_EQ(1U, pool2.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
-    EXPECT_EQ(1U, pool2.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
-    EXPECT_EQ(2U, pool2.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
-    EXPECT_EQ(2U, pool2.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
-
-    tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} }, 2U);
-    EXPECT_EQ(0U, pool3.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool3.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
-    EXPECT_EQ(1U, pool3.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
-    EXPECT_EQ(1U, pool3.find_block_bucket(64U)) << "Unexpected bucket with bucket size parameter of 64U";
-    EXPECT_EQ(2U, pool3.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 65U";
-    EXPECT_EQ(2U, pool3.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
-
-    tme::pool pool4(8U, { {4U, 16U}, {20U, 16U}, {100U, 16U} }, 5U);
-    EXPECT_EQ(0U, pool4.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool4.find_block_bucket(4U)) << "Unexpected bucket with bucket size parameter of 4U";
-    EXPECT_EQ(1U, pool4.find_block_bucket(5U)) << "Unexpected bucket with bucket size parameter of 5U";
-    EXPECT_EQ(1U, pool4.find_block_bucket(20U)) << "Unexpected bucket with bucket size parameter of 20U";
-    EXPECT_EQ(2U, pool4.find_block_bucket(21U)) << "Unexpected bucket with bucket size parameter of 21U";
-    EXPECT_EQ(2U, pool4.find_block_bucket(100U)) << "Unexpected bucket with bucket size parameter of 100U";
-}
-
-TEST(pool_test, find_block_bucket_invalid)
-{
-    tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} }, 4U);
-    EXPECT_EQ(0U, pool1.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(3U, pool1.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
-
-    tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} }, 4U);
-    EXPECT_EQ(0U, pool2.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(3U, pool2.find_block_bucket(129U)) << "Unexpected bucket with bucket size parameter of 129U";
-
-    tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} }, 2U);
-    EXPECT_EQ(0U, pool3.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(4U, pool3.find_block_bucket(257U)) << "Unexpected bucket with bucket size parameter of 257U";
-
-    tme::pool pool4(8U, { {4U, 16U}, {20U, 16U}, {100U, 16U} }, 5U);
-    EXPECT_EQ(0U, pool4.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(3U, pool4.find_block_bucket(101U)) << "Unexpected bucket with bucket size parameter of 101U";
 }
 
 TEST(pool_test, sanitise_positive)
