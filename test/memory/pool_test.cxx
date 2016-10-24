@@ -90,12 +90,12 @@ TEST(pool_test, sequential_append)
 }
 
 template <class value_t, std::size_t limit>
-class node_producer_task
+class list_producer_task
 {
 public:
     typedef tco::mpmc_ring_queue<value_t*> queue;
-    node_producer_task(typename queue::producer& producer, tme::block_list& list, const std::array<value_t, limit>& input);
-    ~node_producer_task() noexcept;
+    list_producer_task(typename queue::producer& producer, tme::block_list& list, const std::array<value_t, limit>& input);
+    ~list_producer_task() noexcept;
     void run();
     void produce();
 private:
@@ -106,7 +106,7 @@ private:
 };
 
 template <class value_t, std::size_t limit>
-node_producer_task<value_t, limit>::node_producer_task(typename queue::producer& producer, tme::block_list& list, const std::array<value_t, limit>& input)
+list_producer_task<value_t, limit>::list_producer_task(typename queue::producer& producer, tme::block_list& list, const std::array<value_t, limit>& input)
     :
 	producer_(producer),
 	list_(list),
@@ -115,7 +115,7 @@ node_producer_task<value_t, limit>::node_producer_task(typename queue::producer&
 { }
 
 template <class value_t, std::size_t limit>
-node_producer_task<value_t, limit>::~node_producer_task() noexcept
+list_producer_task<value_t, limit>::~list_producer_task() noexcept
 {
     try
     {
@@ -133,17 +133,17 @@ node_producer_task<value_t, limit>::~node_producer_task() noexcept
 }
 
 template <class value_t, std::size_t limit>
-void node_producer_task<value_t, limit>::run()
+void list_producer_task<value_t, limit>::run()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&node_producer_task::produce, this));
+	std::function<void ()> entry(std::bind(&list_producer_task::produce, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class value_t, std::size_t limit>
-void node_producer_task<value_t, limit>::produce()
+void list_producer_task<value_t, limit>::produce()
 {
     for (auto input_iter = input_.cbegin(); input_iter != input_.cend();)
     {
@@ -183,12 +183,12 @@ void node_producer_task<value_t, limit>::produce()
 }
 
 template <class value_t, std::size_t limit>
-class node_consumer_task
+class list_consumer_task
 {
 public:
     typedef tco::mpmc_ring_queue<value_t*> queue;
-    node_consumer_task(typename queue::consumer& consumer, tme::block_list& list, std::array<value_t, limit>& output);
-    ~node_consumer_task() noexcept;
+    list_consumer_task(typename queue::consumer& consumer, tme::block_list& list, std::array<value_t, limit>& output);
+    ~list_consumer_task() noexcept;
     void run();
     void consume();
 private:
@@ -199,7 +199,7 @@ private:
 };
 
 template <class value_t, std::size_t limit>
-node_consumer_task<value_t, limit>::node_consumer_task(typename queue::consumer& consumer, tme::block_list& list, std::array<value_t, limit>& output)
+list_consumer_task<value_t, limit>::list_consumer_task(typename queue::consumer& consumer, tme::block_list& list, std::array<value_t, limit>& output)
     :
 	consumer_(consumer),
 	list_(list),
@@ -208,7 +208,7 @@ node_consumer_task<value_t, limit>::node_consumer_task(typename queue::consumer&
 { }
 
 template <class value_t, std::size_t limit>
-node_consumer_task<value_t, limit>::~node_consumer_task() noexcept
+list_consumer_task<value_t, limit>::~list_consumer_task() noexcept
 {
     try
     {
@@ -226,17 +226,17 @@ node_consumer_task<value_t, limit>::~node_consumer_task() noexcept
 }
 
 template <class value_t, std::size_t limit>
-void node_consumer_task<value_t, limit>::run()
+void list_consumer_task<value_t, limit>::run()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&node_consumer_task::consume, this));
+	std::function<void ()> entry(std::bind(&list_consumer_task::consume, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class value_t, std::size_t limit>
-void node_consumer_task<value_t, limit>::consume()
+void list_consumer_task<value_t, limit>::consume()
 {
     for (auto output_iter = output_.begin(); output_iter != output_.end();)
     {
@@ -329,14 +329,14 @@ TEST(pool_test, list_message_pass_string)
 	(*expected_output)[counter4 + 6144U] = ostream.str();
     }
     {
-	node_producer_task<std::string, 2048U> producer1(queue1.get_producer(), block1, *input1);
-	node_producer_task<std::string, 2048U> producer2(queue1.get_producer(), block1, *input2);
-	node_producer_task<std::string, 2048U> producer3(queue1.get_producer(), block1, *input3);
-	node_producer_task<std::string, 2048U> producer4(queue1.get_producer(), block1, *input4);
-	node_consumer_task<std::string, 2048U> consumer1(queue1.get_consumer(), block1, *output1);
-	node_consumer_task<std::string, 2048U> consumer2(queue1.get_consumer(), block1, *output2);
-	node_consumer_task<std::string, 2048U> consumer3(queue1.get_consumer(), block1, *output3);
-	node_consumer_task<std::string, 2048U> consumer4(queue1.get_consumer(), block1, *output4);
+	list_producer_task<std::string, 2048U> producer1(queue1.get_producer(), block1, *input1);
+	list_producer_task<std::string, 2048U> producer2(queue1.get_producer(), block1, *input2);
+	list_producer_task<std::string, 2048U> producer3(queue1.get_producer(), block1, *input3);
+	list_producer_task<std::string, 2048U> producer4(queue1.get_producer(), block1, *input4);
+	list_consumer_task<std::string, 2048U> consumer1(queue1.get_consumer(), block1, *output1);
+	list_consumer_task<std::string, 2048U> consumer2(queue1.get_consumer(), block1, *output2);
+	list_consumer_task<std::string, 2048U> consumer3(queue1.get_consumer(), block1, *output3);
+	list_consumer_task<std::string, 2048U> consumer4(queue1.get_consumer(), block1, *output4);
 	producer4.run();
 	consumer1.run();
 	producer3.run();
@@ -381,11 +381,11 @@ TEST(pool_test, list_message_pass_string)
 }
 
 template <class input_t, class output_t, std::size_t limit>
-class node_user_task
+class list_user_task
 {
 public:
-    node_user_task(tme::block_list& list, const std::array<input_t, limit>& input, std::array<output_t, limit>& output, const std::function<output_t (const input_t&)>& process);
-    ~node_user_task() noexcept;
+    list_user_task(tme::block_list& list, const std::array<input_t, limit>& input, std::array<output_t, limit>& output, const std::function<output_t (const input_t&)>& process);
+    ~list_user_task() noexcept;
     void run();
     void use();
 private:
@@ -397,7 +397,7 @@ private:
 };
 
 template <class input_t, class output_t, std::size_t limit>
-node_user_task<input_t, output_t, limit>::node_user_task(
+list_user_task<input_t, output_t, limit>::list_user_task(
 	tme::block_list& list,
 	const std::array<input_t, limit>& input,
 	std::array<output_t, limit>& output,
@@ -411,7 +411,7 @@ node_user_task<input_t, output_t, limit>::node_user_task(
 { }
 
 template <class input_t, class output_t, std::size_t limit>
-node_user_task<input_t, output_t, limit>::~node_user_task() noexcept
+list_user_task<input_t, output_t, limit>::~list_user_task() noexcept
 {
     try
     {
@@ -429,17 +429,17 @@ node_user_task<input_t, output_t, limit>::~node_user_task() noexcept
 }
 
 template <class input_t, class output_t, std::size_t limit>
-void node_user_task<input_t, output_t, limit>::run()
+void list_user_task<input_t, output_t, limit>::run()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&node_user_task::use, this));
+	std::function<void ()> entry(std::bind(&list_user_task::use, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class input_t, class output_t, std::size_t limit>
-void node_user_task<input_t, output_t, limit>::use()
+void list_user_task<input_t, output_t, limit>::use()
 {
     for (auto iter = 0U; iter < limit; ++iter)
     {
@@ -563,10 +563,10 @@ TEST(pool_test, list_parallel_use_octshort)
 	    });
 	    return output;
 	};
-	node_user_task<oct_short, std::uint32_t, 2048U> task1(list1, *input1, *actual_output1, process);
-	node_user_task<oct_short, std::uint32_t, 2048U> task2(list1, *input2, *actual_output2, process);
-	node_user_task<oct_short, std::uint32_t, 2048U> task3(list1, *input3, *actual_output3, process);
-	node_user_task<oct_short, std::uint32_t, 2048U> task4(list1, *input4, *actual_output4, process);
+	list_user_task<oct_short, std::uint32_t, 2048U> task1(list1, *input1, *actual_output1, process);
+	list_user_task<oct_short, std::uint32_t, 2048U> task2(list1, *input2, *actual_output2, process);
+	list_user_task<oct_short, std::uint32_t, 2048U> task3(list1, *input3, *actual_output3, process);
+	list_user_task<oct_short, std::uint32_t, 2048U> task4(list1, *input4, *actual_output4, process);
 	task1.run();
 	task2.run();
 	task3.run();
