@@ -47,6 +47,7 @@ public:
     inline std::size_t get_capacity() const { return capacity_; }
     inline std::size_t get_usable_size() const { return usable_size_; }
     inline const void* get_base_address() const { return base_; }
+    inline bool in_range(const void* pointer) const { return base_ <= pointer && pointer < (static_cast<std::uint8_t*>(base_) + usable_size_); }
     void* allocate();
     void free(void* pointer);
 private:
