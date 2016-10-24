@@ -248,7 +248,25 @@ void node_consumer_task<value_t, limit>::consume()
 		*output_iter = *tmp;
 		random_spin();
 		tmp->~value_t();
-		//block_.free(tmp);
+		auto block_iter = list_.begin();
+		tar::retry_with_random_backoff([&] () -> tar::try_state
+		{
+		    if (block_iter->in_range(tmp))
+		    {
+			block_iter->free(tmp);
+			return tar::try_state::done;
+		    }
+		    else if (block_iter.is_last())
+		    {
+			// leak!
+			return tar::try_state::done;
+		    }
+		    else
+		    {
+			++block_iter;
+			return tar::try_state::retry;
+		    }
+		});
 		++output_iter;
 		return tar::try_state::done;
 	    }
