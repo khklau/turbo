@@ -15,6 +15,8 @@ namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
 
+typedef std::array<std::uint16_t, 8> oct_short;
+
 void random_spin()
 {
     std::random_device device;
@@ -357,6 +359,232 @@ TEST(pool_test, list_message_pass_string)
 	EXPECT_EQ(*expected_iter, *actual_iter) << "Mismatching std::string consumed " <<
 		"- expected '" << expected_iter->c_str() << "' " <<
 		"- actual '" << actual_iter->c_str() << "'";
+    }
+}
+
+template <class input_t, class output_t, std::size_t limit>
+class node_user_task
+{
+public:
+    node_user_task(tme::block_list& list, const std::array<input_t, limit>& input, std::array<output_t, limit>& output, const std::function<output_t (const input_t&)>& process);
+    ~node_user_task() noexcept;
+    void run();
+    void use();
+private:
+    tme::block_list& list_;
+    const std::array<input_t, limit>& input_;
+    std::array<output_t, limit>& output_;
+    const std::function<output_t (const input_t&)>& process_;
+    std::thread* thread_;
+};
+
+template <class input_t, class output_t, std::size_t limit>
+node_user_task<input_t, output_t, limit>::node_user_task(
+	tme::block_list& list,
+	const std::array<input_t, limit>& input,
+	std::array<output_t, limit>& output,
+	const std::function<output_t (const input_t&)>& process)
+    :
+	list_(list),
+	input_(input),
+	output_(output),
+	process_(process),
+	thread_(nullptr)
+{ }
+
+template <class input_t, class output_t, std::size_t limit>
+node_user_task<input_t, output_t, limit>::~node_user_task() noexcept
+{
+    try
+    {
+	if (thread_)
+	{
+	    thread_->join();
+	    delete thread_;
+	    thread_ = nullptr;
+	}
+    }
+    catch(...)
+    {
+	// do nothing
+    }
+}
+
+template <class input_t, class output_t, std::size_t limit>
+void node_user_task<input_t, output_t, limit>::run()
+{
+    if (!thread_)
+    {
+	std::function<void ()> entry(std::bind(&node_user_task::use, this));
+	thread_ = new std::thread(entry);
+    }
+}
+
+template <class input_t, class output_t, std::size_t limit>
+void node_user_task<input_t, output_t, limit>::use()
+{
+    for (auto iter = 0U; iter < limit; ++iter)
+    {
+	auto block_iter = list_.begin();
+	tar::retry_with_random_backoff([&] () -> tar::try_state
+	{
+	    input_t* result = static_cast<input_t*>(block_iter->allocate());
+	    if (result != nullptr)
+	    {
+		random_spin();
+		*result = input_[iter];
+		output_[iter] = process_(*result);
+		random_spin();
+		block_iter->free(result);
+		return tar::try_state::done;
+	    }
+	    else
+	    {
+		if (block_iter.is_last())
+		{
+		    auto node = list_.create_node(block_iter->get_capacity() * 2);
+		    block_iter.try_append(std::move(node));
+		}
+		++block_iter;
+		return tar::try_state::retry;
+	    }
+	});
+    }
+}
+
+TEST(pool_test, list_parallel_use_octshort)
+{
+    tme::block_list list1(sizeof(oct_short), 2U);
+    std::unique_ptr<std::array<oct_short, 2048U>> input1(new std::array<oct_short, 2048U>());
+    std::unique_ptr<std::array<oct_short, 2048U>> input2(new std::array<oct_short, 2048U>());
+    std::unique_ptr<std::array<oct_short, 2048U>> input3(new std::array<oct_short, 2048U>());
+    std::unique_ptr<std::array<oct_short, 2048U>> input4(new std::array<oct_short, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> actual_output1(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> actual_output2(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> actual_output3(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> actual_output4(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> expected_output1(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> expected_output2(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> expected_output3(new std::array<std::uint32_t, 2048U>());
+    std::unique_ptr<std::array<std::uint32_t, 2048U>> expected_output4(new std::array<std::uint32_t, 2048U>());
+    std::fill_n(actual_output1->begin(), actual_output1->max_size(), 0U);
+    std::fill_n(actual_output2->begin(), actual_output2->max_size(), 0U);
+    std::fill_n(actual_output3->begin(), actual_output3->max_size(), 0U);
+    std::fill_n(actual_output4->begin(), actual_output4->max_size(), 0U);
+    for (std::uint16_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	(*input1)[counter1][0] = counter1 * 5U;
+	(*input1)[counter1][1] = counter1 * 7U;
+	(*input1)[counter1][2] = counter1 * 11U;
+	(*input1)[counter1][3] = counter1 * 13U;
+	(*input1)[counter1][4] = counter1 * 17U;
+	(*input1)[counter1][5] = counter1 * 19U;
+	(*input1)[counter1][6] = counter1 * 23U;
+	(*input1)[counter1][7] = counter1 * 29U;
+	(*expected_output1)[counter1] = 0U;
+	std::for_each((*input1)[counter1].cbegin(), (*input1)[counter1].cend(), [&] (const std::uint16_t value) -> void
+	{
+	    (*expected_output1)[counter1] += value;
+	});
+    }
+    for (std::uint16_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	(*input2)[counter2][0] = 3U + counter2 * 5U;
+	(*input2)[counter2][1] = 3U + counter2 * 7U;
+	(*input2)[counter2][2] = 3U + counter2 * 11U;
+	(*input2)[counter2][3] = 3U + counter2 * 13U;
+	(*input2)[counter2][4] = 3U + counter2 * 17U;
+	(*input2)[counter2][5] = 3U + counter2 * 19U;
+	(*input2)[counter2][6] = 3U + counter2 * 23U;
+	(*input2)[counter2][7] = 3U + counter2 * 29U;
+	(*expected_output2)[counter2] = 0U;
+	std::for_each((*input2)[counter2].cbegin(), (*input2)[counter2].cend(), [&] (const std::uint16_t value) -> void
+	{
+	    (*expected_output2)[counter2] += value;
+	});
+    }
+    for (std::uint16_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	(*input3)[counter3][0] = counter3 * 5U;
+	(*input3)[counter3][1] = counter3 * 7U;
+	(*input3)[counter3][2] = counter3 * 11U;
+	(*input3)[counter3][3] = counter3 * 13U;
+	(*input3)[counter3][4] = counter3 * 17U;
+	(*input3)[counter3][5] = counter3 * 19U;
+	(*input3)[counter3][6] = counter3 * 23U;
+	(*input3)[counter3][7] = counter3 * 29U;
+	(*expected_output3)[counter3] = 0U;
+	std::for_each((*input3)[counter3].cbegin(), (*input3)[counter3].cend(), [&] (const std::uint16_t value) -> void
+	{
+	    (*expected_output3)[counter3] += value;
+	});
+    }
+    for (std::uint16_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	(*input4)[counter4][0] = 3u + counter4 * 5U;
+	(*input4)[counter4][1] = 3u + counter4 * 7U;
+	(*input4)[counter4][2] = 3u + counter4 * 11U;
+	(*input4)[counter4][3] = 3u + counter4 * 13U;
+	(*input4)[counter4][4] = 3u + counter4 * 17U;
+	(*input4)[counter4][5] = 3u + counter4 * 19U;
+	(*input4)[counter4][6] = 3u + counter4 * 23U;
+	(*input4)[counter4][7] = 3u + counter4 * 29U;
+	(*expected_output4)[counter4] = 0U;
+	std::for_each((*input4)[counter4].cbegin(), (*input4)[counter4].cend(), [&] (const std::uint16_t value) -> void
+	{
+	    (*expected_output4)[counter4] += value;
+	});
+    }
+    {
+	auto process = [] (const oct_short& input) -> std::uint32_t
+	{
+	    std::uint32_t output = 0U;
+	    std::for_each(input.cbegin(), input.cend(), [&] (const std::uint16_t value) -> void
+	    {
+		output += value;
+	    });
+	    return output;
+	};
+	node_user_task<oct_short, std::uint32_t, 2048U> task1(list1, *input1, *actual_output1, process);
+	node_user_task<oct_short, std::uint32_t, 2048U> task2(list1, *input2, *actual_output2, process);
+	node_user_task<oct_short, std::uint32_t, 2048U> task3(list1, *input3, *actual_output3, process);
+	node_user_task<oct_short, std::uint32_t, 2048U> task4(list1, *input4, *actual_output4, process);
+	task1.run();
+	task2.run();
+	task3.run();
+	task4.run();
+    }
+    auto expected_iter1 = expected_output1->cbegin();
+    auto actual_iter1 = actual_output1->cbegin();
+    for (; expected_iter1 != expected_output1->cend() && actual_iter1 != actual_output1->cend(); ++expected_iter1, ++actual_iter1)
+    {
+	EXPECT_EQ(*expected_iter1, *actual_iter1) << "Mismatching oct_short sum result " <<
+		"- expected " << *expected_iter1 <<
+		"- actual " << *actual_iter1;
+    }
+    auto expected_iter2 = expected_output2->cbegin();
+    auto actual_iter2 = actual_output2->cbegin();
+    for (; expected_iter2 != expected_output2->cend() && actual_iter2 != actual_output2->cend(); ++expected_iter2, ++actual_iter2)
+    {
+	EXPECT_EQ(*expected_iter2, *actual_iter2) << "Mismatching oct_short sum result " <<
+		"- expected " << *expected_iter2 <<
+		"- actual " << *actual_iter2;
+    }
+    auto expected_iter3 = expected_output3->cbegin();
+    auto actual_iter3 = actual_output3->cbegin();
+    for (; expected_iter3 != expected_output3->cend() && actual_iter3 != actual_output3->cend(); ++expected_iter3, ++actual_iter3)
+    {
+	EXPECT_EQ(*expected_iter3, *actual_iter3) << "Mismatching oct_short sum result " <<
+		"- expected " << *expected_iter3 <<
+		"- actual " << *actual_iter3;
+    }
+    auto expected_iter4 = expected_output4->cbegin();
+    auto actual_iter4 = actual_output4->cbegin();
+    for (; expected_iter4 != expected_output4->cend() && actual_iter4 != actual_output4->cend(); ++expected_iter4, ++actual_iter4)
+    {
+	EXPECT_EQ(*expected_iter4, *actual_iter4) << "Mismatching oct_short sum result " <<
+		"- expected " << *expected_iter4 <<
+		"- actual " << *actual_iter4;
     }
 }
 
@@ -1322,8 +1550,6 @@ TEST(pool_test, messasge_passing)
 		"- actual {" << actual_iter->first << ", " << actual_iter->second << ", " << actual_iter->third << "}";
     }
 }
-
-typedef std::array<std::uint16_t, 8> oct_short;
 
 template <std::size_t limit>
 class use_unique_task
