@@ -610,7 +610,7 @@ void list_user_task<input_t, output_t, limit>::use()
 	    if (result != nullptr)
 	    {
 		random_spin();
-		*result = input_[iter];
+		new (result) input_t(input_[iter]);
 		output_[iter] = process_(*result);
 		random_spin();
 		block_iter->free(result);
@@ -627,6 +627,111 @@ void list_user_task<input_t, output_t, limit>::use()
 		return tar::try_state::retry;
 	    }
 	});
+    }
+}
+
+TEST(pool_test, list_parallel_use_string)
+{
+    tme::block_list list1(sizeof(std::string), 2U);
+    std::unique_ptr<std::array<std::string, 2048U>> input1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> input4(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> actual_output1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> actual_output2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> actual_output3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> actual_output4(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> expected_output1(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> expected_output2(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> expected_output3(new std::array<std::string, 2048U>());
+    std::unique_ptr<std::array<std::string, 2048U>> expected_output4(new std::array<std::string, 2048U>());
+    for (uint64_t counter1 = 0U; counter1 < input1->max_size(); ++counter1)
+    {
+	std::ostringstream ostream;
+	ostream << "a";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter1 + 0U));
+	ostream << "a";
+	(*input1)[counter1] = ostream.str();
+	std::copy((*input1)[counter1].crbegin(), (*input1)[counter1].crend(), (*expected_output1)[counter1].begin());
+    }
+    for (uint64_t counter2 = 0U; counter2 < input2->max_size(); ++counter2)
+    {
+	std::ostringstream ostream;
+	ostream << "b";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter2 + 2048U));
+	ostream << "b";
+	(*input2)[counter2] = ostream.str();
+	std::copy((*input2)[counter2].crbegin(), (*input2)[counter2].crend(), (*expected_output2)[counter2].begin());
+    }
+    for (uint64_t counter3 = 0U; counter3 < input3->max_size(); ++counter3)
+    {
+	std::ostringstream ostream;
+	ostream << "c";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter3 + 4096U));
+	ostream << "c";
+	(*input3)[counter3] = ostream.str();
+	std::copy((*input3)[counter3].crbegin(), (*input3)[counter3].crend(), (*expected_output3)[counter3].begin());
+    }
+    for (uint64_t counter4 = 0U; counter4 < input4->max_size(); ++counter4)
+    {
+	std::ostringstream ostream;
+	ostream << "d";
+	ostream << std::setw(8) << std::setfill('0');
+	ostream << std::to_string(std::hash<uint64_t>()(counter4 + 6144U));
+	ostream << "d";
+	(*input4)[counter4] = ostream.str();
+	std::copy((*input4)[counter4].crbegin(), (*input4)[counter4].crend(), (*expected_output4)[counter4].begin());
+    }
+    {
+	auto process = [] (const std::string& input) -> std::string
+	{
+	    std::string output;
+	    std::copy(input.crbegin(), input.crend(), output.begin());
+	    return std::move(output);
+	};
+	list_user_task<std::string, std::string, 2048U> task1(list1, *input1, *actual_output1, process);
+	list_user_task<std::string, std::string, 2048U> task2(list1, *input2, *actual_output2, process);
+	list_user_task<std::string, std::string, 2048U> task3(list1, *input3, *actual_output3, process);
+	list_user_task<std::string, std::string, 2048U> task4(list1, *input4, *actual_output4, process);
+	task1.run();
+	task2.run();
+	task3.run();
+	task4.run();
+    }
+    auto expected_iter1 = expected_output1->cbegin();
+    auto actual_iter1 = actual_output1->cbegin();
+    for (; expected_iter1 != expected_output1->cend() && actual_iter1 != actual_output1->cend(); ++expected_iter1, ++actual_iter1)
+    {
+	EXPECT_EQ(*expected_iter1, *actual_iter1) << "Mismatching std::string reverse result " <<
+		"- expected " << *expected_iter1 <<
+		"- actual " << *actual_iter1;
+    }
+    auto expected_iter2 = expected_output2->cbegin();
+    auto actual_iter2 = actual_output2->cbegin();
+    for (; expected_iter2 != expected_output2->cend() && actual_iter2 != actual_output2->cend(); ++expected_iter2, ++actual_iter2)
+    {
+	EXPECT_EQ(*expected_iter2, *actual_iter2) << "Mismatching std::string reverse result " <<
+		"- expected " << *expected_iter2 <<
+		"- actual " << *actual_iter2;
+    }
+    auto expected_iter3 = expected_output3->cbegin();
+    auto actual_iter3 = actual_output3->cbegin();
+    for (; expected_iter3 != expected_output3->cend() && actual_iter3 != actual_output3->cend(); ++expected_iter3, ++actual_iter3)
+    {
+	EXPECT_EQ(*expected_iter3, *actual_iter3) << "Mismatching std::string reverse result " <<
+		"- expected " << *expected_iter3 <<
+		"- actual " << *actual_iter3;
+    }
+    auto expected_iter4 = expected_output4->cbegin();
+    auto actual_iter4 = actual_output4->cbegin();
+    for (; expected_iter4 != expected_output4->cend() && actual_iter4 != actual_output4->cend(); ++expected_iter4, ++actual_iter4)
+    {
+	EXPECT_EQ(*expected_iter4, *actual_iter4) << "Mismatching std::string reverse result " <<
+		"- expected " << *expected_iter4 <<
+		"- actual " << *actual_iter4;
     }
 }
 
