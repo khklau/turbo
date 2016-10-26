@@ -53,10 +53,12 @@ struct block_config
 {
     block_config();
     block_config(std::size_t size, capacity_type capacity);
+    block_config(std::size_t size, capacity_type capacity, std::size_t growth_factor);
     bool operator<(const block_config& other) const;
     bool operator==(const block_config& other) const;
     std::size_t block_size;
     capacity_type initial_capacity;
+    std::size_t growth_factor;
 };
 
 template <template <class type_t> class allocator_t = std::allocator>
@@ -109,7 +111,10 @@ public:
 	node* pointer_;
     };
     block_list(std::size_t value_size, block::capacity_type capacity);
+    block_list(std::size_t value_size, block::capacity_type capacity, std::size_t growth_factor);
     block_list(const block_config& config); // allow implicit conversion
+    inline std::size_t get_value_size() const { return value_size_; }
+    inline std::size_t get_growth_factor() const { return growth_factor_; }
     inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
     std::unique_ptr<node> create_node(block::capacity_type capacity);
@@ -137,6 +142,7 @@ private:
     block_list& operator=(const block_list&) = delete;
     block_list& operator=(block_list&&) = delete;
     std::size_t value_size_;
+    std::size_t growth_factor_;
     node first_;
 };
 
@@ -149,7 +155,7 @@ public:
     template <class value_t>
     inline value_t* allocate(capacity_type quantity, const value_t* hint)
     {
-	return allocate(sizeof(value_t), alignof(value_t), quantity, hint);
+	return static_cast<value_t*>(allocate(sizeof(value_t), alignof(value_t), quantity, hint));
     }
     template <class value_t>
     inline value_t* allocate()
@@ -167,7 +173,10 @@ public:
 	return allocate(1U, hint);
     }
     template <class value_t>
-    void deallocate(value_t* pointer, capacity_type quantity);
+    inline void deallocate(value_t* pointer, capacity_type quantity)
+    {
+	deallocate(sizeof(value_t), alignof(value_t), pointer, quantity);
+    }
     template <class value_t>
     inline void deallocate(value_t* pointer)
     {
@@ -176,6 +185,7 @@ public:
 private:
     pool(block::capacity_type default_capacity, std::uint8_t step_factor, const std::vector<block_config>& config);
     void* allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void* hint);
+    void deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity);
     block::capacity_type default_capacity_;
     std::size_t step_factor_;
     std::size_t smallest_block_;

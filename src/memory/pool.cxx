@@ -9,14 +9,19 @@ namespace memory {
 
 block_config::block_config()
     :
-	block_size(0U),
-	initial_capacity(0U)
+	block_config(0U, 0U, 0U)
 { }
 
 block_config::block_config(std::size_t size, capacity_type capacity)
     :
+	block_config(size, capacity, 2U)
+{ }
+
+block_config::block_config(std::size_t size, capacity_type capacity, std::size_t growth)
+    :
 	block_size(size),
-	initial_capacity(capacity)
+	initial_capacity(capacity),
+	growth_factor(growth < 2U ? 2U : growth)
 { }
 
 bool block_config::operator<(const block_config& other) const
@@ -26,7 +31,9 @@ bool block_config::operator<(const block_config& other) const
 
 bool block_config::operator==(const block_config& other) const
 {
-    return block_size == other.block_size && initial_capacity == other.initial_capacity;
+    return block_size == other.block_size
+	    && initial_capacity == other.initial_capacity
+	    && growth_factor == other.growth_factor;
 }
 
 block_list::invalid_dereference::invalid_dereference(const std::string& what)
@@ -162,13 +169,20 @@ block_list::node::~node() noexcept
 
 block_list::block_list(std::size_t value_size, block::capacity_type capacity)
     :
+	block_list(value_size, capacity, 2U)
+{ }
+
+block_list::block_list(std::size_t value_size, block::capacity_type capacity, std::size_t growth_factor)
+    :
 	value_size_(value_size),
+	growth_factor_(growth_factor),
 	first_(value_size, capacity)
 { }
 
 block_list::block_list(const block_config& config)
     :
 	value_size_(config.block_size),
+	growth_factor_(config.growth_factor),
 	first_(config.block_size, config.initial_capacity)
 { }
 
@@ -210,8 +224,40 @@ std::size_t pool::find_block_bucket(std::size_t allocation_size) const
 
 void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
 {
-    const std::size_t total_size = calc_total_aligned_size(value_size, value_alignment, quantity);
-    return nullptr;
+    const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));
+    if (TURBO_LIKELY(bucket < block_map_.size()))
+    {
+	void* allocation = nullptr;
+	for (auto iter = block_map_[bucket].begin(); allocation == nullptr && iter != block_map_[bucket].end(); ++iter)
+	{
+	    allocation = iter->allocate();
+	    if (allocation == nullptr && iter.is_last())
+	    {
+		iter.try_append(std::move(block_map_[bucket].create_node(iter->get_capacity() * block_map_[bucket].get_growth_factor())));
+	    }
+	}
+	return allocation;
+    }
+    else
+    {
+	return nullptr;
+    }
+}
+
+void pool::deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity)
+{
+    const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));
+    if (TURBO_LIKELY(bucket < block_map_.size()))
+    {
+	for (auto&& block : block_map_[bucket])
+	{
+	    if (block.in_range(pointer))
+	    {
+		block.free(pointer);
+		break;
+	    }
+	}
+    }
 }
 
 std::vector<block_config> calibrate(const std::vector<block_config>& config, std::uint8_t step_factor)
