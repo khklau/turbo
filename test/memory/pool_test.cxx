@@ -1620,6 +1620,16 @@ TEST(pool_test, pool_make_unique_basic)
     }
 }
 
+TEST(pool_test, pool_make_unique_invalid)
+{
+    tme::pool pool1(8U, { {sizeof(std::uint8_t), 8U} });
+    {
+	auto result1 = pool1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::pool_full, result1.first) << "Making a unique_ptr for a value that is larger than the configured pool succeeded";
+	EXPECT_EQ(nullptr, result1.second.get()) << "The unique_ptr returned when the requested value is larger than the configured pool is not nullptr";
+    }
+}
+
 TEST(pool_test, pool_make_shared_basic)
 {
     tme::pool pool1(3U, { {sizeof(std::string), 3U} });
@@ -1633,6 +1643,16 @@ TEST(pool_test, pool_make_shared_basic)
 	auto result3 = pool1.make_shared<std::string>("lmn456");
 	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
 	EXPECT_EQ(std::string("lmn456"), *result3.second) << "Shared pool string didn't initialise";
+    }
+}
+
+TEST(pool_test, pool_make_shared_invalid)
+{
+    tme::pool pool1(8U, { {sizeof(std::uint8_t), 8U} });
+    {
+	auto result1 = pool1.make_shared<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::pool_full, result1.first) << "Making a shared_ptr for a value that is larger than the configured pool succeeded";
+	EXPECT_EQ(nullptr, result1.second.get()) << "The shared_ptr returned when the requested value is larger than the configured pool is not nullptr";
     }
 }
 
@@ -1652,6 +1672,19 @@ TEST(pool_test, pool_make_mixed_basic)
 	auto result4 = pool1.make_shared<std::string>("$%^");
 	EXPECT_EQ(tme::make_result::success, result4.first) << "Make shared pool string failed";
 	EXPECT_EQ(std::string("$%^"), *result4.second) << "Shared pool string didn't initialise";
+    }
+}
+
+TEST(pool_test, pool_make_mixed_invalid)
+{
+    tme::pool pool1(8U, { {sizeof(std::uint8_t), 8U} });
+    {
+	auto result1 = pool1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::pool_full, result1.first) << "Making a unique_ptr for a value that is larger than the configured pool succeeded";
+	EXPECT_EQ(nullptr, result1.second.get()) << "The unique_ptr returned when the requested value is larger than the configured pool is not nullptr";
+	auto result2 = pool1.make_shared<record>(4U, 5U, 6U);
+	EXPECT_EQ(tme::make_result::pool_full, result2.first) << "Making a shared_ptr for a value that is larger than the configured pool succeeded";
+	EXPECT_EQ(nullptr, result2.second.get()) << "The shared_ptr returned when the requested value is larger than the configured pool is not nullptr";
     }
 }
 
