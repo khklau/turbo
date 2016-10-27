@@ -61,19 +61,6 @@ struct block_config
     std::size_t growth_factor;
 };
 
-template <template <class type_t> class allocator_t = std::allocator>
-class range_pool
-{
-public:
-    range_pool(capacity_type default_capacity, const std::vector<block_config>& config);
-    range_pool(capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor);
-    static std::vector<block_config> sanitise(const std::vector<block_config>& config, std::uint8_t step_factor);
-private:
-    capacity_type default_capacity_;
-    std::size_t step_factor_;
-    std::size_t smallest_block_;
-};
-
 class TURBO_SYMBOL_DECL block_list
 {
 private:
