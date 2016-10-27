@@ -1604,6 +1604,22 @@ TEST(pool_test, pool_parallel_use_octshort)
     }
 }
 
+TEST(pool_test, pool_make_unique_basic)
+{
+    tme::pool pool1(3U, { {sizeof(std::string), 3U} });
+    {
+	auto result1 = pool1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "String in memory pool didn't initialise";
+	auto result2 = pool1.make_unique<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique pool string failed";
+	EXPECT_EQ(std::string("xyz789"), *result2.second) << "String in memory pool didn't initialise";
+	auto result3 = pool1.make_unique<std::string>("lmn456");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
+	EXPECT_EQ(std::string("lmn456"), *result3.second) << "String in memory pool didn't initialise";
+    }
+}
+
 TEST(pool_test, calibrate_positive)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
