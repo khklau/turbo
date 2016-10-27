@@ -154,6 +154,8 @@ public:
     std::size_t find_block_bucket(std::size_t allocation_size) const;
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
+    template <class value_t, class... args_t>
+    std::pair<make_result, std::shared_ptr<value_t>> make_shared(args_t&&... args);
     template <class value_t>
     inline value_t* allocate(capacity_type quantity, const value_t* hint)
     {

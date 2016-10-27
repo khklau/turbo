@@ -1620,6 +1620,41 @@ TEST(pool_test, pool_make_unique_basic)
     }
 }
 
+TEST(pool_test, pool_make_shared_basic)
+{
+    tme::pool pool1(3U, { {sizeof(std::string), 3U} });
+    {
+	auto result1 = pool1.make_shared<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "Shared pool string didn't initialise";
+	auto result2 = pool1.make_shared<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("xyz789"), *result2.second) << "Shared pool string didn't initialise";
+	auto result3 = pool1.make_shared<std::string>("lmn456");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("lmn456"), *result3.second) << "Shared pool string didn't initialise";
+    }
+}
+
+TEST(pool_test, pool_make_mixed_basic)
+{
+    tme::pool pool1(4U, { {sizeof(std::string), 4U} });
+    {
+	auto result1 = pool1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "Unique pool string didn't initialise";
+	auto result2 = pool1.make_shared<std::string>("!@#");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("!@#"), *result2.second) << "Shared pool string didn't initialise";
+	auto result3 = pool1.make_unique<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
+	EXPECT_EQ(std::string("xyz789"), *result3.second) << "Unique pool string didn't initialise";
+	auto result4 = pool1.make_shared<std::string>("$%^");
+	EXPECT_EQ(tme::make_result::success, result4.first) << "Make shared pool string failed";
+	EXPECT_EQ(std::string("$%^"), *result4.second) << "Shared pool string didn't initialise";
+    }
+}
+
 TEST(pool_test, calibrate_positive)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
