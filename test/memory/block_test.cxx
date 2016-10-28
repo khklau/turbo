@@ -19,14 +19,22 @@ namespace tme = turbo::memory;
 
 TEST(block_test, invalid_construction)
 {
-    ASSERT_THROW(tme::block(0U, 3U, alignof(std::uint64_t)), tme::invalid_size_error);
-    ASSERT_THROW(tme::block(sizeof(std::uint8_t), 2U, alignof(std::uint64_t)), tme::invalid_alignment_error);
+    ASSERT_THROW(tme::block(0U, 3U, alignof(std::uint64_t)), tme::invalid_size_error) << "block constructed with 0 value size did not throw";
+    ASSERT_THROW(tme::block(sizeof(std::uint8_t), 2U, alignof(std::uint64_t)), tme::invalid_alignment_error) << "block constructed with alignment exceeding the total size did not throw";
+    tme::block block1(sizeof(std::uint8_t), 0U, alignof(std::uint8_t));
+    ASSERT_TRUE(block1.is_empty()) << "block constructed with 0 capacity is not empty";
+}
+
+TEST(block_test, invalid_allocate)
+{
+    tme::block block1(sizeof(std::uint8_t), 0U, alignof(std::uint8_t));
+    EXPECT_EQ(nullptr, block1.allocate()) << "empty block still allocated";
 }
 
 TEST(block_test, invalid_free)
 {
     tme::block block1(sizeof(std::uint64_t), 3U, alignof(std::uint64_t));
-    ASSERT_THROW(block1.free(nullptr), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing a nullptr argument";
+    ASSERT_NO_THROW(block1.free(nullptr)) << "exception thrown for freeing a nullptr argument; should be a no-op";
     std::uint64_t stack1 = 54U;
     ASSERT_THROW(block1.free(&stack1), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing a pointer to stack argument";
     static std::uint16_t constant1 = 72U;
@@ -48,6 +56,8 @@ TEST(block_test, invalid_free)
     std::uint64_t* heap6 = heap5 + (block1.get_usable_size() / sizeof(std::uint64_t)) + 2;
     ASSERT_THROW(block1.free(heap6), tme::invalid_pointer_error) << "invalid_pointer_error not thrown for freeing an address outside the block's address range";
     ASSERT_NO_THROW(block1.free(heap5));
+    tme::block block4(sizeof(std::uint64_t), 0U, alignof(std::uint64_t));
+    ASSERT_NO_THROW(block4.free(heap1)) << "exception thrown for freeing from an empty block; should be a no-op";
 }
 
 TEST(block_test, allocate_basic)

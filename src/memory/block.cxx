@@ -57,14 +57,18 @@ block::block(std::size_t value_size, capacity_type capacity, std::size_t alignme
     :
 	value_size_(value_size),
 	capacity_(capacity),
-	usable_size_(value_size_ * (capacity_ + 1)), // need extra in case of bad alignment
-	storage_(new std::uint8_t[usable_size_]),
-	base_(&(storage_[0])),
+	usable_size_(capacity == 0U ? 0U : value_size_ * (capacity_ + 1)), // need extra in case of bad alignment
+	storage_(capacity == 0U ? nullptr : new std::uint8_t[usable_size_]),
+	base_(capacity == 0U ? nullptr : &(storage_[0])),
 	free_list_(capacity)
 {
-    if (TURBO_UNLIKELY(value_size == 0))
+    if (TURBO_UNLIKELY(value_size_ == 0))
     {
 	throw invalid_size_error("value size cannot be 0");
+    }
+    if (capacity_ == 0U)
+    {
+	return;
     }
     if (TURBO_UNLIKELY(!storage_))
     {
@@ -108,6 +112,10 @@ void* block::allocate()
     namespace tar = turbo::algorithm::recovery;
     capacity_type reservation = 0U;
     void* result = nullptr;
+    if (is_empty())
+    {
+	return nullptr;
+    }
     tar::retry_with_random_backoff([&] () -> tar::try_state
     {
 	switch (free_list_.try_dequeue_copy(reservation))
@@ -135,6 +143,10 @@ void* block::allocate()
 void block::free(void* pointer)
 {
     namespace tar = turbo::algorithm::recovery;
+    if (is_empty() || pointer == nullptr)
+    {
+	return;
+    }
     std::size_t diff = static_cast<std::uint8_t*>(pointer) - base_;
     if (diff % value_size_ != 0)
     {
