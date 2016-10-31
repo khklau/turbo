@@ -233,7 +233,10 @@ void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capaci
 	    allocation = iter->allocate();
 	    if (allocation == nullptr && iter.is_last())
 	    {
-		iter.try_append(std::move(block_map_[bucket].create_node(iter->get_capacity() * block_map_[bucket].get_growth_factor())));
+		block::capacity_type capacity = iter->is_empty() ?
+			default_capacity_ :
+			iter->get_capacity() * block_map_[bucket].get_growth_factor();
+		iter.try_append(std::move(block_map_[bucket].create_node(capacity)));
 	    }
 	}
 	return allocation;

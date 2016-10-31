@@ -92,7 +92,7 @@ void random_spin()
     for (std::uint64_t iter = 0U; iter < limit; ++iter) { };
 }
 
-TEST(pool_test, invalid_iterator)
+TEST(pool_test, list_invalid_iterator)
 {
     tme::block_list list1(sizeof(std::int64_t), 4U);
     auto iter1 = list1.end();
@@ -115,7 +115,7 @@ TEST(pool_test, invalid_iterator)
     EXPECT_FALSE(iter2b.is_valid()) << "An invalid iterator became valid after incrementing";
 }
 
-TEST(pool_test, invalid_append)
+TEST(pool_test, list_invalid_append)
 {
     tme::block_list list1(sizeof(std::int64_t), 4U);
     auto iter1 = list1.end();
@@ -123,7 +123,7 @@ TEST(pool_test, invalid_append)
     ASSERT_THROW(iter1.try_append(std::move(node1)), tme::block_list::invalid_dereference) << "Appending to invalid iterator succeeded";
 }
 
-TEST(pool_test, use_first_node)
+TEST(pool_test, list_use_first_node)
 {
     tme::block_list list1(sizeof(std::int64_t), 4U);
     auto iter1 = list1.begin();
@@ -141,7 +141,7 @@ TEST(pool_test, use_first_node)
     EXPECT_EQ(list1.end(), iter1) << "End iterator and iterator pointing past last block are not equivalent";
 }
 
-TEST(pool_test, sequential_append)
+TEST(pool_test, list_sequential_append)
 {
     tme::block_list list1(sizeof(std::int64_t), 16U);
     auto iter1 = list1.begin();
@@ -149,11 +149,23 @@ TEST(pool_test, sequential_append)
     EXPECT_EQ(tme::block_list::append_result::success, iter1.try_append(std::move(list1.create_node(8U)))) << "Append failed";
     EXPECT_EQ(tme::block_list::append_result::beaten, iter1.try_append(std::move(list1.create_node(16U)))) << "Appending to middle of list succeeded";
     ++iter1;
-    EXPECT_TRUE(8U <= iter1->get_capacity()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(8U <= iter1->get_capacity()) << "Capacity of second block in block list is less than requested";
     EXPECT_EQ(tme::block_list::append_result::success, iter1.try_append(std::move(list1.create_node(4U)))) << "Append failed";
     EXPECT_EQ(tme::block_list::append_result::beaten, iter1.try_append(std::move(list1.create_node(16U)))) << "Appending to middle of list succeeded";
     ++iter1;
-    EXPECT_TRUE(4U <= iter1->get_capacity()) << "Capacity of first block in block list is less than requested";
+    EXPECT_TRUE(4U <= iter1->get_capacity()) << "Capacity of third block in block list is less than requested";
+
+    tme::block_list list2(sizeof(std::int64_t), 0U);
+    auto iter2 = list2.begin();
+    EXPECT_EQ(0U, iter2->get_capacity()) << "Capacity of first empty block is not zero";
+    EXPECT_EQ(tme::block_list::append_result::success, iter2.try_append(std::move(list2.create_node(8U)))) << "Append to empty block failed";
+    EXPECT_EQ(tme::block_list::append_result::beaten, iter2.try_append(std::move(list2.create_node(16U)))) << "Appending to middle of list succeeded";
+    ++iter2;
+    EXPECT_TRUE(8U <= iter2->get_capacity()) << "Capacity of second block in block list is less than requested";
+    EXPECT_EQ(tme::block_list::append_result::success, iter2.try_append(std::move(list2.create_node(4U)))) << "Append failed";
+    EXPECT_EQ(tme::block_list::append_result::beaten, iter2.try_append(std::move(list2.create_node(16U)))) << "Appending to middle of list succeeded";
+    ++iter2;
+    EXPECT_TRUE(4U <= iter2->get_capacity()) << "Capacity of first block in block list is less than requested";
 }
 
 template <class value_t, std::size_t limit>
@@ -1618,6 +1630,18 @@ TEST(pool_test, pool_make_unique_basic)
 	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
 	EXPECT_EQ(std::string("lmn456"), *result3.second) << "String in memory pool didn't initialise";
     }
+    tme::pool pool2(2U, { {2U, 32U}, {32U, 32U} });
+    {
+	auto result1 = pool1.make_unique<std::uint64_t>(123U);
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
+	EXPECT_EQ(123U, *result1.second) << "Integer in initially empty memory pool didn't initialise";
+	auto result2 = pool1.make_unique<std::uint64_t>(456U);
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique pool string failed";
+	EXPECT_EQ(456U, *result2.second) << "Integer in initially empty memory pool didn't initialise";
+	auto result3 = pool1.make_unique<std::uint64_t>(789U);
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
+	EXPECT_EQ(789U, *result3.second) << "Integer in initially empty memory pool didn't initialise";
+    }
 }
 
 TEST(pool_test, pool_make_unique_invalid)
@@ -1643,6 +1667,18 @@ TEST(pool_test, pool_make_shared_basic)
 	auto result3 = pool1.make_shared<std::string>("lmn456");
 	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
 	EXPECT_EQ(std::string("lmn456"), *result3.second) << "Shared pool string didn't initialise";
+    }
+    tme::pool pool2(2U, { {2U, 32U}, {32U, 32U} });
+    {
+	auto result1 = pool1.make_shared<std::uint64_t>(123U);
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
+	EXPECT_EQ(123U, *result1.second) << "Integer in initially empty memory pool didn't initialise";
+	auto result2 = pool1.make_shared<std::uint64_t>(456U);
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
+	EXPECT_EQ(456U, *result2.second) << "Integer in initially empty memory pool didn't initialise";
+	auto result3 = pool1.make_shared<std::uint64_t>(789U);
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
+	EXPECT_EQ(789U, *result3.second) << "Integer in initially empty memory pool didn't initialise";
     }
 }
 
@@ -1694,7 +1730,7 @@ TEST(pool_test, calibrate_positive)
     std::vector<tme::block_config> expected1{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
     std::vector<tme::block_config> actual1(tme::calibrate(input1, 2U));
     EXPECT_TRUE(!actual1.empty()) << "Empty output from non-empty input";
-    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect reordering: "
+    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect calibration for config requiring just a reorder: "
 	    << "expected [ "
 	    << "{" << expected1[0].block_size << ", " << expected1[0].initial_capacity << "}, "
 	    << "{" << expected1[1].block_size << ", " << expected1[1].initial_capacity << "}, "
@@ -1708,7 +1744,7 @@ TEST(pool_test, calibrate_positive)
     std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
     std::vector<tme::block_config> actual2(tme::calibrate(input2, 2U));
     EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
-    EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect reordering: "
+    EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect calibration for config requiring a bucket size adjustment: "
 	    << "expected [ "
 	    << "{" << expected2[0].block_size << ", " << expected2[0].initial_capacity << "}, "
 	    << "{" << expected2[1].block_size << ", " << expected2[1].initial_capacity << "}, "
@@ -1722,7 +1758,7 @@ TEST(pool_test, calibrate_positive)
     std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
     std::vector<tme::block_config> actual3(tme::calibrate(input3, 2U));
     EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
-    EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect reordering: "
+    EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect calibration for config requiring input bucket merging: "
 	    << "expected [ "
 	    << "{" << expected3[0].block_size << ", " << expected3[0].initial_capacity << "}, "
 	    << "{" << expected3[1].block_size << ", " << expected3[1].initial_capacity << "} ] - "
@@ -1734,7 +1770,7 @@ TEST(pool_test, calibrate_positive)
     std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
     std::vector<tme::block_config> actual4(tme::calibrate(input4, 2U));
     EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
-    EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect reordering: "
+    EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect calibration for config requiring a generated empty bucket: "
 	    << "expected [ "
 	    << "{" << expected4[0].block_size << ", " << expected4[0].initial_capacity << "}, "
 	    << "{" << expected4[1].block_size << ", " << expected4[1].initial_capacity << "}, "
@@ -1743,6 +1779,20 @@ TEST(pool_test, calibrate_positive)
 	    << "{" << actual4[0].block_size << ", " << actual4[0].initial_capacity << "}, "
 	    << "{" << actual4[1].block_size << ", " << actual4[1].initial_capacity << "}, "
 	    << "{" << actual4[2].block_size << ", " << actual4[2].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input5{ {125U, 16U}, {5U, 4U} };
+    std::vector<tme::block_config> expected5{ {5U, 4U}, {25U, 0U}, {125U, 16U} };
+    std::vector<tme::block_config> actual5(tme::calibrate(input5, 5U));
+    EXPECT_TRUE(!actual5.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected5.cbegin(), expected5.cend(), actual5.cbegin())) << "Incorrect calibration for config requiring a generated empty bucket and reordering: "
+	    << "expected [ "
+	    << "{" << expected5[0].block_size << ", " << expected5[0].initial_capacity << "}, "
+	    << "{" << expected5[1].block_size << ", " << expected5[1].initial_capacity << "}, "
+	    << "{" << expected5[2].block_size << ", " << expected5[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual5[0].block_size << ", " << actual5[0].initial_capacity << "}, "
+	    << "{" << actual5[1].block_size << ", " << actual5[1].initial_capacity << "}, "
+	    << "{" << actual5[2].block_size << ", " << actual5[2].initial_capacity << "} ]";
 }
 
 TEST(pool_test, calibrate_negative)
