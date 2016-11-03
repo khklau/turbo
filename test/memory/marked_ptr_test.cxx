@@ -1,5 +1,6 @@
 #include <turbo/memory/marked_ptr.hpp>
 #include <cstdint>
+#include <atomic>
 #include <memory>
 #include <gtest/gtest.h>
 
@@ -12,6 +13,15 @@ enum class colour : std::uint8_t
     green,
     blue
 };
+
+TEST(marked_ptr_test, type_traits)
+{
+    typedef tme::marked_ptr<std::uint32_t, colour> colour_ptr;
+    std::uint32_t value2 = 24U;
+    colour_ptr ptr2(&value2);
+    std::atomic<colour_ptr> atomic2(ptr2);
+    ASSERT_TRUE(std::atomic_is_lock_free(&atomic2)) << "marked_ptr is not atomic";
+}
 
 TEST(marked_ptr_test, invalid_construction)
 {
@@ -34,6 +44,8 @@ TEST(marked_ptr_test, valid_construction)
     EXPECT_EQ(&value1, ptr1.get_ptr()) << "Pointer returned by get is not the pointer passed to constructor";
     EXPECT_EQ(value1, *ptr1) << "Deferenced value is not equal to value being pointed at";
     EXPECT_EQ(std::string("blah"), ptr1->name) << "Deferenced member value is not equal to value being pointed at";
+    colour_ptr ptr2(nullptr);
+    EXPECT_TRUE(ptr2.is_empty()) << "The is_empty predicate did not return true for marked_ptr with nullptr value";
 }
 
 TEST(marked_ptr_test, copy_basic)
@@ -60,4 +72,10 @@ TEST(marked_ptr_test, mark_basic)
     EXPECT_EQ(colour::yellow, ptr1.get_mark()) << "The set_mark member function failed";
     ptr1.set_mark(colour::green);
     EXPECT_EQ(colour::green, ptr1.get_mark()) << "The set_mark member function failed";
+    std::uint32_t value2 = 24U;
+    colour_ptr ptr2(&value2);
+    std::atomic<colour_ptr> atomic2(ptr2);
+    EXPECT_TRUE(atomic2.compare_exchange_strong(ptr2, ptr2 | colour::blue, std::memory_order_acq_rel, std::memory_order_relaxed)) << "Atomic compare and exchange does not work on marked_ptr";
+    colour_ptr ptr3 = atomic2.load(std::memory_order_acquire);
+    EXPECT_EQ(colour::blue, ptr3.get_mark()) << "Atomic compare and exchange failed to update marked_ptr";
 }
