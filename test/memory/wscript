@@ -23,9 +23,9 @@ def build(buildCtx):
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=None)
     buildCtx.program(
-	    name='exe_marked_ptr_test',
-	    source=[buildCtx.path.find_node('marked_ptr_test.cxx')],
-	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'marked_ptr_test'),
+	    name='exe_tagged_ptr_test',
+	    source=[buildCtx.path.find_node('tagged_ptr_test.cxx')],
+	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'tagged_ptr_test'),
 	    defines=['GTEST_HAS_PTHREAD=1'],
 	    includes=['.'] + buildCtx.env.component.include_path_list,
 	    cxxflags=buildCtx.env.CXXFLAGS,

@@ -1,5 +1,5 @@
-#ifndef TURBO_MEMORY_MARKED_PTR_HPP
-#define TURBO_MEMORY_MARKED_PTR_HPP
+#ifndef TURBO_MEMORY_TAGGED_PTR_HPP
+#define TURBO_MEMORY_TAGGED_PTR_HPP
 
 #include <cstdint>
 #include <limits>
@@ -17,56 +17,56 @@ public:
     explicit unaligned_ptr_error(const char* what) : invalid_argument(what) { }
 };
 
-template <class value_t, class mark_t>
-class marked_ptr
+template <class value_t, class tag_t>
+class tagged_ptr
 {
 public:
-    inline marked_ptr() noexcept
+    inline tagged_ptr() noexcept
 	:
 	    ptr_(nullptr)
     { }
-    inline explicit marked_ptr(value_t* ptr)
+    inline explicit tagged_ptr(value_t* ptr)
 	:
 	    ptr_(ptr)
     {
-	if ((reinterpret_cast<std::uintptr_t>(ptr) & mark_mask()) != 0U)
+	if ((reinterpret_cast<std::uintptr_t>(ptr) & tag_mask()) != 0U)
 	{
 	    throw unaligned_ptr_error("Given pointer is not a multiple of 4");
 	}
     }
-    marked_ptr(const marked_ptr<value_t, mark_t>& other) = default;
-    marked_ptr(marked_ptr<value_t, mark_t>&& other) = default;
-    marked_ptr<value_t, mark_t>& operator=(const marked_ptr<value_t, mark_t>& other) = default;
-    marked_ptr<value_t, mark_t>& operator=(marked_ptr<value_t, mark_t>&& other) = default;
-    ~marked_ptr() = default;
+    tagged_ptr(const tagged_ptr<value_t, tag_t>& other) = default;
+    tagged_ptr(tagged_ptr<value_t, tag_t>&& other) = default;
+    tagged_ptr<value_t, tag_t>& operator=(const tagged_ptr<value_t, tag_t>& other) = default;
+    tagged_ptr<value_t, tag_t>& operator=(tagged_ptr<value_t, tag_t>&& other) = default;
+    ~tagged_ptr() = default;
     inline value_t* get_ptr() const
     {
 	return reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(ptr_) & ptr_mask());
     }
-    inline mark_t get_mark() const
+    inline tag_t get_tag() const
     {
-	return static_cast<mark_t>(reinterpret_cast<std::uintptr_t>(ptr_) & mark_mask());
+	return static_cast<tag_t>(reinterpret_cast<std::uintptr_t>(ptr_) & tag_mask());
     }
     inline bool is_empty() const
     {
 	return get_ptr() == nullptr;
     }
-    inline void set_mark(mark_t mark)
+    inline void set_tag(tag_t tag)
     {
-	ptr_ = reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(get_ptr()) | (static_cast<std::uintptr_t>(mark) & mark_mask()));
+	ptr_ = reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(get_ptr()) | (static_cast<std::uintptr_t>(tag) & tag_mask()));
     }
-    inline bool operator==(const marked_ptr<value_t, mark_t>& other) const
+    inline bool operator==(const tagged_ptr<value_t, tag_t>& other) const
     {
 	return ptr_ == other.ptr_;
     }
-    inline bool operator!=(const marked_ptr<value_t, mark_t>& other) const
+    inline bool operator!=(const tagged_ptr<value_t, tag_t>& other) const
     {
 	return !(*this == other);
     }
-    inline marked_ptr<value_t, mark_t> operator|(const mark_t mark) const
+    inline tagged_ptr<value_t, tag_t> operator|(const tag_t tag) const
     {
-	marked_ptr<value_t, mark_t> tmp;
-	tmp.set_mark(mark);
+	tagged_ptr<value_t, tag_t> tmp;
+	tmp.set_tag(tag);
 	return tmp;
     }
     inline void reset(value_t* ptr)
@@ -86,7 +86,7 @@ private:
     {
 	return std::numeric_limits<std::uintptr_t>::max() - 3U;
     }
-    constexpr std::uintptr_t mark_mask()
+    constexpr std::uintptr_t tag_mask()
     {
 	return static_cast<std::uintptr_t>(3U);
     }
