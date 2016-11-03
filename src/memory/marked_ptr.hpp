@@ -21,6 +21,10 @@ template <class value_t, class mark_t>
 class marked_ptr
 {
 public:
+    inline marked_ptr() noexcept
+	:
+	    ptr_(nullptr)
+    { }
     inline explicit marked_ptr(value_t* ptr)
 	:
 	    ptr_(ptr)
@@ -30,18 +34,10 @@ public:
 	    throw unaligned_ptr_error("Given pointer is not a multiple of 4");
 	}
     }
-    inline marked_ptr(const marked_ptr<value_t, mark_t>& other)
-	:
-	    ptr_(other.ptr_)
-    { }
-    inline marked_ptr<value_t, mark_t>& operator=(const marked_ptr<value_t, mark_t>& other)
-    {
-	if (TURBO_LIKELY(this != &other))
-	{
-	    ptr_ = other.ptr_;
-	}
-	return *this;
-    }
+    marked_ptr(const marked_ptr<value_t, mark_t>& other) = default;
+    marked_ptr(marked_ptr<value_t, mark_t>&& other) = default;
+    marked_ptr<value_t, mark_t>& operator=(const marked_ptr<value_t, mark_t>& other) = default;
+    marked_ptr<value_t, mark_t>& operator=(marked_ptr<value_t, mark_t>&& other) = default;
     ~marked_ptr() = default;
     inline value_t* get_ptr() const
     {
@@ -50,6 +46,14 @@ public:
     inline mark_t get_mark() const
     {
 	return static_cast<mark_t>(reinterpret_cast<std::uintptr_t>(ptr_) & mark_mask());
+    }
+    inline bool is_empty() const
+    {
+	return get_ptr() == nullptr;
+    }
+    inline void set_mark(mark_t mark)
+    {
+	ptr_ = reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(get_ptr()) | (static_cast<std::uintptr_t>(mark) & mark_mask()));
     }
     inline bool operator==(const marked_ptr<value_t, mark_t>& other) const
     {
@@ -61,15 +65,13 @@ public:
     }
     inline marked_ptr<value_t, mark_t> operator|(const mark_t mark) const
     {
-	return marked_ptr<value_t, mark_t>(reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(get_ptr()) | (static_cast<std::uintptr_t>(mark) & mark_mask())));
+	marked_ptr<value_t, mark_t> tmp;
+	tmp.set_mark(mark);
+	return tmp;
     }
     inline void reset(value_t* ptr)
     {
 	ptr_ = ptr;
-    }
-    inline void set_mark(mark_t mark)
-    {
-	ptr_ = reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(get_ptr()) | (static_cast<std::uintptr_t>(mark) & mark_mask()));
     }
     inline value_t& operator*()
     {
