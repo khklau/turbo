@@ -75,7 +75,7 @@ TEST(tagged_ptr_test, tag_basic)
     std::uint32_t value2 = 24U;
     colour_ptr ptr2(&value2);
     std::atomic<colour_ptr> atomic2(ptr2);
-    EXPECT_TRUE(atomic2.compare_exchange_strong(ptr2, ptr2 | colour::blue, std::memory_order_acq_rel, std::memory_order_relaxed)) << "Atomic compare and exchange does not work on tagged_ptr";
+    EXPECT_TRUE(atomic2.compare_exchange_strong(ptr2, ptr2 | colour::blue, std::memory_order_acq_rel)) << "Atomic compare and exchange does not work on tagged_ptr";
     colour_ptr ptr3 = atomic2.load(std::memory_order_acquire);
     EXPECT_EQ(colour::blue, ptr3.get_tag()) << "Atomic compare and exchange failed to update tagged_ptr";
 }
