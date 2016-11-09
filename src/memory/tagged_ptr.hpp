@@ -107,7 +107,7 @@ namespace std {
 /// Partial specialisation of std::atomic for tagged_ptr
 ///
 template <class value_t, class tag_t>
-struct atomic<turbo::memory::tagged_ptr<value_t, tag_t>> : public std::atomic<typename turbo::memory::tagged_ptr<value_t, tag_t>::value_ptr_type>
+struct atomic<turbo::memory::tagged_ptr<value_t, tag_t>> : private std::atomic<typename turbo::memory::tagged_ptr<value_t, tag_t>::value_ptr_type>
 {
     typedef turbo::memory::tagged_ptr<value_t, tag_t> tagged_ptr_type;
     typedef std::atomic<typename tagged_ptr_type::value_ptr_type> base_type;
