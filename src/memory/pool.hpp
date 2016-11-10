@@ -54,8 +54,8 @@ public:
     class invalid_dereference : public std::out_of_range
     {
     public:
-	explicit invalid_dereference(const std::string& what);
-	explicit invalid_dereference(const char* what);
+	explicit inline invalid_dereference(const std::string& what) : out_of_range(what) { }
+	explicit inline invalid_dereference(const char* what) : out_of_range(what) { }
     };
     class iterator : public std::forward_iterator_tag
     {

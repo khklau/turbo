@@ -36,16 +36,6 @@ bool block_config::operator==(const block_config& other) const
 	    && growth_factor == other.growth_factor;
 }
 
-block_list::invalid_dereference::invalid_dereference(const std::string& what)
-    :
-	out_of_range(what)
-{ }
-
-block_list::invalid_dereference::invalid_dereference(const char* what)
-    :
-	out_of_range(what)
-{ }
-
 block_list::iterator::iterator()
     :
 	pointer_(nullptr)
