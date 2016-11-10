@@ -6,6 +6,8 @@ publicHeaders = [
     'concurrent_list.hxx',
     'concurrent_vector.hpp',
     'concurrent_vector.hxx',
+    'emplacing_list.hpp',
+    'emplacing_list.hxx',
     'mpmc_ring_queue.hpp',
     'mpmc_ring_queue.hxx',
     'spsc_ring_queue.hpp',
