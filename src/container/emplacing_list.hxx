@@ -132,9 +132,30 @@ template <class value_t, class typed_allocator_t>
 emplacing_list<value_t, typed_allocator_t>::emplacing_list(typed_allocator_type& allocator)
     :
 	allocator_(allocator),
-	head_(),
-	tail_()
+	front_(),
+	back_()
 { }
+
+template <class value_t, class typed_allocator_t>
+emplacing_list<value_t, typed_allocator_t>::~emplacing_list()
+{
+    for (std::shared_ptr<node> current = front_; current.use_count() != 0; current = current->next)
+    {
+	current->previous.reset();
+    }
+}
+
+template <class value_t, class typed_allocator_t>
+template <class... args_t>
+void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
+{
+    node* new_front = create_node(std::forward<args_t>(args)...);
+    front_.reset(new_front, std::bind(&emplacing_list<value_t, typed_allocator_t>::destroy_node, this, std::placeholders::_1));
+    if (back_.expired())
+    {
+	back_ = front_;
+    }
+}
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
@@ -149,6 +170,13 @@ typename emplacing_list<value_t, typed_allocator_t>::node* emplacing_list<value_
     {
 	throw std::runtime_error("Out of memory");
     }
+}
+
+template <class value_t, class typed_allocator_t>
+void emplacing_list<value_t, typed_allocator_t>::destroy_node(node* pointer)
+{
+    pointer->~node();
+    allocator_.template deallocate<node>(pointer);
 }
 
 } // namespace container

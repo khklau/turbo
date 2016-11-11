@@ -27,8 +27,8 @@ public:
     class invalid_dereference : public std::out_of_range
     {
     public:
-	explicit invalid_dereference(const std::string& what);
-	explicit invalid_dereference(const char* what);
+	explicit inline invalid_dereference(const std::string& what) : out_of_range(what) { }
+	explicit inline invalid_dereference(const char* what) : out_of_range(what) { }
     };
     class iterator : public std::bidirectional_iterator_tag
     {
@@ -61,14 +61,15 @@ public:
 	return alignof(node);
     }
     explicit emplacing_list(typed_allocator_type& allocator);
+    ~emplacing_list();
     inline iterator begin() noexcept
     {
-	return iterator(next);
+	return iterator(front_);
     }
     template <class... args_t>
-    node* create_node(args_t&&... args);
+    void emplace_front(args_t&&... args);
 private:
-    struct node : private std::enable_shared_from_this<node>
+    struct node : public std::enable_shared_from_this<node>
     {
 	template <class... args_t>
 	node(args_t&&... args);
@@ -78,9 +79,12 @@ private:
 	std::shared_ptr<node> next;
 	std::weak_ptr<node> previous;
     };
+    template <class... args_t>
+    node* create_node(args_t&&... args);
+    void destroy_node(node* pointer);
     typed_allocator_type& allocator_;
-    std::shared_ptr<node> head_;
-    std::weak_ptr<node> tail_;
+    std::shared_ptr<node> front_;
+    std::weak_ptr<node> back_;
 };
 
 } // namespace container
