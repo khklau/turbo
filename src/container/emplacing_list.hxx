@@ -151,8 +151,18 @@ template <class value_t, class typed_allocator_t>
 template <class... args_t>
 void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
 {
-    node* new_front = create_node(std::forward<args_t>(args)...);
-    front_.reset(new_front, std::bind(&emplacing_list<value_t, typed_allocator_t>::destroy_node, this, std::placeholders::_1));
+    std::shared_ptr<node> new_next;
+    std::shared_ptr<node> new_front = create_node(std::forward<args_t>(args)...);
+    if (front_.use_count() != 0)
+    {
+	new_front->next = front_;
+	new_next = front_->next;
+    }
+    front_ = new_front;
+    if (new_next.use_count() != 0)
+    {
+	new_next->previous = new_front;
+    }
     if (back_.expired())
     {
 	back_ = front_;
@@ -161,12 +171,14 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
-typename emplacing_list<value_t, typed_allocator_t>::node* emplacing_list<value_t, typed_allocator_t>::create_node(args_t&&... args)
+std::shared_ptr<typename emplacing_list<value_t, typed_allocator_t>::node> emplacing_list<value_t, typed_allocator_t>::create_node(args_t&&... args)
 {
     node* tmp = allocator_.template allocate<node>();
     if (TURBO_LIKELY(tmp != nullptr))
     {
-	return new (tmp) node(std::forward<args_t>(args)...);
+	return std::shared_ptr<node>(
+		new (tmp) node(std::forward<args_t>(args)...),
+		std::bind(&emplacing_list<value_t, typed_allocator_t>::destroy_node, this, std::placeholders::_1));
     }
     else
     {

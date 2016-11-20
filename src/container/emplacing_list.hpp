@@ -80,7 +80,7 @@ private:
 	std::weak_ptr<node> previous;
     };
     template <class... args_t>
-    node* create_node(args_t&&... args);
+    std::shared_ptr<node> create_node(args_t&&... args);
     void destroy_node(node* pointer);
     typed_allocator_type& allocator_;
     std::shared_ptr<node> front_;
