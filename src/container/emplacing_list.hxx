@@ -97,9 +97,16 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
 template <class value_t, class typed_allocator_t>
 typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<value_t, typed_allocator_t>::iterator::operator--()
 {
-    if (is_valid() && !pointer_->previous.expired())
+    if (is_valid())
     {
-	pointer_ = pointer_->previous.lock();
+	if (!pointer_->previous.expired())
+	{
+	    pointer_ = pointer_->previous.lock();
+	}
+	else
+	{
+	    pointer_.reset();
+	}
     }
     return *this;
 }
@@ -151,17 +158,16 @@ template <class value_t, class typed_allocator_t>
 template <class... args_t>
 void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
 {
-    std::shared_ptr<node> new_next;
+    std::shared_ptr<node> old_front = front_;
     std::shared_ptr<node> new_front = create_node(std::forward<args_t>(args)...);
     if (front_.use_count() != 0)
     {
 	new_front->next = front_;
-	new_next = front_->next;
     }
     front_ = new_front;
-    if (new_next.use_count() != 0)
+    if (old_front.use_count() != 0)
     {
-	new_next->previous = new_front;
+	old_front->previous = new_front;
     }
     if (back_.expired())
     {
