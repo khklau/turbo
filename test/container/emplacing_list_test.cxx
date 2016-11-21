@@ -32,3 +32,67 @@ TEST(emplacing_list_test, emplace_front_basic)
     EXPECT_EQ(std::string("blah"), *(list1.begin())) << "When list is not empty emplace_front failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is not empty emplace_front failed";
 }
+
+TEST(emplacing_list_test, forward_iterate_basic)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("789");
+    list1.emplace_front("456");
+    list1.emplace_front("123");
+    {
+	auto iter = list1.begin();
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	++iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	++iter;
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	++iter;
+	EXPECT_EQ(list1.end(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.begin();
+	++iter;
+	++iter;
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	--iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	--iter;
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	--iter;
+	EXPECT_EQ(list1.end(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+}
+
+TEST(emplacing_list_test, reverse_iterate_basic)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("789");
+    list1.emplace_front("456");
+    list1.emplace_front("123");
+    {
+	auto iter = list1.rbegin();
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	++iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	++iter;
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	++iter;
+	EXPECT_EQ(list1.rend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.rbegin();
+	++iter;
+	++iter;
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	--iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	--iter;
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	--iter;
+	EXPECT_EQ(list1.rend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+}
