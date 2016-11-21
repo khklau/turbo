@@ -11,6 +11,15 @@ namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;
 namespace tme = turbo::memory;
 
+TEST(emplacing_list_test, empty_list)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    EXPECT_EQ(list1.end(), list1.begin()) << "When list is empty begin and end are not equal";
+    EXPECT_EQ(list1.rend(), list1.rbegin()) << "When list is empty rbegin and rend are not equal";
+}
+
 TEST(emplacing_list_test, emplace_front_basic)
 {
     typedef tco::emplacing_list<std::string, tme::pool> string_list;
@@ -18,6 +27,8 @@ TEST(emplacing_list_test, emplace_front_basic)
     string_list list1(allocator1);
     list1.emplace_front("foobar");
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_front failed";
+    EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace_front failed";
     list1.emplace_front("blah");
-    EXPECT_EQ(std::string("blah"), *(list1.begin())) << "When list is empty emplace_front failed";
+    EXPECT_EQ(std::string("blah"), *(list1.begin())) << "When list is not empty emplace_front failed";
+    EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is not empty emplace_front failed";
 }

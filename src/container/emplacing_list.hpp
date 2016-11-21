@@ -52,6 +52,26 @@ public:
     private:
 	std::shared_ptr<node> pointer_;
     };
+    class reverse_iterator : public iterator
+    {
+    public:
+	typedef iterator base_iterator;
+	reverse_iterator() = default;
+	inline reverse_iterator(const std::shared_ptr<node>& pointer) : base_iterator(pointer) { }
+	inline reverse_iterator(const reverse_iterator& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
+	~reverse_iterator() = default;
+	inline bool operator==(const reverse_iterator& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
+	inline bool operator!=(const reverse_iterator& other) const { return !(*this == other); }
+	using base_iterator::operator*;
+	using base_iterator::operator->;
+	inline reverse_iterator& operator++() { base_iterator::operator--(); return *this; }
+	inline reverse_iterator operator++(int) { base_iterator::operator--(0); return *this; }
+	inline reverse_iterator& operator--() { base_iterator::operator++(); return *this; }
+	inline reverse_iterator operator--(int) { base_iterator::operator++(0); return *this; }
+	using base_iterator::is_valid;
+	using base_iterator::is_first;
+	using base_iterator::is_last;
+    };
     static constexpr std::size_t allocation_size()
     {
 	return sizeof(node);
@@ -65,6 +85,18 @@ public:
     inline iterator begin() noexcept
     {
 	return iterator(front_);
+    }
+    inline iterator end() noexcept
+    {
+	return iterator();
+    }
+    inline reverse_iterator rbegin() noexcept
+    {
+	return back_.expired() ? reverse_iterator() : reverse_iterator(back_.lock());
+    }
+    inline reverse_iterator rend() noexcept
+    {
+	return reverse_iterator();
     }
     template <class... args_t>
     void emplace_front(args_t&&... args);
