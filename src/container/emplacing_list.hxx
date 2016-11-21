@@ -97,7 +97,7 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
 template <class value_t, class typed_allocator_t>
 typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<value_t, typed_allocator_t>::iterator::operator--()
 {
-    if (is_valid() && !pointer_.expired())
+    if (is_valid() && !pointer_->previous.expired())
     {
 	pointer_ = pointer_->previous.lock();
     }
