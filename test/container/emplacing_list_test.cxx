@@ -477,3 +477,59 @@ TEST(emplacing_list_test, reverse_iterate_basic)
 	EXPECT_EQ(list2.crend(), iter) << "Iterator at position end is not equal to end iterator";
     }
 }
+
+TEST(emplacing_list_test, pop_front_invalid)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.pop_front();
+    EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list is empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list is empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(0U, list1.size()) << "When popping an already empty list the size is not 0";
+    list1.emplace_front("blah");
+    list1.pop_front();
+    list1.pop_front();
+    EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list is empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list is empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(0U, list1.size()) << "When popping an already empty list the size is not 0";
+}
+
+TEST(emplacing_list_test, pop_front_basic)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("blah");
+    list1.pop_front();
+    EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
+    list1.emplace_front("bar");
+    list1.emplace_front("foo");
+    list1.pop_front();
+    EXPECT_EQ(std::string("bar"), *(list1.begin())) << "When list is not empty pop_front failed";
+    EXPECT_EQ(std::string("bar"), *(list1.rbegin())) << "When list is not empty pop_front failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after popping list of 2 element is not 1";
+    list1.pop_front();
+    EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
+    list1.emplace_front("123");
+    list1.emplace_back("456");
+    list1.emplace_back("789");
+    list1.pop_front();
+    EXPECT_EQ(std::string("456"), *(list1.begin())) << "When list is not empty pop_front failed";
+    EXPECT_EQ(std::string("789"), *(list1.rbegin())) << "When list is not empty pop_front failed";
+    EXPECT_EQ(2U, list1.size()) << "Size of list after popping list of 3 element is not 2";
+    auto iter1a = list1.cbegin();
+    ++iter1a;
+    EXPECT_EQ(std::string("789"), *iter1a) << "After popping the next links in the list have become invalid";
+    auto iter1b = list1.crbegin();
+    ++iter1b;
+    EXPECT_EQ(std::string("456"), *iter1b) << "After popping the previous links in the list have become invalid";
+    list1.pop_front();
+    EXPECT_EQ(std::string("789"), *(list1.begin())) << "When list is not empty pop_front failed";
+    EXPECT_EQ(std::string("789"), *(list1.rbegin())) << "When list is not empty pop_front failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after popping list of 2 element is not 1";
+}
