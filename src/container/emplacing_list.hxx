@@ -175,7 +175,28 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
     }
     if (back_.expired())
     {
-	back_ = front_;
+	back_ = new_front;
+    }
+}
+
+template <class value_t, class typed_allocator_t>
+template <class... args_t>
+void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
+{
+    std::weak_ptr<node> old_back = back_;
+    std::shared_ptr<node> new_back = create_node(std::forward<args_t>(args)...);
+    if (!back_.expired())
+    {
+	new_back->previous = back_.lock();
+    }
+    back_ = new_back;
+    if (!old_back.expired())
+    {
+	old_back.lock()->next = new_back;
+    }
+    if (front_.use_count() == 0)
+    {
+	front_ = new_back;
     }
 }
 
