@@ -12,9 +12,40 @@
 namespace turbo {
 namespace container {
 
-template <class value_t>
-using list_unique_ptr = std::unique_ptr<value_t, std::function<void (value_t*)>>;
+namespace emplacing_list_iterator {
 
+template <class value_t, class node_t>
+class basic_forward : public std::bidirectional_iterator_tag
+{
+public:
+    basic_forward();
+    basic_forward(const std::shared_ptr<node_t>& pointer);
+    basic_forward(const basic_forward& other);
+    basic_forward& operator=(const basic_forward& other);
+    ~basic_forward() = default;
+    bool operator==(const basic_forward& other) const;
+    inline bool operator!=(const basic_forward& other) const { return !(*this == other); }
+    value_t& operator*();
+    value_t* operator->();
+    basic_forward& operator++();
+    basic_forward operator++(int);
+    basic_forward& operator--();
+    basic_forward operator--(int);
+    inline bool is_valid() const { return pointer_.use_count() != 0; }
+    inline bool is_first() const { return is_valid() && pointer_->is_first(); }
+    inline bool is_last() const { return is_valid() && pointer_->is_last(); }
+private:
+    std::shared_ptr<node_t> pointer_;
+};
+
+} // namespace emplacing_list_iterator
+
+class invalid_dereference : public std::out_of_range
+{
+public:
+    explicit inline invalid_dereference(const std::string& what) : out_of_range(what) { }
+    explicit inline invalid_dereference(const char* what) : out_of_range(what) { }
+};
 
 template <class value_t, class typed_allocator_t = turbo::memory::typed_allocator>
 class emplacing_list
@@ -24,34 +55,8 @@ private:
 public:
     typedef value_t value_type;
     typedef typed_allocator_t typed_allocator_type;
-    class invalid_dereference : public std::out_of_range
-    {
-    public:
-	explicit inline invalid_dereference(const std::string& what) : out_of_range(what) { }
-	explicit inline invalid_dereference(const char* what) : out_of_range(what) { }
-    };
-    class iterator : public std::bidirectional_iterator_tag
-    {
-    public:
-	iterator();
-	iterator(const std::shared_ptr<node>& pointer);
-	iterator(const iterator& other);
-	iterator& operator=(const iterator& other);
-	~iterator() = default;
-	bool operator==(const iterator& other) const;
-	inline bool operator!=(const iterator& other) const { return !(*this == other); }
-	value_type& operator*();
-	value_type* operator->();
-	iterator& operator++();
-	iterator operator++(int);
-	iterator& operator--();
-	iterator operator--(int);
-	inline bool is_valid() const { return pointer_.use_count() != 0; }
-	inline bool is_first() const { return is_valid() && pointer_->is_first(); }
-	inline bool is_last() const { return is_valid() && pointer_->is_last(); }
-    private:
-	std::shared_ptr<node> pointer_;
-    };
+    typedef emplacing_list_iterator::basic_forward<const value_t, node> const_iterator;
+    typedef emplacing_list_iterator::basic_forward<value_t, node> iterator;
     class reverse_iterator : public iterator
     {
     public:
@@ -89,6 +94,14 @@ public:
     inline iterator end() noexcept
     {
 	return iterator();
+    }
+    inline const_iterator cbegin() noexcept
+    {
+	return const_iterator(front_);
+    }
+    inline const_iterator cend() noexcept
+    {
+	return const_iterator();
     }
     inline reverse_iterator rbegin() noexcept
     {

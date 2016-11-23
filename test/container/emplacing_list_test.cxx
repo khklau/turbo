@@ -62,6 +62,27 @@ TEST(emplacing_list_test, forward_iterate_invalid)
 	--iter;
 	EXPECT_EQ(list1.end(), iter) << "Iterator at position end is not equal to end iterator";
     }
+    {
+	auto iter = list1.cend();
+	++iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.cbegin();
+	++iter;
+	++iter;
+	++iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
+	++iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.cbegin();
+	--iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
+	--iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
 }
 
 TEST(emplacing_list_test, forward_iterate_basic)
@@ -93,6 +114,28 @@ TEST(emplacing_list_test, forward_iterate_basic)
 	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
 	--iter;
 	EXPECT_EQ(list1.end(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.cbegin();
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	++iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	++iter;
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	++iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.cbegin();
+	++iter;
+	++iter;
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	--iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	--iter;
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	--iter;
+	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
     }
 }
 

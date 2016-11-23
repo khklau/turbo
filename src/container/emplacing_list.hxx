@@ -9,26 +9,28 @@
 namespace turbo {
 namespace container {
 
-template <class value_t, class typed_allocator_t>
-emplacing_list<value_t, typed_allocator_t>::iterator::iterator()
+namespace emplacing_list_iterator {
+
+template <class value_t, class node_t>
+basic_forward<value_t, node_t>::basic_forward()
     :
 	pointer_()
 { }
 
-template <class value_t, class typed_allocator_t>
-emplacing_list<value_t, typed_allocator_t>::iterator::iterator(const std::shared_ptr<node>& pointer)
+template <class value_t, class node_t>
+basic_forward<value_t, node_t>::basic_forward(const std::shared_ptr<node_t>& pointer)
     :
 	pointer_(pointer)
 { }
 
-template <class value_t, class typed_allocator_t>
-emplacing_list<value_t, typed_allocator_t>::iterator::iterator(const iterator& other)
+template <class value_t, class node_t>
+basic_forward<value_t, node_t>::basic_forward(const basic_forward& other)
     :
 	pointer_(other.pointer_)
 { }
 
-template <class value_t, class typed_allocator_t>
-typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<value_t, typed_allocator_t>::iterator::operator=(const iterator& other)
+template <class value_t, class node_t>
+basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator=(const basic_forward& other)
 {
     if (TURBO_LIKELY(this != &other))
     {
@@ -37,14 +39,14 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<va
     return *this;
 }
 
-template <class value_t, class typed_allocator_t>
-bool emplacing_list<value_t, typed_allocator_t>::iterator::operator==(const iterator& other) const
+template <class value_t, class node_t>
+bool basic_forward<value_t, node_t>::operator==(const basic_forward& other) const
 {
     return pointer_ == other.pointer_;
 }
 
-template <class value_t, class typed_allocator_t>
-value_t& emplacing_list<value_t, typed_allocator_t>::iterator::operator*()
+template <class value_t, class node_t>
+value_t& basic_forward<value_t, node_t>::operator*()
 {
     if (TURBO_LIKELY(is_valid()))
     {
@@ -52,12 +54,12 @@ value_t& emplacing_list<value_t, typed_allocator_t>::iterator::operator*()
     }
     else
     {
-	throw invalid_dereference("cannot dereference invalid emplacing_list::iterator");
+	throw invalid_dereference("cannot dereference invalid emplacing_list iterator");
     }
 }
 
-template <class value_t, class typed_allocator_t>
-value_t* emplacing_list<value_t, typed_allocator_t>::iterator::operator->()
+template <class value_t, class node_t>
+value_t* basic_forward<value_t, node_t>::operator->()
 {
     if (TURBO_LIKELY(is_valid()))
     {
@@ -65,12 +67,12 @@ value_t* emplacing_list<value_t, typed_allocator_t>::iterator::operator->()
     }
     else
     {
-	throw invalid_dereference("cannot dereference invalid emplacing_list::iterator");
+	throw invalid_dereference("cannot dereference emplacing_list iterator");
     }
 }
 
-template <class value_t, class typed_allocator_t>
-typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<value_t, typed_allocator_t>::iterator::operator++()
+template <class value_t, class node_t>
+basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator++()
 {
     if (TURBO_LIKELY(is_valid()))
     {
@@ -79,12 +81,12 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<va
     return *this;
 }
 
-template <class value_t, class typed_allocator_t>
-typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::iterator::operator++(int)
+template <class value_t, class node_t>
+basic_forward<value_t, node_t> basic_forward<value_t, node_t>::operator++(int)
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	iterator tmp = *this;
+	basic_forward<value_t, node_t> tmp = *this;
 	++(*this);
 	return tmp;
     }
@@ -94,8 +96,8 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
     }
 }
 
-template <class value_t, class typed_allocator_t>
-typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<value_t, typed_allocator_t>::iterator::operator--()
+template <class value_t, class node_t>
+basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator--()
 {
     if (is_valid())
     {
@@ -111,12 +113,12 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator& emplacing_list<va
     return *this;
 }
 
-template <class value_t, class typed_allocator_t>
-typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::iterator::operator--(int)
+template <class value_t, class node_t>
+basic_forward<value_t, node_t> basic_forward<value_t, node_t>::operator--(int)
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	iterator tmp = *this;
+	basic_forward<value_t, node_t> tmp = *this;
 	--(*this);
 	return tmp;
     }
@@ -125,6 +127,8 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
 	return *this;
     }
 }
+
+} // namespace emplacing_list_iterator
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
