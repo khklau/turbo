@@ -143,6 +143,7 @@ template <class value_t, class typed_allocator_t>
 emplacing_list<value_t, typed_allocator_t>::emplacing_list(typed_allocator_type& allocator)
     :
 	allocator_(allocator),
+	size_(0U),
 	front_(),
 	back_()
 { }
@@ -169,6 +170,7 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
 	new_front->next = front_;
     }
     front_ = new_front;
+    ++size_;
     if (old_front.use_count() != 0)
     {
 	old_front->previous = new_front;
@@ -190,6 +192,7 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
 	new_back->previous = back_.lock();
     }
     back_ = new_back;
+    ++size_;
     if (!old_back.expired())
     {
 	old_back.lock()->next = new_back;

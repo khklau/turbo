@@ -91,6 +91,10 @@ public:
     }
     explicit emplacing_list(typed_allocator_type& allocator);
     ~emplacing_list();
+    inline std::size_t size() const noexcept
+    {
+	return size_;
+    }
     inline iterator begin() noexcept
     {
 	return iterator(front_);
@@ -142,6 +146,7 @@ private:
     std::shared_ptr<node> create_node(args_t&&... args);
     void destroy_node(node* pointer);
     typed_allocator_type& allocator_;
+    std::size_t size_;
     std::shared_ptr<node> front_;
     std::weak_ptr<node> back_;
 };

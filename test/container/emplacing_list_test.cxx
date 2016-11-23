@@ -18,6 +18,7 @@ TEST(emplacing_list_test, empty_list)
     string_list list1(allocator1);
     EXPECT_EQ(list1.end(), list1.begin()) << "When list is empty begin and end are not equal";
     EXPECT_EQ(list1.rend(), list1.rbegin()) << "When list is empty rbegin and rend are not equal";
+    EXPECT_EQ(0U, list1.size()) << "Size of empty list is not 0";
 }
 
 TEST(emplacing_list_test, emplace_front_basic)
@@ -28,9 +29,11 @@ TEST(emplacing_list_test, emplace_front_basic)
     list1.emplace_front("foobar");
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_front failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace_front failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
     list1.emplace_front("blah");
     EXPECT_EQ(std::string("blah"), *(list1.begin())) << "When list is not empty emplace_front failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is not empty emplace_front failed";
+    EXPECT_EQ(2U, list1.size()) << "Size of list after emplacing to a list of 1 element is not 2";
 }
 
 TEST(emplacing_list_test, emplace_back_basic)
@@ -41,9 +44,34 @@ TEST(emplacing_list_test, emplace_back_basic)
     list1.emplace_back("foobar");
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_back failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace_back failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
     list1.emplace_back("blah");
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is not empty emplace_back failed";
     EXPECT_EQ(std::string("blah"), *(list1.rbegin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(2U, list1.size()) << "Size of list after emplacing to a list of 1 element is not 2";
+}
+
+TEST(emplacing_list_test, emplace_mixed_basic)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("BBB");
+    EXPECT_EQ(std::string("BBB"), *(list1.begin())) << "When list is empty emplace_back failed";
+    EXPECT_EQ(std::string("BBB"), *(list1.rbegin())) << "When list is empty emplace_back failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
+    list1.emplace_back("CCC");
+    EXPECT_EQ(std::string("BBB"), *(list1.begin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(std::string("CCC"), *(list1.rbegin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(2U, list1.size()) << "Size of list after emplacing to a list of 1 element is not 2";
+    list1.emplace_front("AAA");
+    EXPECT_EQ(std::string("AAA"), *(list1.begin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(std::string("CCC"), *(list1.rbegin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(3U, list1.size()) << "Size of list after emplacing to a list of 2 element is not 3";
+    list1.emplace_back("DDD");
+    EXPECT_EQ(std::string("AAA"), *(list1.begin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(std::string("DDD"), *(list1.rbegin())) << "When list is not empty emplace_back failed";
+    EXPECT_EQ(4U, list1.size()) << "Size of list after emplacing to a list of 3 element is not 4";
 }
 
 TEST(emplacing_list_test, forward_iterate_invalid)
