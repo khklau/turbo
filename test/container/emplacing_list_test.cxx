@@ -168,6 +168,27 @@ TEST(emplacing_list_test, reverse_iterate_invalid)
 	--iter;
 	EXPECT_EQ(list1.rend(), iter) << "Iterator at position end is not equal to end iterator";
     }
+    {
+	auto iter = list1.crend();
+	++iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.crbegin();
+	++iter;
+	++iter;
+	++iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
+	++iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.crbegin();
+	--iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
+	--iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
 }
 
 TEST(emplacing_list_test, reverse_iterate_basic)
@@ -199,5 +220,27 @@ TEST(emplacing_list_test, reverse_iterate_basic)
 	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
 	--iter;
 	EXPECT_EQ(list1.rend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.crbegin();
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	++iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	++iter;
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	++iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
+    }
+    {
+	auto iter = list1.crbegin();
+	++iter;
+	++iter;
+	EXPECT_EQ(std::string("123"), *iter) << "Iterator at position front is invalid";
+	--iter;
+	EXPECT_EQ(std::string("456"), *iter) << "Iterator at position middle is invalid";
+	--iter;
+	EXPECT_EQ(std::string("789"), *iter) << "Iterator at position back is invalid";
+	--iter;
+	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
     }
 }

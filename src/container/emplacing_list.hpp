@@ -38,6 +38,28 @@ private:
     std::shared_ptr<node_t> pointer_;
 };
 
+template <class value_t, class node_t>
+class basic_reverse : public basic_forward<value_t, node_t>
+{
+public:
+    typedef basic_forward<value_t, node_t> base_iterator;
+    basic_reverse() = default;
+    inline basic_reverse(const std::shared_ptr<node_t>& pointer) : base_iterator(pointer) { }
+    inline basic_reverse(const basic_reverse& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
+    ~basic_reverse() = default;
+    inline bool operator==(const basic_reverse& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
+    inline bool operator!=(const basic_reverse& other) const { return !(*this == other); }
+    using base_iterator::operator*;
+    using base_iterator::operator->;
+    inline basic_reverse& operator++() { base_iterator::operator--(); return *this; }
+    inline basic_reverse operator++(int) { base_iterator::operator--(0); return *this; }
+    inline basic_reverse& operator--() { base_iterator::operator++(); return *this; }
+    inline basic_reverse operator--(int) { base_iterator::operator++(0); return *this; }
+    using base_iterator::is_valid;
+    using base_iterator::is_first;
+    using base_iterator::is_last;
+};
+
 } // namespace emplacing_list_iterator
 
 class invalid_dereference : public std::out_of_range
@@ -57,26 +79,8 @@ public:
     typedef typed_allocator_t typed_allocator_type;
     typedef emplacing_list_iterator::basic_forward<const value_t, node> const_iterator;
     typedef emplacing_list_iterator::basic_forward<value_t, node> iterator;
-    class reverse_iterator : public iterator
-    {
-    public:
-	typedef iterator base_iterator;
-	reverse_iterator() = default;
-	inline reverse_iterator(const std::shared_ptr<node>& pointer) : base_iterator(pointer) { }
-	inline reverse_iterator(const reverse_iterator& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
-	~reverse_iterator() = default;
-	inline bool operator==(const reverse_iterator& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
-	inline bool operator!=(const reverse_iterator& other) const { return !(*this == other); }
-	using base_iterator::operator*;
-	using base_iterator::operator->;
-	inline reverse_iterator& operator++() { base_iterator::operator--(); return *this; }
-	inline reverse_iterator operator++(int) { base_iterator::operator--(0); return *this; }
-	inline reverse_iterator& operator--() { base_iterator::operator++(); return *this; }
-	inline reverse_iterator operator--(int) { base_iterator::operator++(0); return *this; }
-	using base_iterator::is_valid;
-	using base_iterator::is_first;
-	using base_iterator::is_last;
-    };
+    typedef emplacing_list_iterator::basic_reverse<const value_t, node> const_reverse_iterator;
+    typedef emplacing_list_iterator::basic_reverse<value_t, node> reverse_iterator;
     static constexpr std::size_t allocation_size()
     {
 	return sizeof(node);
@@ -110,6 +114,14 @@ public:
     inline reverse_iterator rend() noexcept
     {
 	return reverse_iterator();
+    }
+    inline const_reverse_iterator crbegin() noexcept
+    {
+	return back_.expired() ? const_reverse_iterator() : const_reverse_iterator(back_.lock());
+    }
+    inline const_reverse_iterator crend() noexcept
+    {
+	return const_reverse_iterator();
     }
     template <class... args_t>
     void emplace_front(args_t&&... args);
