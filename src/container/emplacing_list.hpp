@@ -132,6 +132,7 @@ public:
     template <class... args_t>
     void emplace_back(args_t&&... args);
     void pop_front();
+    void pop_back();
 private:
     struct node : public std::enable_shared_from_this<node>
     {

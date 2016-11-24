@@ -227,6 +227,35 @@ void emplacing_list<value_t, typed_allocator_t>::pop_front()
 }
 
 template <class value_t, class typed_allocator_t>
+void emplacing_list<value_t, typed_allocator_t>::pop_back()
+{
+    if (back_.expired())
+    {
+	return;
+    }
+    std::shared_ptr<node> old_back = back_.lock();
+    if (!old_back->previous.expired())
+    {
+	std::shared_ptr<node> previous_node = old_back->previous.lock();
+	previous_node->next.reset();
+	old_back->next.reset();
+	back_ = previous_node;
+	old_back->previous.reset();
+    }
+    else
+    {
+	old_back->next.reset();
+	back_.reset();
+	old_back->previous.reset();
+    }
+    --size_;
+    if (size_ == 0U)
+    {
+	front_.reset();
+    }
+}
+
+template <class value_t, class typed_allocator_t>
 template <class... args_t>
 std::shared_ptr<typename emplacing_list<value_t, typed_allocator_t>::node> emplacing_list<value_t, typed_allocator_t>::create_node(args_t&&... args)
 {
