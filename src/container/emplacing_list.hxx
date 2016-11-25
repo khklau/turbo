@@ -2,8 +2,6 @@
 #define TURBO_CONTAINER_EMPLACING_LIST_HXX
 
 #include <turbo/container/emplacing_list.hpp>
-#include <stdexcept>
-#include <utility>
 #include <turbo/toolset/extension.hpp>
 
 namespace turbo {
@@ -135,7 +133,7 @@ template <class... args_t>
 emplacing_list<value_t, typed_allocator_t>::node::node(args_t&&... args)
     :
 	value(std::forward<args_t>(args)...),
-	next(),
+	next(nullptr),
 	previous()
 { }
 
@@ -144,7 +142,7 @@ emplacing_list<value_t, typed_allocator_t>::emplacing_list(typed_allocator_type&
     :
 	allocator_(allocator),
 	size_(0U),
-	front_(),
+	front_(nullptr),
 	back_()
 { }
 
@@ -200,6 +198,41 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
     if (front_.use_count() == 0)
     {
 	front_ = new_back;
+    }
+}
+
+template <class value_t, class typed_allocator_t>
+template <class... args_t>
+void emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position, args_t&&... args)
+{
+    std::shared_ptr<node> new_next = position.node_ptr();
+    if (!new_next)
+    {
+	if (size_ == 0U)
+	{
+	    emplace_front(std::forward<args_t>(args)...);
+	}
+	else
+	{
+	    emplace_back(std::forward<args_t>(args)...);
+	}
+    }
+    else
+    {
+	if (new_next->previous.expired())
+	{
+	    emplace_front(std::forward<args_t>(args)...);
+	}
+	else
+	{
+	    std::shared_ptr<node> new_previous = new_next->previous.lock();
+	    std::shared_ptr<node> new_node = create_node(std::forward<args_t>(args)...);
+	    new_node->next = new_next;
+	    new_node->previous = new_previous;
+	    new_previous->next = new_node;
+	    new_next->previous = new_node;
+	    ++size_;
+	}
     }
 }
 

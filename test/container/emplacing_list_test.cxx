@@ -478,6 +478,103 @@ TEST(emplacing_list_test, reverse_iterate_basic)
     }
 }
 
+TEST(emplacing_list_test, emplace_invalid)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace(string_list::iterator(), "foobar");
+    EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace failed";
+    EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
+}
+
+TEST(emplacing_list_test, emplace_empty)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace(list1.begin(), "foobar");
+    EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace failed";
+    EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace failed";
+    EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
+    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    string_list list2(allocator2);
+    list2.emplace(list2.end(), "foobar");
+    EXPECT_EQ(std::string("foobar"), *(list2.begin())) << "When list is empty emplace failed";
+    EXPECT_EQ(std::string("foobar"), *(list2.rbegin())) << "When list is empty emplace failed";
+    EXPECT_EQ(1U, list2.size()) << "Size of list after emplacing to an empty list is not 1";
+}
+
+TEST(emplacing_list_test, emplace_non_empty_boundary)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    // emplace at front
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_back("789");
+    list1.emplace(list1.begin(), "456");
+    EXPECT_EQ(2U, list1.size()) << "Size of list after emplacing to a list of 1 is not 2";
+    EXPECT_EQ(std::string("456"), *(list1.begin())) << "When list is not empty emplace failed";
+    EXPECT_EQ(std::string("789"), *(list1.rbegin())) << "When list is not empty emplace failed";
+    auto iter1a = list1.cbegin();
+    EXPECT_EQ(std::string("456"), *iter1a) << "Emplace on non-empty list produced invalid links";
+    ++iter1a;
+    EXPECT_EQ(std::string("789"), *iter1a) << "Emplace on non-empty list produced invalid links";
+    auto iter1b = list1.crbegin();
+    EXPECT_EQ(std::string("789"), *iter1b) << "Emplace on non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("456"), *iter1b) << "Emplace on non-empty list produced invalid links";
+    list1.emplace(list1.begin(), "123");
+    EXPECT_EQ(3U, list1.size()) << "Size of list after emplacing to a list of 2 is not 3";
+    EXPECT_EQ(std::string("123"), *(list1.begin())) << "When list is not empty emplace failed";
+    EXPECT_EQ(std::string("789"), *(list1.rbegin())) << "When list is not empty emplace failed";
+    auto iter1c = list1.cbegin();
+    EXPECT_EQ(std::string("123"), *iter1c) << "Emplace on non-empty list produced invalid links";
+    ++iter1c;
+    EXPECT_EQ(std::string("456"), *iter1c) << "Emplace on non-empty list produced invalid links";
+    ++iter1c;
+    EXPECT_EQ(std::string("789"), *iter1c) << "Emplace on non-empty list produced invalid links";
+    auto iter1d = list1.crbegin();
+    EXPECT_EQ(std::string("789"), *iter1d) << "Emplace on non-empty list produced invalid links";
+    ++iter1d;
+    EXPECT_EQ(std::string("456"), *iter1d) << "Emplace on non-empty list produced invalid links";
+    ++iter1d;
+    EXPECT_EQ(std::string("123"), *iter1d) << "Emplace on non-empty list produced invalid links";
+    // emplace at back
+    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    string_list list2(allocator2);
+    list2.emplace_back("123");
+    list2.emplace(list2.end(), "456");
+    EXPECT_EQ(2U, list2.size()) << "Size of list after emplacing to a list of 1 is not 2";
+    EXPECT_EQ(std::string("123"), *(list2.begin())) << "When list is not empty emplace failed";
+    EXPECT_EQ(std::string("456"), *(list2.rbegin())) << "When list is not empty emplace failed";
+    auto iter2a = list2.cbegin();
+    EXPECT_EQ(std::string("123"), *iter2a) << "Emplace on non-empty list produced invalid links";
+    ++iter2a;
+    EXPECT_EQ(std::string("456"), *iter2a) << "Emplace on non-empty list produced invalid links";
+    auto iter2b = list2.crbegin();
+    EXPECT_EQ(std::string("456"), *iter2b) << "Emplace on non-empty list produced invalid links";
+    ++iter2b;
+    EXPECT_EQ(std::string("123"), *iter2b) << "Emplace on non-empty list produced invalid links";
+    list2.emplace(list2.end(), "789");
+    EXPECT_EQ(3U, list2.size()) << "Size of list after emplacing to a list of 2 is not 3";
+    EXPECT_EQ(std::string("123"), *(list2.begin())) << "When list is not empty emplace failed";
+    EXPECT_EQ(std::string("789"), *(list2.rbegin())) << "When list is not empty emplace failed";
+    auto iter2c = list2.cbegin();
+    EXPECT_EQ(std::string("123"), *iter2c) << "Emplace on non-empty list produced invalid links";
+    ++iter2c;
+    EXPECT_EQ(std::string("456"), *iter2c) << "Emplace on non-empty list produced invalid links";
+    ++iter2c;
+    EXPECT_EQ(std::string("789"), *iter2c) << "Emplace on non-empty list produced invalid links";
+    auto iter2d = list2.crbegin();
+    EXPECT_EQ(std::string("789"), *iter2d) << "Emplace on non-empty list produced invalid links";
+    ++iter2d;
+    EXPECT_EQ(std::string("456"), *iter2d) << "Emplace on non-empty list produced invalid links";
+    ++iter2d;
+    EXPECT_EQ(std::string("123"), *iter2d) << "Emplace on non-empty list produced invalid links";
+}
+
 TEST(emplacing_list_test, pop_front_invalid)
 {
     typedef tco::emplacing_list<std::string, tme::pool> string_list;

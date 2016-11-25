@@ -7,6 +7,7 @@
 #include <iterator>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 #include <turbo/memory/typed_allocator.hpp>
 
 namespace turbo {
@@ -31,6 +32,7 @@ public:
     basic_forward operator++(int);
     basic_forward& operator--();
     basic_forward operator--(int);
+    inline std::shared_ptr<node_t> node_ptr() { return pointer_; }
     inline bool is_valid() const { return pointer_.use_count() != 0; }
     inline bool is_first() const { return is_valid() && pointer_->is_first(); }
     inline bool is_last() const { return is_valid() && pointer_->is_last(); }
@@ -131,6 +133,13 @@ public:
     void emplace_front(args_t&&... args);
     template <class... args_t>
     void emplace_back(args_t&&... args);
+    template <class... args_t>
+    void emplace(const_iterator position, args_t&&... args);
+    template <class... args_t>
+    inline void emplace(iterator position, args_t&&... args)
+    {
+	emplace(const_iterator(position.node_ptr()), std::forward<args_t>(args)...);
+    }
     void pop_front();
     void pop_back();
 private:
