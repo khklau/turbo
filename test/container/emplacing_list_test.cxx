@@ -506,10 +506,9 @@ TEST(emplacing_list_test, emplace_empty)
     EXPECT_EQ(1U, list2.size()) << "Size of list after emplacing to an empty list is not 1";
 }
 
-TEST(emplacing_list_test, emplace_non_empty_boundary)
+TEST(emplacing_list_test, emplace_front_non_empty)
 {
     typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    // emplace at front
     tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("789");
@@ -541,7 +540,11 @@ TEST(emplacing_list_test, emplace_non_empty_boundary)
     EXPECT_EQ(std::string("456"), *iter1d) << "Emplace on non-empty list produced invalid links";
     ++iter1d;
     EXPECT_EQ(std::string("123"), *iter1d) << "Emplace on non-empty list produced invalid links";
-    // emplace at back
+}
+
+TEST(emplacing_list_test, emplace_back_non_empty)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
     tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     list2.emplace_back("123");
@@ -573,6 +576,71 @@ TEST(emplacing_list_test, emplace_non_empty_boundary)
     EXPECT_EQ(std::string("456"), *iter2d) << "Emplace on non-empty list produced invalid links";
     ++iter2d;
     EXPECT_EQ(std::string("123"), *iter2d) << "Emplace on non-empty list produced invalid links";
+}
+
+TEST(emplacing_list_test, single_emplace_middle)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("123");
+    list1.emplace_back("789");
+    auto iter1a = list1.begin();
+    ++iter1a;
+    list1.emplace(iter1a, "456");
+    auto iter1b = list1.rbegin();
+    EXPECT_EQ(std::string("789"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("456"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("123"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+}
+
+TEST(emplacing_list_test, multi_same_emplace_middle)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("aaa");
+    list1.emplace_back("ddd");
+    auto iter1a = list1.begin();
+    ++iter1a;
+    list1.emplace(iter1a, "bbb");
+    list1.emplace(iter1a, "ccc");
+    auto iter1b = list1.begin();
+    EXPECT_EQ(std::string("aaa"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("bbb"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("ccc"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("ddd"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+}
+
+TEST(emplacing_list_test, multi_moving_emplace_middle)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_front("aaa");
+    list1.emplace_back("eee");
+    auto iter1a = list1.begin();
+    ++iter1a;
+    list1.emplace(iter1a, "ccc");
+    --iter1a;
+    list1.emplace(iter1a, "bbb");
+    ++iter1a;
+    list1.emplace(iter1a, "ddd");
+    auto iter1b = list1.begin();
+    EXPECT_EQ(std::string("aaa"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("bbb"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("ccc"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("ddd"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
+    ++iter1b;
+    EXPECT_EQ(std::string("eee"), *iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
 }
 
 TEST(emplacing_list_test, pop_front_invalid)
