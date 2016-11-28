@@ -289,6 +289,42 @@ void emplacing_list<value_t, typed_allocator_t>::pop_back()
 }
 
 template <class value_t, class typed_allocator_t>
+typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::erase(const_iterator position)
+{
+    std::shared_ptr<node> erase_node = position.node_ptr();
+    if (size_ == 0U || !erase_node)
+    {
+	return end();
+    }
+    else
+    {
+	if (erase_node->previous.expired())
+	{
+	    pop_front();
+	    return begin();
+	}
+	else if (!erase_node->next)
+	{
+	    pop_back();
+	    return end();
+	}
+	else
+	{
+	    std::shared_ptr<node> previous_node = erase_node->previous.lock();
+	    std::shared_ptr<node> next_node = erase_node->next;
+	    erase_node->next.reset();
+	    erase_node->previous.reset();
+	    previous_node->next = next_node;
+	    next_node->previous = previous_node;
+	    --size_;
+	    iterator result(position.node_ptr());
+	    ++result;
+	    return result;
+	}
+    }
+}
+
+template <class value_t, class typed_allocator_t>
 template <class... args_t>
 std::shared_ptr<typename emplacing_list<value_t, typed_allocator_t>::node> emplacing_list<value_t, typed_allocator_t>::create_node(args_t&&... args)
 {

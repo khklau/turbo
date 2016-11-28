@@ -142,6 +142,7 @@ public:
     }
     void pop_front();
     void pop_back();
+    iterator erase(const_iterator position);
 private:
     struct node : public std::enable_shared_from_this<node>
     {
