@@ -28,6 +28,13 @@ basic_forward<value_t, node_t>::basic_forward(const basic_forward& other)
 { }
 
 template <class value_t, class node_t>
+template <class other_value_t>
+basic_forward<value_t, node_t>::basic_forward(const basic_forward<other_value_t, node_t>& other)
+    :
+	pointer_(other.node_ptr())
+{ }
+
+template <class value_t, class node_t>
 basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator=(const basic_forward& other)
 {
     if (TURBO_LIKELY(this != &other))

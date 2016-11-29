@@ -22,6 +22,8 @@ public:
     basic_forward();
     basic_forward(const std::shared_ptr<node_t>& pointer);
     basic_forward(const basic_forward& other);
+    template <class other_value_t>
+    basic_forward(const basic_forward<other_value_t, node_t>& other);
     basic_forward& operator=(const basic_forward& other);
     ~basic_forward() = default;
     bool operator==(const basic_forward& other) const;
@@ -32,7 +34,7 @@ public:
     basic_forward operator++(int);
     basic_forward& operator--();
     basic_forward operator--(int);
-    inline std::shared_ptr<node_t> node_ptr() { return pointer_; }
+    inline std::shared_ptr<node_t> node_ptr() const { return pointer_; }
     inline bool is_valid() const { return pointer_.use_count() != 0; }
     inline bool is_first() const { return is_valid() && pointer_->is_first(); }
     inline bool is_last() const { return is_valid() && pointer_->is_last(); }
@@ -48,6 +50,8 @@ public:
     basic_reverse() = default;
     inline basic_reverse(const std::shared_ptr<node_t>& pointer) : base_iterator(pointer) { }
     inline basic_reverse(const basic_reverse& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
+    template <class other_value_t>
+    inline basic_reverse(const basic_reverse<other_value_t, node_t>& other) : base_iterator(static_cast<const basic_forward<other_value_t, node_t>&>(other)) { }
     ~basic_reverse() = default;
     inline bool operator==(const basic_reverse& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
     inline bool operator!=(const basic_reverse& other) const { return !(*this == other); }
@@ -135,11 +139,6 @@ public:
     void emplace_back(args_t&&... args);
     template <class... args_t>
     void emplace(const_iterator position, args_t&&... args);
-    template <class... args_t>
-    inline void emplace(iterator position, args_t&&... args)
-    {
-	emplace(const_iterator(position.node_ptr()), std::forward<args_t>(args)...);
-    }
     void pop_front();
     void pop_back();
     iterator erase(const_iterator position);
