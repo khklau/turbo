@@ -324,9 +324,7 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
 	    previous_node->next = next_node;
 	    next_node->previous = previous_node;
 	    --size_;
-	    iterator result(position.node_ptr());
-	    ++result;
-	    return result;
+	    return next_node;
 	}
     }
 }
