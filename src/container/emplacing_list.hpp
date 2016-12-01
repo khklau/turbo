@@ -138,7 +138,7 @@ public:
     template <class... args_t>
     void emplace_back(args_t&&... args);
     template <class... args_t>
-    void emplace(const_iterator position, args_t&&... args);
+    iterator emplace(const_iterator position, args_t&&... args);
     void pop_front();
     void pop_back();
     iterator erase(const_iterator position);

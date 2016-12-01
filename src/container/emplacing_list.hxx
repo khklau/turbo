@@ -210,7 +210,7 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
-void emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position, args_t&&... args)
+typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position, args_t&&... args)
 {
     std::shared_ptr<node> new_next = position.node_ptr();
     if (!new_next)
@@ -218,10 +218,12 @@ void emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position
 	if (size_ == 0U)
 	{
 	    emplace_front(std::forward<args_t>(args)...);
+	    return front_;
 	}
 	else
 	{
 	    emplace_back(std::forward<args_t>(args)...);
+	    return back_.lock();
 	}
     }
     else
@@ -229,6 +231,7 @@ void emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position
 	if (new_next->previous.expired())
 	{
 	    emplace_front(std::forward<args_t>(args)...);
+	    return front_;
 	}
 	else
 	{
@@ -239,6 +242,7 @@ void emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position
 	    new_previous->next = new_node;
 	    new_next->previous = new_node;
 	    ++size_;
+	    return new_node;
 	}
     }
 }
