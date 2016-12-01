@@ -776,24 +776,24 @@ TEST(emplacing_list_test, erase_front)
     tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("blah");
-    list1.erase(list1.cbegin());
+    EXPECT_EQ(list1.end(), list1.erase(list1.cbegin())) << "Iterator returned by erasing the only element is not the end iterator";
     EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
     list1.emplace_front("bar");
     list1.emplace_front("foo");
-    list1.erase(list1.cbegin());
+    EXPECT_EQ(std::string("bar"), *(list1.erase(list1.cbegin()))) << "Iterator returned by erasing the first element is not the next element iterator";
     EXPECT_EQ(std::string("bar"), *(list1.begin())) << "When list is not empty erase failed";
     EXPECT_EQ(std::string("bar"), *(list1.rbegin())) << "When list is not empty erase failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after erasing list of 2 element is not 1";
-    list1.erase(list1.cbegin());
+    EXPECT_EQ(list1.end(), list1.erase(list1.cbegin())) << "Iterator returned by erasing the only element is not the end iterator";
     EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
     list1.emplace_front("123");
     list1.emplace_back("456");
     list1.emplace_back("789");
-    list1.erase(list1.cbegin());
+    EXPECT_EQ(std::string("456"), *(list1.erase(list1.cbegin()))) << "Iterator returned by erasing the first element is not the next element iterator";
     EXPECT_EQ(std::string("456"), *(list1.begin())) << "When list is not empty erase failed";
     EXPECT_EQ(std::string("789"), *(list1.rbegin())) << "When list is not empty erase failed";
     EXPECT_EQ(2U, list1.size()) << "Size of list after erasing list of 3 element is not 2";
@@ -803,10 +803,14 @@ TEST(emplacing_list_test, erase_front)
     auto iter1b = list1.crbegin();
     ++iter1b;
     EXPECT_EQ(std::string("456"), *iter1b) << "After erasing the previous links in the list have become invalid";
-    list1.erase(list1.cbegin());
+    EXPECT_EQ(std::string("789"), *(list1.erase(list1.cbegin()))) << "Iterator returned by erasing the first element is not the next element iterator";
     EXPECT_EQ(std::string("789"), *(list1.begin())) << "When list is not empty erase failed";
     EXPECT_EQ(std::string("789"), *(list1.rbegin())) << "When list is not empty erase failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after erasing list of 2 element is not 1";
+    EXPECT_EQ(list1.end(), list1.erase(list1.cbegin())) << "Iterator returned by erasing the only element is not the end iterator";
+    EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
+    EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
 }
 
 TEST(emplacing_list_test, erase_back)
@@ -816,7 +820,7 @@ TEST(emplacing_list_test, erase_back)
     string_list list1(allocator1);
     list1.emplace_back("blah");
     auto iter1a = list1.cbegin();
-    list1.erase(iter1a);
+    EXPECT_EQ(list1.end(), list1.erase(iter1a)) << "Iterator returned by erasing last element is not the end iterator";
     EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
@@ -824,12 +828,12 @@ TEST(emplacing_list_test, erase_back)
     list1.emplace_back("bar");
     auto iter1b = list1.cbegin();
     ++iter1b;
-    list1.erase(iter1b);
+    EXPECT_EQ(list1.end(), list1.erase(iter1b)) << "Iterator returned by erasing last element is not the end iterator";
     EXPECT_EQ(std::string("foo"), *(list1.begin())) << "When list is not empty erase failed";
     EXPECT_EQ(std::string("foo"), *(list1.rbegin())) << "When list is not empty erase failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after erasing list of 2 element is not 1";
     auto iter1c = list1.cbegin();
-    list1.erase(iter1c);
+    EXPECT_EQ(list1.end(), list1.erase(iter1c)) << "Iterator returned by erasing last element is not the end iterator";
     EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(list1.crend(), list1.crbegin()) << "When the list becomes empty begin iterator is not equal to end iterator";
     EXPECT_EQ(0U, list1.size()) << "When the list becomes empty size is not 0";
@@ -839,7 +843,7 @@ TEST(emplacing_list_test, erase_back)
     auto iter1d = list1.cbegin();
     ++iter1d;
     ++iter1d;
-    list1.erase(iter1d);
+    EXPECT_EQ(list1.end(), list1.erase(iter1d)) << "Iterator returned by erasing last element is not the end iterator";
     EXPECT_EQ(std::string("123"), *(list1.begin())) << "When list is not empty erase failed";
     EXPECT_EQ(std::string("456"), *(list1.rbegin())) << "When list is not empty erase failed";
     EXPECT_EQ(2U, list1.size()) << "Size of list after erasing list of 3 element is not 2";
@@ -851,7 +855,7 @@ TEST(emplacing_list_test, erase_back)
     EXPECT_EQ(std::string("123"), *iter1f) << "After erasing the previous links in the list have become invalid";
     auto iter1g = list1.cbegin();
     ++iter1g;
-    list1.erase(iter1g);
+    EXPECT_EQ(list1.end(), list1.erase(iter1g)) << "Iterator returned by erasing last element is not the end iterator";
     EXPECT_EQ(std::string("123"), *(list1.begin())) << "When list is not empty erase failed";
     EXPECT_EQ(std::string("123"), *(list1.rbegin())) << "When list is not empty erase failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after erasing list of 2 element is not 1";
