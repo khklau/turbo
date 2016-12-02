@@ -43,7 +43,7 @@ private:
 };
 
 template <class value_t, class node_t>
-class basic_reverse : public basic_forward<value_t, node_t>
+class basic_reverse : private basic_forward<value_t, node_t>
 {
 public:
     typedef basic_forward<value_t, node_t> base_iterator;
