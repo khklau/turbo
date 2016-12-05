@@ -34,7 +34,8 @@ public:
     basic_forward operator++(int);
     basic_forward& operator--();
     basic_forward operator--(int);
-    inline std::shared_ptr<node_t> node_ptr() const { return pointer_; }
+    inline std::shared_ptr<node_t> strong_share() const { return pointer_; }
+    inline std::weak_ptr<node_t> weak_share() const { return pointer_; }
     inline bool is_valid() const { return pointer_.use_count() != 0; }
     inline bool is_first() const { return is_valid() && pointer_->is_first(); }
     inline bool is_last() const { return is_valid() && pointer_->is_last(); }

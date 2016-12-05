@@ -31,7 +31,7 @@ template <class value_t, class node_t>
 template <class other_value_t>
 basic_forward<value_t, node_t>::basic_forward(const basic_forward<other_value_t, node_t>& other)
     :
-	pointer_(other.node_ptr())
+	pointer_(other.strong_share())
 { }
 
 template <class value_t, class node_t>
@@ -212,7 +212,7 @@ template <class value_t, class typed_allocator_t>
 template <class... args_t>
 typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position, args_t&&... args)
 {
-    std::shared_ptr<node> new_next = position.node_ptr();
+    std::shared_ptr<node> new_next = position.strong_share();
     if (!new_next)
     {
 	if (size_ == 0U)
@@ -302,7 +302,7 @@ void emplacing_list<value_t, typed_allocator_t>::pop_back()
 template <class value_t, class typed_allocator_t>
 typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::erase(const_iterator position)
 {
-    std::shared_ptr<node> erase_node = position.node_ptr();
+    std::shared_ptr<node> erase_node = position.strong_share();
     if (size_ == 0U || !erase_node)
     {
 	return end();
