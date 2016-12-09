@@ -16,24 +16,24 @@ namespace container {
 namespace emplacing_list_iterator {
 
 template <class value_t, class node_t>
-class basic_forward : public std::bidirectional_iterator_tag
+class basic_safe_forward : public std::bidirectional_iterator_tag
 {
 public:
-    basic_forward();
-    basic_forward(const std::shared_ptr<node_t>& pointer);
-    basic_forward(const basic_forward& other);
+    basic_safe_forward();
+    basic_safe_forward(const std::shared_ptr<node_t>& pointer);
+    basic_safe_forward(const basic_safe_forward& other);
     template <class other_value_t>
-    basic_forward(const basic_forward<other_value_t, node_t>& other);
-    basic_forward& operator=(const basic_forward& other);
-    ~basic_forward() = default;
-    bool operator==(const basic_forward& other) const;
-    inline bool operator!=(const basic_forward& other) const { return !(*this == other); }
+    basic_safe_forward(const basic_safe_forward<other_value_t, node_t>& other);
+    basic_safe_forward& operator=(const basic_safe_forward& other);
+    ~basic_safe_forward() = default;
+    bool operator==(const basic_safe_forward& other) const;
+    inline bool operator!=(const basic_safe_forward& other) const { return !(*this == other); }
     value_t& operator*();
     value_t* operator->();
-    basic_forward& operator++();
-    basic_forward operator++(int);
-    basic_forward& operator--();
-    basic_forward operator--(int);
+    basic_safe_forward& operator++();
+    basic_safe_forward operator++(int);
+    basic_safe_forward& operator--();
+    basic_safe_forward operator--(int);
     inline std::shared_ptr<node_t> strong_share() const { return pointer_; }
     inline std::weak_ptr<node_t> weak_share() const { return pointer_; }
     inline bool is_valid() const { return pointer_.use_count() != 0; }
@@ -44,24 +44,24 @@ private:
 };
 
 template <class value_t, class node_t>
-class basic_reverse : private basic_forward<value_t, node_t>
+class basic_safe_reverse : private basic_safe_forward<value_t, node_t>
 {
 public:
-    typedef basic_forward<value_t, node_t> base_iterator;
-    basic_reverse() = default;
-    inline basic_reverse(const std::shared_ptr<node_t>& pointer) : base_iterator(pointer) { }
-    inline basic_reverse(const basic_reverse& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
+    typedef basic_safe_forward<value_t, node_t> base_iterator;
+    basic_safe_reverse() = default;
+    inline basic_safe_reverse(const std::shared_ptr<node_t>& pointer) : base_iterator(pointer) { }
+    inline basic_safe_reverse(const basic_safe_reverse& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
     template <class other_value_t>
-    inline basic_reverse(const basic_reverse<other_value_t, node_t>& other) : base_iterator(static_cast<const basic_forward<other_value_t, node_t>&>(other)) { }
-    ~basic_reverse() = default;
-    inline bool operator==(const basic_reverse& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
-    inline bool operator!=(const basic_reverse& other) const { return !(*this == other); }
+    inline basic_safe_reverse(const basic_safe_reverse<other_value_t, node_t>& other) : base_iterator(static_cast<const basic_safe_forward<other_value_t, node_t>&>(other)) { }
+    ~basic_safe_reverse() = default;
+    inline bool operator==(const basic_safe_reverse& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
+    inline bool operator!=(const basic_safe_reverse& other) const { return !(*this == other); }
     using base_iterator::operator*;
     using base_iterator::operator->;
-    inline basic_reverse& operator++() { base_iterator::operator--(); return *this; }
-    inline basic_reverse operator++(int) { base_iterator::operator--(0); return *this; }
-    inline basic_reverse& operator--() { base_iterator::operator++(); return *this; }
-    inline basic_reverse operator--(int) { base_iterator::operator++(0); return *this; }
+    inline basic_safe_reverse& operator++() { base_iterator::operator--(); return *this; }
+    inline basic_safe_reverse operator++(int) { base_iterator::operator--(0); return *this; }
+    inline basic_safe_reverse& operator--() { base_iterator::operator++(); return *this; }
+    inline basic_safe_reverse operator--(int) { base_iterator::operator++(0); return *this; }
     using base_iterator::is_valid;
     using base_iterator::is_first;
     using base_iterator::is_last;
@@ -84,10 +84,10 @@ private:
 public:
     typedef value_t value_type;
     typedef typed_allocator_t typed_allocator_type;
-    typedef emplacing_list_iterator::basic_forward<const value_t, node> const_iterator;
-    typedef emplacing_list_iterator::basic_forward<value_t, node> iterator;
-    typedef emplacing_list_iterator::basic_reverse<const value_t, node> const_reverse_iterator;
-    typedef emplacing_list_iterator::basic_reverse<value_t, node> reverse_iterator;
+    typedef emplacing_list_iterator::basic_safe_forward<const value_t, node> const_iterator;
+    typedef emplacing_list_iterator::basic_safe_forward<value_t, node> iterator;
+    typedef emplacing_list_iterator::basic_safe_reverse<const value_t, node> const_reverse_iterator;
+    typedef emplacing_list_iterator::basic_safe_reverse<value_t, node> reverse_iterator;
     static constexpr std::size_t allocation_size()
     {
 	return sizeof(node);

@@ -10,32 +10,32 @@ namespace container {
 namespace emplacing_list_iterator {
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t>::basic_forward()
+basic_safe_forward<value_t, node_t>::basic_safe_forward()
     :
 	pointer_()
 { }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t>::basic_forward(const std::shared_ptr<node_t>& pointer)
+basic_safe_forward<value_t, node_t>::basic_safe_forward(const std::shared_ptr<node_t>& pointer)
     :
 	pointer_(pointer)
 { }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t>::basic_forward(const basic_forward& other)
+basic_safe_forward<value_t, node_t>::basic_safe_forward(const basic_safe_forward& other)
     :
 	pointer_(other.pointer_)
 { }
 
 template <class value_t, class node_t>
 template <class other_value_t>
-basic_forward<value_t, node_t>::basic_forward(const basic_forward<other_value_t, node_t>& other)
+basic_safe_forward<value_t, node_t>::basic_safe_forward(const basic_safe_forward<other_value_t, node_t>& other)
     :
 	pointer_(other.strong_share())
 { }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator=(const basic_forward& other)
+basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator=(const basic_safe_forward& other)
 {
     if (TURBO_LIKELY(this != &other))
     {
@@ -45,13 +45,13 @@ basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator=(const 
 }
 
 template <class value_t, class node_t>
-bool basic_forward<value_t, node_t>::operator==(const basic_forward& other) const
+bool basic_safe_forward<value_t, node_t>::operator==(const basic_safe_forward& other) const
 {
     return pointer_ == other.pointer_;
 }
 
 template <class value_t, class node_t>
-value_t& basic_forward<value_t, node_t>::operator*()
+value_t& basic_safe_forward<value_t, node_t>::operator*()
 {
     if (TURBO_LIKELY(is_valid()))
     {
@@ -64,7 +64,7 @@ value_t& basic_forward<value_t, node_t>::operator*()
 }
 
 template <class value_t, class node_t>
-value_t* basic_forward<value_t, node_t>::operator->()
+value_t* basic_safe_forward<value_t, node_t>::operator->()
 {
     if (TURBO_LIKELY(is_valid()))
     {
@@ -77,21 +77,26 @@ value_t* basic_forward<value_t, node_t>::operator->()
 }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator++()
+basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator++()
 {
     if (TURBO_LIKELY(is_valid()))
     {
 	pointer_ = pointer_->next;
     }
+    else
+    {
+	// use previous
+	// if previous is expired then the iterator pointed to head node and was erased, so jump to new head
+    }
     return *this;
 }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t> basic_forward<value_t, node_t>::operator++(int)
+basic_safe_forward<value_t, node_t> basic_safe_forward<value_t, node_t>::operator++(int)
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	basic_forward<value_t, node_t> tmp = *this;
+	basic_safe_forward<value_t, node_t> tmp = *this;
 	++(*this);
 	return tmp;
     }
@@ -102,7 +107,7 @@ basic_forward<value_t, node_t> basic_forward<value_t, node_t>::operator++(int)
 }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator--()
+basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator--()
 {
     if (is_valid())
     {
@@ -119,11 +124,11 @@ basic_forward<value_t, node_t>& basic_forward<value_t, node_t>::operator--()
 }
 
 template <class value_t, class node_t>
-basic_forward<value_t, node_t> basic_forward<value_t, node_t>::operator--(int)
+basic_safe_forward<value_t, node_t> basic_safe_forward<value_t, node_t>::operator--(int)
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	basic_forward<value_t, node_t> tmp = *this;
+	basic_safe_forward<value_t, node_t> tmp = *this;
 	--(*this);
 	return tmp;
     }
