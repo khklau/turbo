@@ -151,6 +151,7 @@ private:
 	inline bool is_first() const { return previous.expired(); }
 	inline bool is_last() const { return next.use_count() == 0; }
 	value_t value;
+	bool alive;
 	std::shared_ptr<node> next;
 	std::weak_ptr<node> previous;
     };

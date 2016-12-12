@@ -81,12 +81,15 @@ basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operat
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	pointer_ = pointer_->next;
-    }
-    else
-    {
-	// use previous
-	// if previous is expired then the iterator pointed to head node and was erased, so jump to new head
+	if (pointer_->alive)
+	{
+	    pointer_ = pointer_->next;
+	}
+	else if (!pointer_->previous.expired())
+	{
+	    std::shared_ptr<node_t> previous_node = pointer_->previous.lock();
+	    pointer_ = previous_node->next;
+	}
     }
     return *this;
 }
@@ -145,6 +148,7 @@ template <class... args_t>
 emplacing_list<value_t, typed_allocator_t>::node::node(args_t&&... args)
     :
 	value(std::forward<args_t>(args)...),
+	alive(true),
 	next(nullptr),
 	previous()
 { }
@@ -260,6 +264,7 @@ void emplacing_list<value_t, typed_allocator_t>::pop_front()
 	return;
     }
     std::shared_ptr<node> old_front = front_;
+    old_front->alive = false;
     std::shared_ptr<node> next_node = old_front->next;
     front_ = old_front->next;
     old_front->next.reset();
@@ -267,7 +272,7 @@ void emplacing_list<value_t, typed_allocator_t>::pop_front()
     {
 	next_node->previous.reset();
     }
-    old_front->previous.reset();
+    old_front->previous = next_node;
     --size_;
     if (size_ == 0U)
     {
@@ -283,19 +288,18 @@ void emplacing_list<value_t, typed_allocator_t>::pop_back()
 	return;
     }
     std::shared_ptr<node> old_back = back_.lock();
+    old_back->alive = false;
     if (!old_back->previous.expired())
     {
 	std::shared_ptr<node> previous_node = old_back->previous.lock();
 	previous_node->next.reset();
 	old_back->next.reset();
 	back_ = previous_node;
-	old_back->previous.reset();
     }
     else
     {
 	old_back->next.reset();
 	back_.reset();
-	old_back->previous.reset();
     }
     --size_;
     if (size_ == 0U)
@@ -326,10 +330,10 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
 	}
 	else
 	{
+	    erase_node->alive = false;
 	    std::shared_ptr<node> previous_node = erase_node->previous.lock();
 	    std::shared_ptr<node> next_node = erase_node->next;
 	    erase_node->next.reset();
-	    erase_node->previous.reset();
 	    previous_node->next = next_node;
 	    next_node->previous = previous_node;
 	    --size_;
