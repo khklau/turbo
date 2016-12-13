@@ -165,11 +165,8 @@ emplacing_list<value_t, typed_allocator_t>::emplacing_list(typed_allocator_type&
 template <class value_t, class typed_allocator_t>
 emplacing_list<value_t, typed_allocator_t>::~emplacing_list()
 {
-    std::shared_ptr<node> current = front_;
-    for (front_.reset(); current.use_count() != 0; current = current->next)
-    {
-	current->previous.reset();
-    }
+    for (auto iter = cbegin(); iter != cend(); iter = erase(iter)) { }
+    front_.reset();
     back_.reset();
 }
 
