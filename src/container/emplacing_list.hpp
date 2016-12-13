@@ -25,6 +25,8 @@ public:
     template <class other_value_t>
     basic_safe_forward(const basic_safe_forward<other_value_t, node_t>& other);
     basic_safe_forward& operator=(const basic_safe_forward& other);
+    template <class other_value_t>
+    basic_safe_forward& operator=(const basic_safe_forward<other_value_t, node_t>& other);
     ~basic_safe_forward() = default;
     bool operator==(const basic_safe_forward& other) const;
     inline bool operator!=(const basic_safe_forward& other) const { return !(*this == other); }
@@ -49,19 +51,59 @@ class basic_safe_reverse : private basic_safe_forward<value_t, node_t>
 public:
     typedef basic_safe_forward<value_t, node_t> base_iterator;
     basic_safe_reverse() = default;
-    inline basic_safe_reverse(const std::shared_ptr<node_t>& pointer) : base_iterator(pointer) { }
-    inline basic_safe_reverse(const basic_safe_reverse& other) : base_iterator(static_cast<const base_iterator&>(other)) { }
+    inline basic_safe_reverse(const std::shared_ptr<node_t>& pointer)
+	:
+	    base_iterator(pointer)
+    { }
+    inline basic_safe_reverse(const basic_safe_reverse& other)
+	:
+	    base_iterator(static_cast<const base_iterator&>(other))
+    { }
     template <class other_value_t>
-    inline basic_safe_reverse(const basic_safe_reverse<other_value_t, node_t>& other) : base_iterator(static_cast<const basic_safe_forward<other_value_t, node_t>&>(other)) { }
+    inline basic_safe_reverse(const basic_safe_reverse<other_value_t, node_t>& other)
+	:
+	    base_iterator(static_cast<const typename basic_safe_reverse<other_value_t, node_t>::base_iterator&>(other))
+    { }
+    basic_safe_reverse& operator=(const basic_safe_reverse& other)
+    {
+	return static_cast<const base_iterator&>(*this) = static_cast<const base_iterator&>(other);
+    }
+    template <class other_value_t>
+    basic_safe_reverse& operator=(const basic_safe_reverse<other_value_t, node_t>& other)
+    {
+	return static_cast<const base_iterator&>(*this) = static_cast<const typename basic_safe_reverse<other_value_t, node_t>::base_iterator&>(other);
+    }
     ~basic_safe_reverse() = default;
-    inline bool operator==(const basic_safe_reverse& other) const { return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other); }
-    inline bool operator!=(const basic_safe_reverse& other) const { return !(*this == other); }
+    inline bool operator==(const basic_safe_reverse& other) const
+    {
+	return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other);
+    }
+    inline bool operator!=(const basic_safe_reverse& other) const
+    {
+	return !(*this == other);
+    }
     using base_iterator::operator*;
     using base_iterator::operator->;
-    inline basic_safe_reverse& operator++() { base_iterator::operator--(); return *this; }
-    inline basic_safe_reverse operator++(int) { base_iterator::operator--(0); return *this; }
-    inline basic_safe_reverse& operator--() { base_iterator::operator++(); return *this; }
-    inline basic_safe_reverse operator--(int) { base_iterator::operator++(0); return *this; }
+    inline basic_safe_reverse& operator++()
+    {
+	base_iterator::operator--();
+	return *this;
+    }
+    inline basic_safe_reverse operator++(int)
+    {
+	base_iterator::operator--(0);
+	return *this;
+    }
+    inline basic_safe_reverse& operator--()
+    {
+	base_iterator::operator++();
+	return *this;
+    }
+    inline basic_safe_reverse operator--(int)
+    {
+	base_iterator::operator++(0);
+	return *this;
+    }
     using base_iterator::is_valid;
     using base_iterator::is_first;
     using base_iterator::is_last;
