@@ -960,3 +960,67 @@ TEST(emplacing_list_test, multi_consecutive_erase_middle)
     ++iter1b;
     EXPECT_EQ(list1.crend(), iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
 }
+
+TEST(emplacing_list_test, forward_iterate_erased)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_back("aaa");
+    list1.emplace_back("bbb");
+    list1.emplace_back("ccc");
+    list1.emplace_back("ddd");
+    list1.emplace_back("eee");
+    auto iter1 = list1.begin();
+    auto iter2 = list1.begin();
+    ++iter1;
+    list1.erase(iter1);
+    ++iter2;
+    EXPECT_EQ(std::string("bbb"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    ++iter1;
+    EXPECT_EQ(std::string("ccc"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    EXPECT_EQ(std::string("ccc"), *iter2) << "Erase in the middle of a non-empty list produced invalid links";
+    ++iter1;
+    list1.erase(iter1);
+    ++iter2;
+    EXPECT_EQ(std::string("ddd"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    ++iter1;
+    EXPECT_EQ(std::string("eee"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    EXPECT_EQ(std::string("eee"), *iter2) << "Erase in the middle of a non-empty list produced invalid links";
+}
+
+TEST(emplacing_list_test, reverse_iterate_erased)
+{
+    typedef tco::emplacing_list<std::string, tme::pool> string_list;
+    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    string_list list1(allocator1);
+    list1.emplace_back("aaa");
+    list1.emplace_back("bbb");
+    list1.emplace_back("ccc");
+    list1.emplace_back("ddd");
+    list1.emplace_back("eee");
+    auto iter1 = list1.begin();
+    auto iter2 = list1.begin();
+    ++iter1;
+    ++iter1;
+    ++iter1;
+    ++iter1;
+    ++iter2;
+    ++iter2;
+    ++iter2;
+    ++iter2;
+    --iter1;
+    list1.erase(iter1);
+    --iter2;
+    EXPECT_EQ(std::string("ddd"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    --iter1;
+    EXPECT_EQ(std::string("ccc"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    EXPECT_EQ(std::string("ccc"), *iter2) << "Erase in the middle of a non-empty list produced invalid links";
+    --iter1;
+    list1.erase(iter1);
+    --iter2;
+    EXPECT_EQ(std::string("bbb"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    --iter1;
+    EXPECT_EQ(std::string("aaa"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
+    EXPECT_EQ(std::string("aaa"), *iter2) << "Erase in the middle of a non-empty list produced invalid links";
+}
