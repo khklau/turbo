@@ -16,4 +16,13 @@ TEST(emplacing_skiplist_test, empty_list)
     typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
     tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map list1(allocator1);
+    EXPECT_EQ(list1.end(), list1.begin()) << "In an empty skiplist begin and end iterators are not equal";
+}
+
+TEST(emplacing_skiplist_test, invalid_search)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map list1(allocator1);
+    EXPECT_EQ(list1.end(), list1.search(99U)) << "Search for non-existant key did not return empty iterator";
 }
