@@ -53,6 +53,13 @@ basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operat
 }
 
 template <class value_t, class node_t>
+basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator=(const std::shared_ptr<node_t>& other)
+{
+    pointer_ = other;
+    return *this;
+}
+
+template <class value_t, class node_t>
 bool basic_safe_forward<value_t, node_t>::operator==(const basic_safe_forward& other) const
 {
     return pointer_ == other.pointer_;

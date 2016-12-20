@@ -19,6 +19,8 @@ template <class value_t, class node_t>
 class basic_safe_forward : public std::bidirectional_iterator_tag
 {
 public:
+    typedef value_t value_type;
+    typedef node_t node_type;
     basic_safe_forward();
     basic_safe_forward(const std::shared_ptr<node_t>& pointer);
     basic_safe_forward(const basic_safe_forward& other);
@@ -27,6 +29,7 @@ public:
     basic_safe_forward& operator=(const basic_safe_forward& other);
     template <class other_value_t>
     basic_safe_forward& operator=(const basic_safe_forward<other_value_t, node_t>& other);
+    basic_safe_forward& operator=(const std::shared_ptr<node_t>& other);
     ~basic_safe_forward() = default;
     bool operator==(const basic_safe_forward& other) const;
     inline bool operator!=(const basic_safe_forward& other) const { return !(*this == other); }
@@ -72,6 +75,10 @@ public:
     basic_safe_reverse& operator=(const basic_safe_reverse<other_value_t, node_t>& other)
     {
 	return static_cast<const base_iterator&>(*this) = static_cast<const typename basic_safe_reverse<other_value_t, node_t>::base_iterator&>(other);
+    }
+    basic_safe_reverse& operator=(const std::shared_ptr<node_t>& other)
+    {
+	return static_cast<const base_iterator&>(*this) = other;
     }
     ~basic_safe_reverse() = default;
     inline bool operator==(const basic_safe_reverse& other) const
