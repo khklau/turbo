@@ -1,6 +1,7 @@
 #ifndef TURBO_CONTAINER_EMPLACING_SKIPLIST_HPP
 #define TURBO_CONTAINER_EMPLACING_SKIPLIST_HPP
 
+#include <cstdint>
 #include <array>
 #include <functional>
 #include <iterator>
@@ -27,8 +28,13 @@ public:
     typedef allocator_t typed_allocator_type;
     typedef typename ground::const_iterator const_iterator;
     typedef typename ground::iterator iterator;
-    static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(base), sizeof(floor) };
-    static constexpr std::array<std::size_t, 2U> node_alignments { alignof(base), alignof(floor) };
+    enum class emplace_result : std::uint8_t
+    {
+	success,
+	duplicate
+    };
+    static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename ground::iterator::node_type), sizeof(typename level::iterator::node_type) };
+    static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename ground::iterator::node_type), alignof(typename level::iterator::node_type) };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
     inline iterator begin()
     {
@@ -62,24 +68,30 @@ public:
     {
 	return ground_.crend();
     }
-    iterator search(const key_type& key);
+    iterator find(const key_type& key);
+    template <class key_arg_t, class... value_args_t>
+    std::tuple<iterator, bool> emplace(const key_arg_t& key_arg, value_args_t&&... value_args);
 private:
     typedef std::tuple<typename ground::iterator, typename ground::iterator> ground_region;
     typedef std::tuple<typename level::iterator, typename level::iterator> level_region;
     struct base
     {
+	base(const key_t& k, const value_t& v);
 	key_t key;
 	value_t value;
     };
     struct floor
     {
+	floor(const key_t& k, const std::shared_ptr<typename ground::iterator::node_type>& b, std::shared_ptr<typename level::iterator::node_type>& d);
 	key_t key;
-	std::weak_ptr<typename level::iterator::node_type> down;
 	std::weak_ptr<typename ground::iterator::node_type> bottom;
+	std::weak_ptr<typename level::iterator::node_type> down;
     };
+    ground_region search(const key_type& key);
     ground_region search_ground(const key_type& key, const typename ground::iterator& iter);
     level_region search_level(const key_type& key, const typename level::iterator& iter);
     level_region search_tower(const key_type& key, std::size_t target_level);
+    std::size_t chose_height() const;
     typed_allocator_type& allocator_;
     ground ground_;
     tower tower_;
