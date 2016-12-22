@@ -1,8 +1,6 @@
 #ifndef TURBO_CONTAINER_EMPLACING_SKIPLIST_HPP
 #define TURBO_CONTAINER_EMPLACING_SKIPLIST_HPP
 
-#include <cstdint>
-#include <array>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -28,11 +26,8 @@ public:
     typedef allocator_t typed_allocator_type;
     typedef typename ground::const_iterator const_iterator;
     typedef typename ground::iterator iterator;
-    enum class emplace_result : std::uint8_t
-    {
-	success,
-	duplicate
-    };
+    typedef typename ground::const_reverse_iterator const_reverse_iterator;
+    typedef typename ground::reverse_iterator reverse_iterator;
     static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename ground::iterator::node_type), sizeof(typename level::iterator::node_type) };
     static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename ground::iterator::node_type), alignof(typename level::iterator::node_type) };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
@@ -44,27 +39,27 @@ public:
     {
 	return ground_.end();
     }
-    inline iterator cbegin()
+    inline const_iterator cbegin()
     {
 	return ground_.cbegin();
     }
-    inline iterator cend()
+    inline const_iterator cend()
     {
 	return ground_.cend();
     }
-    inline iterator rbegin()
+    inline reverse_iterator rbegin()
     {
 	return ground_.rbegin();
     }
-    inline iterator rend()
+    inline reverse_iterator rend()
     {
 	return ground_.rend();
     }
-    inline iterator crbegin()
+    inline const_reverse_iterator crbegin()
     {
 	return ground_.crbegin();
     }
-    inline iterator crend()
+    inline const_reverse_iterator crend()
     {
 	return ground_.crend();
     }
