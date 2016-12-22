@@ -37,16 +37,17 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
 	const key_arg_t& key_arg,
 	value_args_t&&... value_args)
 {
-    iterator nearest;
-    std::tie(nearest, std::ignore) = search(key_arg);
+    iterator nearest_base;
+    iterator next_base;
+    std::tie(nearest_base, next_base) = search(key_arg);
     key_t key(key_arg);
-    if (nearest != ground_.end() && compare_func()(nearest->key, key) && compare_func()(key, nearest->key))
+    if (nearest_base != ground_.end() && compare_func()(nearest_base->key, key) && compare_func()(key, nearest_base->key))
     {
-	return std::make_tuple(nearest, false);
+	return std::make_tuple(nearest_base, false);
     }
     else
     {
-	iterator target = ground_.emplace(nearest, key_arg, std::forward<value_args_t>(value_args)...);
+	iterator target = ground_.emplace(next_base, key_arg, std::forward<value_args_t>(value_args)...);
 	std::size_t chosen_height = chose_height();
 	const typename level::iterator empty;
 	if (tower_.begin() == tower_.end())
@@ -54,33 +55,34 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
 	    tower_.emplace_back(allocator_);
 	}
 	typename tower::iterator tower_iter = tower_.begin();
-	typename level::iterator level_iter;
+	typename level::iterator current_floor;
+	typename level::iterator next_floor;
 	std::shared_ptr<typename ground::iterator::node_type> bottom_ptr(target.strong_share());
 	std::shared_ptr<typename level::iterator::node_type> down_ptr;
 	// update the tower
-	for (std::size_t current_floor = 0U; current_floor <= chosen_height && tower_iter != tower_.end(); ++current_floor, ++tower_iter)
+	for (std::size_t level_counter = 0U; level_counter <= chosen_height && tower_iter != tower_.end(); ++level_counter, ++tower_iter)
 	{
 	    if (tower_iter->cbegin() == tower_iter->cend())
 	    {
 		// level is empty
 		tower_iter->emplace_front(key, bottom_ptr, down_ptr);
-		level_iter = tower_iter->begin();
+		current_floor = tower_iter->begin();
 	    }
 	    else
 	    {
-		level_iter = tower_iter->begin();
-		std::tie(level_iter, std::ignore) = search_level(key, level_iter);
-		if (level_iter != empty)
+		current_floor = tower_iter->begin();
+		std::tie(current_floor, next_floor) = search_level(key, current_floor);
+		if (current_floor != empty)
 		{
-		    if (!(compare_func()(level_iter->key, key) && compare_func()(key, level_iter->key)))
+		    if (!(compare_func()(current_floor->key, key) && compare_func()(key, current_floor->key)))
 		    {
-			level_iter = tower_iter->emplace(level_iter, key, bottom_ptr, down_ptr);
+			current_floor = tower_iter->emplace(next_floor, key, bottom_ptr, down_ptr);
 		    }
 		    // else the floor for this key already exists on this level so nothing to do
 		}
 	    }
-	    down_ptr = level_iter.strong_share();
-	    if (tower_iter.is_last() && 0U < (chosen_height - current_floor))
+	    down_ptr = current_floor.strong_share();
+	    if (tower_iter.is_last() && 0U < (chosen_height - level_counter))
 	    {
 		// need to grow the tower
 		tower_.emplace_back(allocator_);
