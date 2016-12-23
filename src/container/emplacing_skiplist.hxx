@@ -37,17 +37,17 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
 	const key_arg_t& key_arg,
 	value_args_t&&... value_args)
 {
-    iterator nearest_base;
-    iterator next_base;
-    std::tie(nearest_base, next_base) = search(key_arg);
+    iterator nearest_record;
+    iterator next_record;
+    std::tie(nearest_record, next_record) = search(key_arg);
     key_t key(key_arg);
-    if (nearest_base != ground_.end() && compare_func()(nearest_base->key, key) && compare_func()(key, nearest_base->key))
+    if (nearest_record != ground_.end() && compare_func()(nearest_record->key, key) && compare_func()(key, nearest_record->key))
     {
-	return std::make_tuple(nearest_base, false);
+	return std::make_tuple(nearest_record, false);
     }
     else
     {
-	iterator target = ground_.emplace(next_base, key_arg, std::forward<value_args_t>(value_args)...);
+	iterator target = ground_.emplace(next_record, key_arg, std::forward<value_args_t>(value_args)...);
 	std::size_t chosen_height = chose_height();
 	const typename level::iterator empty;
 	if (tower_.begin() == tower_.end())
@@ -99,10 +99,10 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::ground_regi
     const typename level::iterator empty;
     std::tie(nearest_floor, std::ignore) = search_tower(key, 0U);
     // TODO: in concurrent skiplist bottom might be expired
-    iterator nearest_base((nearest_floor != empty)
+    iterator nearest_record((nearest_floor != empty)
 	    ? nearest_floor->bottom.lock()
 	    : ground_.begin());
-    return search_ground(key, nearest_base);
+    return search_ground(key, nearest_record);
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
@@ -195,7 +195,7 @@ std::size_t emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::chose_he
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
-emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::base::base(const key_t& k, const value_t& v)
+emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::record::record(const key_t& k, const value_t& v)
     :
 	key(k),
 	value(v)

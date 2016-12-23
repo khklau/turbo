@@ -13,10 +13,11 @@ namespace container {
 template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator, class compare_f = std::less_equal<key_t>>
 class emplacing_skiplist
 {
+public:
+    struct record;
 private:
-    struct base;
     struct floor;
-    typedef emplacing_list<base, allocator_t> ground;
+    typedef emplacing_list<record, allocator_t> ground;
     typedef emplacing_list<floor, allocator_t> level;
     typedef emplacing_list<level, allocator_t> tower;
 public:
@@ -28,6 +29,12 @@ public:
     typedef typename ground::iterator iterator;
     typedef typename ground::const_reverse_iterator const_reverse_iterator;
     typedef typename ground::reverse_iterator reverse_iterator;
+    struct record
+    {
+	record(const key_t& k, const value_t& v);
+	key_t key;
+	value_t value;
+    };
     static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename ground::iterator::node_type), sizeof(typename level::iterator::node_type) };
     static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename ground::iterator::node_type), alignof(typename level::iterator::node_type) };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
@@ -69,12 +76,6 @@ public:
 private:
     typedef std::tuple<typename ground::iterator, typename ground::iterator> ground_region;
     typedef std::tuple<typename level::iterator, typename level::iterator> level_region;
-    struct base
-    {
-	base(const key_t& k, const value_t& v);
-	key_t key;
-	value_t value;
-    };
     struct floor
     {
 	floor(const key_t& k, const std::shared_ptr<typename ground::iterator::node_type>& b, std::shared_ptr<typename level::iterator::node_type>& d);
