@@ -12,6 +12,7 @@ template <class key_t, class value_t, class allocator_t, class compare_f>
 emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator)
     :
 	allocator_(allocator),
+	size_(0U),
 	store_(allocator_),
 	tower_(allocator_)
 { }
@@ -48,6 +49,7 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
     else
     {
 	iterator target = store_.emplace(next_record, key_arg, std::forward<value_args_t>(value_args)...);
+	++size_;
 	std::size_t chosen_height = chose_height();
 	const typename floor::iterator empty;
 	if (tower_.begin() == tower_.end())
