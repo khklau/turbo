@@ -16,80 +16,80 @@ class emplacing_skiplist
 public:
     struct record;
 private:
-    struct floor;
-    typedef emplacing_list<record, allocator_t> ground;
-    typedef emplacing_list<floor, allocator_t> level;
-    typedef emplacing_list<level, allocator_t> tower;
+    struct room;
+    typedef emplacing_list<record, allocator_t> store;
+    typedef emplacing_list<room, allocator_t> floor;
+    typedef emplacing_list<floor, allocator_t> tower;
 public:
     typedef key_t key_type;
     typedef value_t value_type;
     typedef compare_f compare_func;
     typedef allocator_t typed_allocator_type;
-    typedef typename ground::const_iterator const_iterator;
-    typedef typename ground::iterator iterator;
-    typedef typename ground::const_reverse_iterator const_reverse_iterator;
-    typedef typename ground::reverse_iterator reverse_iterator;
+    typedef typename store::const_iterator const_iterator;
+    typedef typename store::iterator iterator;
+    typedef typename store::const_reverse_iterator const_reverse_iterator;
+    typedef typename store::reverse_iterator reverse_iterator;
     struct record
     {
 	record(const key_t& k, const value_t& v);
 	key_t key;
 	value_t value;
     };
-    static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename ground::iterator::node_type), sizeof(typename level::iterator::node_type) };
-    static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename ground::iterator::node_type), alignof(typename level::iterator::node_type) };
+    static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename store::iterator::node_type), sizeof(typename floor::iterator::node_type) };
+    static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename store::iterator::node_type), alignof(typename floor::iterator::node_type) };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
     inline iterator begin()
     {
-	return ground_.begin();
+	return store_.begin();
     }
     inline iterator end()
     {
-	return ground_.end();
+	return store_.end();
     }
     inline const_iterator cbegin()
     {
-	return ground_.cbegin();
+	return store_.cbegin();
     }
     inline const_iterator cend()
     {
-	return ground_.cend();
+	return store_.cend();
     }
     inline reverse_iterator rbegin()
     {
-	return ground_.rbegin();
+	return store_.rbegin();
     }
     inline reverse_iterator rend()
     {
-	return ground_.rend();
+	return store_.rend();
     }
     inline const_reverse_iterator crbegin()
     {
-	return ground_.crbegin();
+	return store_.crbegin();
     }
     inline const_reverse_iterator crend()
     {
-	return ground_.crend();
+	return store_.crend();
     }
     iterator find(const key_type& key);
     template <class key_arg_t, class... value_args_t>
     std::tuple<iterator, bool> emplace(const key_arg_t& key_arg, value_args_t&&... value_args);
 private:
-    typedef std::tuple<typename ground::iterator, typename ground::iterator> ground_region;
-    typedef std::tuple<typename level::iterator, typename level::iterator> level_region;
-    struct floor
+    typedef std::tuple<typename store::iterator, typename store::iterator> store_region;
+    typedef std::tuple<typename floor::iterator, typename floor::iterator> floor_region;
+    struct room
     {
-	floor(const key_t& k, const std::shared_ptr<typename ground::iterator::node_type>& b, std::shared_ptr<typename level::iterator::node_type>& d);
+	room(const key_t& k, const std::shared_ptr<typename store::iterator::node_type>& b, std::shared_ptr<typename floor::iterator::node_type>& d);
 	key_t key;
-	std::weak_ptr<typename ground::iterator::node_type> bottom;
-	std::weak_ptr<typename level::iterator::node_type> down;
+	std::weak_ptr<typename store::iterator::node_type> bottom;
+	std::weak_ptr<typename floor::iterator::node_type> down;
     };
-    ground_region search(const key_type& key);
-    ground_region search_ground(const key_type& key, const typename ground::iterator& iter);
-    level_region search_level(const key_type& key, const typename level::iterator& iter);
-    level_region search_tower(const key_type& key, std::size_t target_level);
+    store_region search(const key_type& key);
+    store_region search_store(const key_type& key, const typename store::iterator& iter);
+    floor_region search_floor(const key_type& key, const typename floor::iterator& iter);
+    floor_region search_tower(const key_type& key, std::size_t target_floor);
     std::size_t chose_height() const;
     typed_allocator_type& allocator_;
-    ground ground_;
+    store store_;
     tower tower_;
 };
 
