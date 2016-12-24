@@ -38,6 +38,7 @@ public:
     static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename store::iterator::node_type), sizeof(typename floor::iterator::node_type) };
     static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename store::iterator::node_type), alignof(typename floor::iterator::node_type) };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
+    emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base);
     inline std::size_t size() const
     {
 	return size_;
@@ -93,6 +94,7 @@ private:
     floor_region search_tower(const key_type& key, std::size_t target_floor);
     std::size_t chose_height() const;
     typed_allocator_type& allocator_;
+    std::size_t height_log_base_;
     std::size_t size_;
     store store_;
     tower tower_;

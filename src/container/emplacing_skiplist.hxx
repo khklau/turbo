@@ -2,6 +2,8 @@
 #define TURBO_CONTAINER_EMPLACING_SKIPLIST_HXX
 
 #include <turbo/container/emplacing_skiplist.hpp>
+#include <cmath>
+#include <random>
 #include <turbo/container/emplacing_list.hxx>
 #include <turbo/toolset/extension.hpp>
 
@@ -11,7 +13,14 @@ namespace container {
 template <class key_t, class value_t, class allocator_t, class compare_f>
 emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator)
     :
+	emplacing_skiplist(allocator, 2U)
+{ }
+
+template <class key_t, class value_t, class allocator_t, class compare_f>
+emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base)
+    :
 	allocator_(allocator),
+	height_log_base_(height_log_base),
 	size_(0U),
 	store_(allocator_),
 	tower_(allocator_)
@@ -193,7 +202,11 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 template <class key_t, class value_t, class allocator_t, class compare_f>
 std::size_t emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::chose_height() const
 {
-    return 1U;
+    std::size_t ideal_height = static_cast<std::size_t>(std::ceil(
+	    std::log(static_cast<double>(size_) /
+	    std::log(static_cast<double>(height_log_base_)))));
+    std::random_device device;
+    return device() % ideal_height;
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
