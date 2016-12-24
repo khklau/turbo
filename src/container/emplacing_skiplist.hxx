@@ -21,7 +21,6 @@ emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(t
     :
 	allocator_(allocator),
 	height_log_base_(height_log_base),
-	size_(0U),
 	store_(allocator_),
 	tower_(allocator_)
 { }
@@ -58,7 +57,6 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
     else
     {
 	iterator target = store_.emplace(next_record, key_arg, std::forward<value_args_t>(value_args)...);
-	++size_;
 	std::size_t chosen_height = chose_height();
 	const typename floor::iterator empty;
 	if (tower_.begin() == tower_.end())
@@ -203,7 +201,7 @@ template <class key_t, class value_t, class allocator_t, class compare_f>
 std::size_t emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::chose_height() const
 {
     std::size_t ideal_height = static_cast<std::size_t>(std::ceil(
-	    std::log(static_cast<double>(size_) /
+	    std::log(static_cast<double>(size()) /
 	    std::log(static_cast<double>(height_log_base_)))));
     std::random_device device;
     return device() % ideal_height;

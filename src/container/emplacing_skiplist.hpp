@@ -41,7 +41,7 @@ public:
     emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base);
     inline std::size_t size() const
     {
-	return size_;
+	return store_.size();
     }
     inline iterator begin()
     {
@@ -95,7 +95,6 @@ private:
     std::size_t chose_height() const;
     typed_allocator_type& allocator_;
     std::size_t height_log_base_;
-    std::size_t size_;
     store store_;
     tower tower_;
 };
