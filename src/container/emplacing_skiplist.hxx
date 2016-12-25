@@ -102,7 +102,8 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
-typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::store_region emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::search(const key_type& key)
+typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::store_region emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::search(
+	const key_type& key)
 {
     typename floor::iterator nearest_room;
     const typename floor::iterator empty;

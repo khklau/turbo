@@ -35,13 +35,25 @@ public:
 	key_t key;
 	value_t value;
     };
-    static constexpr std::array<std::size_t, 2U> node_sizes { sizeof(typename store::iterator::node_type), sizeof(typename floor::iterator::node_type) };
-    static constexpr std::array<std::size_t, 2U> node_alignments { alignof(typename store::iterator::node_type), alignof(typename floor::iterator::node_type) };
+    static constexpr std::array<std::size_t, 2U> node_sizes
+    {
+	sizeof(typename store::iterator::node_type),
+	sizeof(typename floor::iterator::node_type)
+    };
+    static constexpr std::array<std::size_t, 2U> node_alignments
+    {
+	alignof(typename store::iterator::node_type),
+	alignof(typename floor::iterator::node_type)
+    };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
     emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base);
     inline std::size_t size() const
     {
 	return store_.size();
+    }
+    inline std::size_t height() const
+    {
+	return tower_.size();
     }
     inline iterator begin()
     {
