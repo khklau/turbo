@@ -20,6 +20,10 @@ class basic_safe_forward : public std::bidirectional_iterator_tag
 {
 public:
     typedef value_t value_type;
+    typedef value_t* pointer;
+    typedef value_t& reference;
+    typedef std::ptrdiff_t difference_type;
+    typedef std::bidirectional_iterator_tag iterator_category;
     typedef node_t node_type;
     basic_safe_forward();
     basic_safe_forward(const std::shared_ptr<node_t>& pointer);
