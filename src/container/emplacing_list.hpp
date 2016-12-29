@@ -116,8 +116,14 @@ public:
 	return *this;
     }
     using base_iterator::is_valid;
-    using base_iterator::is_first;
-    using base_iterator::is_last;
+    inline bool is_first() const
+    {
+	return base_iterator::is_last();
+    }
+    inline bool is_last() const
+    {
+	return base_iterator::is_first();
+    }
 };
 
 } // namespace emplacing_list_iterator
