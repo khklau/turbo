@@ -194,9 +194,9 @@ public:
 	return const_reverse_iterator();
     }
     template <class... args_t>
-    void emplace_front(args_t&&... args);
+    iterator emplace_front(args_t&&... args);
     template <class... args_t>
-    void emplace_back(args_t&&... args);
+    iterator emplace_back(args_t&&... args);
     template <class... args_t>
     iterator emplace(const_iterator new_next, args_t&&... args);
     void pop_front();

@@ -1,6 +1,8 @@
 #include <turbo/container/emplacing_list.hpp>
 #include <turbo/container/emplacing_list.hxx>
 #include <cstdint>
+#include <algorithm>
+#include <random>
 #include <string>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
@@ -26,11 +28,11 @@ TEST(emplacing_list_test, emplace_front_basic)
     typedef tco::emplacing_list<std::string, tme::pool> string_list;
     tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
-    list1.emplace_front("foobar");
+    EXPECT_EQ(std::string("foobar"), *(list1.emplace_front("foobar"))) << "Returned iterator does not point to the emplaced value";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_front failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace_front failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
-    list1.emplace_front("blah");
+    EXPECT_EQ(std::string("blah"), *(list1.emplace_front("blah"))) << "Returned iterator does not point to the emplaced value";
     EXPECT_EQ(std::string("blah"), *(list1.begin())) << "When list is not empty emplace_front failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is not empty emplace_front failed";
     EXPECT_EQ(2U, list1.size()) << "Size of list after emplacing to a list of 1 element is not 2";
@@ -41,11 +43,11 @@ TEST(emplacing_list_test, emplace_back_basic)
     typedef tco::emplacing_list<std::string, tme::pool> string_list;
     tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
-    list1.emplace_back("foobar");
+    EXPECT_EQ(std::string("foobar"), *(list1.emplace_back("foobar"))) << "Returned iterator does not point to the emplaced value";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_back failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace_back failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
-    list1.emplace_back("blah");
+    EXPECT_EQ(std::string("blah"), *(list1.emplace_back("blah"))) << "Returned iterator does not point to the emplaced value";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is not empty emplace_back failed";
     EXPECT_EQ(std::string("blah"), *(list1.rbegin())) << "When list is not empty emplace_back failed";
     EXPECT_EQ(2U, list1.size()) << "Size of list after emplacing to a list of 1 element is not 2";
@@ -1023,4 +1025,21 @@ TEST(emplacing_list_test, reverse_iterate_erased)
     --iter1;
     EXPECT_EQ(std::string("aaa"), *iter1) << "Erase in the middle of a non-empty list produced invalid links";
     EXPECT_EQ(std::string("aaa"), *iter2) << "Erase in the middle of a non-empty list produced invalid links";
+}
+
+TEST(emplacing_list_test, emplace_many)
+{
+    typedef tco::emplacing_list<std::uint32_t, tme::pool> uint_list;
+    tme::pool allocator1(8U, { {uint_list::allocation_size(), std::numeric_limits<std::uint16_t>::max()} });
+    uint_list list1(allocator1);
+    list1.emplace_front(0U);
+    list1.emplace_back(0U);
+    auto iter = list1.begin();
+    ++iter;
+    std::random_device device;
+    for (std::uint32_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	std::uint32_t value = device() >> 16U;
+	list1.emplace(iter, value);
+    }
 }

@@ -181,7 +181,7 @@ emplacing_list<value_t, typed_allocator_t>::~emplacing_list()
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
-void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
+typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
 {
     std::shared_ptr<node> old_front = front_;
     std::shared_ptr<node> new_front = create_node(std::forward<args_t>(args)...);
@@ -199,11 +199,12 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_front(args_t&&... args)
     {
 	back_ = new_front;
     }
+    return new_front;
 }
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
-void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
+typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
 {
     std::weak_ptr<node> old_back = back_;
     std::shared_ptr<node> new_back = create_node(std::forward<args_t>(args)...);
@@ -221,6 +222,7 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
     {
 	front_ = new_back;
     }
+    return new_back;
 }
 
 template <class value_t, class typed_allocator_t>
