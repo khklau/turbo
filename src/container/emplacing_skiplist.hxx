@@ -3,6 +3,7 @@
 
 #include <turbo/container/emplacing_skiplist.hpp>
 #include <cmath>
+#include <chrono>
 #include <random>
 #include <turbo/container/emplacing_list.hxx>
 #include <turbo/toolset/extension.hpp>
@@ -66,10 +67,10 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
 	typename tower::iterator tower_iter = tower_.begin();
 	typename floor::iterator current_room;
 	typename floor::iterator next_room;
-	std::shared_ptr<typename store::iterator::node_type> bottom_ptr(target.strong_share());
-	std::shared_ptr<typename floor::iterator::node_type> down_ptr;
+	std::weak_ptr<typename store::iterator::node_type> bottom_ptr(target.share());
+	std::weak_ptr<typename floor::iterator::node_type> down_ptr;
 	// update the tower
-	for (std::size_t floor_counter = 0U; floor_counter <= chosen_height && tower_iter != tower_.end(); ++floor_counter, ++tower_iter)
+	for (std::size_t floor_counter = 1U; floor_counter <= chosen_height && tower_iter != tower_.end(); ++floor_counter, ++tower_iter)
 	{
 	    if (tower_iter->cbegin() == tower_iter->cend())
 	    {
@@ -90,7 +91,7 @@ std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::
 		    // else the room for this key already exists on this floor so nothing to do
 		}
 	    }
-	    down_ptr = current_room.strong_share();
+	    down_ptr = current_room.share();
 	    if (tower_iter.is_last() && 0U < (chosen_height - floor_counter))
 	    {
 		// need to grow the tower
@@ -201,11 +202,17 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 template <class key_t, class value_t, class allocator_t, class compare_f>
 std::size_t emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::chose_height() const
 {
+    if (size() <= 2)
+    {
+	return 0U;
+    }
     std::size_t ideal_height = static_cast<std::size_t>(std::ceil(
 	    std::log(static_cast<double>(size()) /
 	    std::log(static_cast<double>(height_log_base_)))));
-    std::random_device device;
-    return device() % ideal_height;
+    std::uniform_int_distribution<std::size_t> device(0U, ideal_height + 1U);
+    auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator(seed);
+    return device(generator);
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
@@ -218,8 +225,8 @@ emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::record::record(const
 template <class key_t, class value_t, class allocator_t, class compare_f>
 emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::room::room(
 	const key_t& k,
-	const std::shared_ptr<typename store::iterator::node_type>& b,
-	std::shared_ptr<typename floor::iterator::node_type>& d)
+	const std::weak_ptr<typename store::iterator::node_type>& b,
+	const std::weak_ptr<typename floor::iterator::node_type>& d)
     :
 	key(k),
 	bottom(b),

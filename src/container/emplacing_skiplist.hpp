@@ -35,15 +35,17 @@ public:
 	key_t key;
 	value_t value;
     };
-    static constexpr std::array<std::size_t, 2U> node_sizes
+    static constexpr std::array<std::size_t, 3U> node_sizes
     {
 	sizeof(typename store::iterator::node_type),
-	sizeof(typename floor::iterator::node_type)
+	sizeof(typename floor::iterator::node_type),
+	sizeof(typename tower::iterator::node_type)
     };
-    static constexpr std::array<std::size_t, 2U> node_alignments
+    static constexpr std::array<std::size_t, 3U> node_alignments
     {
 	alignof(typename store::iterator::node_type),
-	alignof(typename floor::iterator::node_type)
+	alignof(typename floor::iterator::node_type),
+	alignof(typename tower::iterator::node_type)
     };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
     emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base);
@@ -95,7 +97,7 @@ private:
     typedef std::tuple<typename floor::iterator, typename floor::iterator> floor_region;
     struct room
     {
-	room(const key_t& k, const std::shared_ptr<typename store::iterator::node_type>& b, std::shared_ptr<typename floor::iterator::node_type>& d);
+	room(const key_t& k, const std::weak_ptr<typename store::iterator::node_type>& b, const std::weak_ptr<typename floor::iterator::node_type>& d);
 	key_t key;
 	std::weak_ptr<typename store::iterator::node_type> bottom;
 	std::weak_ptr<typename floor::iterator::node_type> down;
