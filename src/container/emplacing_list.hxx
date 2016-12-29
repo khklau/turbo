@@ -12,7 +12,7 @@ namespace emplacing_list_iterator {
 template <class value_t, class node_t>
 basic_safe_forward<value_t, node_t>::basic_safe_forward()
     :
-	pointer_()
+	pointer_(nullptr)
 { }
 
 template <class value_t, class node_t>
@@ -37,7 +37,7 @@ basic_safe_forward<value_t, node_t>::basic_safe_forward(const basic_safe_forward
 template <class value_t, class node_t>
 basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator=(const basic_safe_forward& other)
 {
-    if (TURBO_LIKELY(this != &other))
+    if (this != &other)
     {
 	pointer_ = other.pointer_;
     }
@@ -68,7 +68,7 @@ bool basic_safe_forward<value_t, node_t>::operator==(const basic_safe_forward& o
 template <class value_t, class node_t>
 value_t& basic_safe_forward<value_t, node_t>::operator*()
 {
-    if (TURBO_LIKELY(is_valid()))
+    if (is_valid())
     {
 	return pointer_->value;
     }
@@ -138,7 +138,7 @@ basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operat
 template <class value_t, class node_t>
 basic_safe_forward<value_t, node_t> basic_safe_forward<value_t, node_t>::operator--(int)
 {
-    if (TURBO_LIKELY(is_valid()))
+    if (is_valid())
     {
 	basic_safe_forward<value_t, node_t> tmp = *this;
 	--(*this);
@@ -352,7 +352,7 @@ template <class... args_t>
 std::shared_ptr<typename emplacing_list<value_t, typed_allocator_t>::node> emplacing_list<value_t, typed_allocator_t>::create_node(args_t&&... args)
 {
     node* tmp = allocator_.template allocate<node>();
-    if (TURBO_LIKELY(tmp != nullptr))
+    if (tmp != nullptr)
     {
 	return std::shared_ptr<node>(
 		new (tmp) node(std::forward<args_t>(args)...),
