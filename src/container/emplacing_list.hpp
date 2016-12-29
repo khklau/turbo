@@ -43,8 +43,8 @@ public:
     basic_safe_forward operator++(int);
     basic_safe_forward& operator--();
     basic_safe_forward operator--(int);
-    inline std::shared_ptr<node_t> strong_share() const { return pointer_; }
-    inline std::weak_ptr<node_t> weak_share() const { return pointer_; }
+    inline const std::shared_ptr<node_t>& ptr() const { return pointer_; }
+    inline std::weak_ptr<node_t> share() const { return pointer_; }
     inline bool is_valid() const { return pointer_.use_count() != 0; }
     inline bool is_first() const { return is_valid() && pointer_->is_first(); }
     inline bool is_last() const { return is_valid() && pointer_->is_last(); }
@@ -192,7 +192,7 @@ public:
     template <class... args_t>
     void emplace_back(args_t&&... args);
     template <class... args_t>
-    iterator emplace(const_iterator position, args_t&&... args);
+    iterator emplace(const_iterator new_next, args_t&&... args);
     void pop_front();
     void pop_back();
     iterator erase(const_iterator position);

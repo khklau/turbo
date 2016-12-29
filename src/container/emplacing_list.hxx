@@ -31,7 +31,7 @@ template <class value_t, class node_t>
 template <class other_value_t>
 basic_safe_forward<value_t, node_t>::basic_safe_forward(const basic_safe_forward<other_value_t, node_t>& other)
     :
-	pointer_(other.strong_share())
+	pointer_(other.ptr())
 { }
 
 template <class value_t, class node_t>
@@ -48,7 +48,7 @@ template <class value_t, class node_t>
 template <class other_value_t>
 basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator=(const basic_safe_forward<other_value_t, node_t>& other)
 {
-    pointer_ = other.strong_share();
+    pointer_ = other.ptr();
     return *this;
 }
 
@@ -81,7 +81,7 @@ value_t& basic_safe_forward<value_t, node_t>::operator*()
 template <class value_t, class node_t>
 value_t* basic_safe_forward<value_t, node_t>::operator->()
 {
-    if (TURBO_LIKELY(is_valid()))
+    if (is_valid())
     {
 	return &(pointer_->value);
     }
@@ -94,17 +94,18 @@ value_t* basic_safe_forward<value_t, node_t>::operator->()
 template <class value_t, class node_t>
 basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator++()
 {
-    if (TURBO_LIKELY(is_valid()))
+    if (!is_valid())
     {
-	if (pointer_->alive)
-	{
-	    pointer_ = pointer_->next;
-	}
-	else if (!pointer_->previous.expired())
-	{
-	    std::shared_ptr<node_t> previous_node = pointer_->previous.lock();
-	    pointer_ = previous_node->next;
-	}
+	return *this;
+    }
+    if (pointer_->alive)
+    {
+	pointer_ = pointer_->next;
+    }
+    else if (!pointer_->previous.expired())
+    {
+	std::shared_ptr<node_t> previous_node = pointer_->previous.lock();
+	pointer_ = previous_node->next;
     }
     return *this;
 }
@@ -112,16 +113,9 @@ basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operat
 template <class value_t, class node_t>
 basic_safe_forward<value_t, node_t> basic_safe_forward<value_t, node_t>::operator++(int)
 {
-    if (TURBO_LIKELY(is_valid()))
-    {
-	basic_safe_forward<value_t, node_t> tmp = *this;
-	++(*this);
-	return tmp;
-    }
-    else
-    {
-	return *this;
-    }
+    basic_safe_forward<value_t, node_t> tmp = *this;
+    ++(*this);
+    return tmp;
 }
 
 template <class value_t, class node_t>
@@ -231,10 +225,9 @@ void emplacing_list<value_t, typed_allocator_t>::emplace_back(args_t&&... args)
 
 template <class value_t, class typed_allocator_t>
 template <class... args_t>
-typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator position, args_t&&... args)
+typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::emplace(const_iterator new_next, args_t&&... args)
 {
-    std::shared_ptr<node> new_next = position.strong_share();
-    if (!new_next)
+    if (!new_next.ptr())
     {
 	if (size_ == 0U)
 	{
@@ -249,19 +242,19 @@ typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<val
     }
     else
     {
-	if (new_next->previous.expired())
+	if (new_next.ptr()->previous.expired())
 	{
 	    emplace_front(std::forward<args_t>(args)...);
 	    return front_;
 	}
 	else
 	{
-	    std::shared_ptr<node> new_previous = new_next->previous.lock();
+	    std::shared_ptr<node> new_previous = new_next.ptr()->previous.lock();
 	    std::shared_ptr<node> new_node = create_node(std::forward<args_t>(args)...);
-	    new_node->next = new_next;
+	    new_node->next = new_next.ptr();
 	    new_node->previous = new_previous;
 	    new_previous->next = new_node;
-	    new_next->previous = new_node;
+	    new_next.ptr()->previous = new_node;
 	    ++size_;
 	    return new_node;
 	}
@@ -323,7 +316,7 @@ void emplacing_list<value_t, typed_allocator_t>::pop_back()
 template <class value_t, class typed_allocator_t>
 typename emplacing_list<value_t, typed_allocator_t>::iterator emplacing_list<value_t, typed_allocator_t>::erase(const_iterator position)
 {
-    std::shared_ptr<node> erase_node = position.strong_share();
+    std::shared_ptr<node> erase_node = position.ptr();
     if (size_ == 0U || !erase_node)
     {
 	return end();
