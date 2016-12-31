@@ -1,10 +1,12 @@
 #ifndef TURBO_CONTAINER_EMPLACING_SKIPLIST_HPP
 #define TURBO_CONTAINER_EMPLACING_SKIPLIST_HPP
 
+#include <cstdint>
 #include <functional>
 #include <iterator>
 #include <memory>
 #include <tuple>
+#include <vector>
 #include <turbo/container/emplacing_list.hpp>
 
 namespace turbo {
@@ -31,7 +33,7 @@ public:
     typedef typename store::reverse_iterator reverse_iterator;
     struct record
     {
-	record(const key_t& k, const value_t& v);
+	record(const key_t& a_key, const value_t& a_value);
 	key_t key;
 	value_t value;
     };
@@ -48,7 +50,7 @@ public:
 	alignof(typename tower::iterator::node_type)
     };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
-    emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base);
+    emplacing_skiplist(typed_allocator_type& allocator, std::uint16_t height_log_base);
     inline std::size_t size() const
     {
 	return store_.size();
@@ -95,20 +97,38 @@ public:
 private:
     typedef std::tuple<typename store::iterator, typename store::iterator> store_region;
     typedef std::tuple<typename floor::iterator, typename floor::iterator> floor_region;
+    typedef std::uint32_t floor_id;
     struct room
     {
-	room(const key_t& k, const std::weak_ptr<typename store::iterator::node_type>& b, const std::weak_ptr<typename floor::iterator::node_type>& d);
+	room(
+		const key_t& a_key,
+		const std::weak_ptr<typename store::iterator::node_type>& a_bottom,
+		const std::weak_ptr<typename floor::iterator::node_type>& a_down);
 	key_t key;
 	std::weak_ptr<typename store::iterator::node_type> bottom;
 	std::weak_ptr<typename floor::iterator::node_type> down;
     };
+    struct trace
+    {
+	trace(
+		const floor_id& a_id,
+		const typename tower::reverse_iterator& a_floor,
+		const typename floor::iterator& a_nearest,
+		const typename floor::iterator& a_next);
+	floor_id id;
+	typename tower::reverse_iterator floor;
+	typename floor::iterator nearest;
+	typename floor::iterator next;
+    };
     store_region search(const key_type& key);
     store_region search_store(const key_type& key, const typename store::iterator& iter);
     floor_region search_floor(const key_type& key, const typename floor::iterator& iter);
-    floor_region search_tower(const key_type& key, std::size_t target_floor);
-    std::size_t chose_height() const;
+    floor_region search_tower(const key_type& key, floor_id target_floor);
+    std::vector<trace> trace_tower(const key_type& key);
+    void grow_tower(floor_id new_maximum);
+    std::int64_t chose_height() const;
     typed_allocator_type& allocator_;
-    std::size_t height_log_base_;
+    std::uint16_t height_log_base_;
     store store_;
     tower tower_;
 };

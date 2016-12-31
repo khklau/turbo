@@ -18,7 +18,7 @@ emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(t
 { }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
-emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator, std::size_t height_log_base)
+emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator, std::uint16_t height_log_base)
     :
 	allocator_(allocator),
 	height_log_base_(height_log_base),
@@ -41,61 +41,56 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::iterator em
     }
 }
 
-template <class key_t, class value_t, class allocator_t, class compare_f>
+template <class k, class v, class a, class c>
 template <class key_arg_t, class... value_args_t>
-std::tuple<typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::iterator, bool> emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplace(
+std::tuple<typename emplacing_skiplist<k, v, a, c>::iterator, bool> emplacing_skiplist<k, v, a, c>::emplace(
 	const key_arg_t& key_arg,
 	value_args_t&&... value_args)
 {
-    iterator nearest_record;
-    iterator next_record;
-    std::tie(nearest_record, next_record) = search(key_arg);
-    key_t key(key_arg);
+    const std::int64_t chosen_height = chose_height();
+    if (0 <= chosen_height)
+    {
+	grow_tower(chosen_height);
+    }
+    const key_type key(key_arg);
+    const typename floor::iterator empty;
+    std::vector<trace> tower_trace(trace_tower(key));
+    typename store::iterator nearest_record;
+    typename store::iterator next_record;
+    if (tower_trace.size() == 0U || tower_trace.back().nearest == empty)
+    {
+	// tower is empty or all keys in the tower are greater than the requested key
+	std::tie(nearest_record, next_record) = search_store(key, store_.begin());
+    }
+    else
+    {
+	nearest_record = tower_trace.back().nearest->bottom.lock();
+	std::tie(nearest_record, next_record) = search_store(key, nearest_record);
+    }
     if (nearest_record != store_.end() && compare_func()(nearest_record->key, key) && compare_func()(key, nearest_record->key))
     {
+	// record already exists
 	return std::make_tuple(nearest_record, false);
     }
     else
     {
 	iterator target = store_.emplace(next_record, key_arg, std::forward<value_args_t>(value_args)...);
-	std::size_t chosen_height = chose_height();
-	const typename floor::iterator empty;
-	if (tower_.begin() == tower_.end())
+	if (chosen_height < 0)
 	{
-	    tower_.emplace_back(allocator_);
+	    return std::make_tuple(target, true);
 	}
-	typename tower::iterator tower_iter = tower_.begin();
-	typename floor::iterator current_room;
-	typename floor::iterator next_room;
 	std::weak_ptr<typename store::iterator::node_type> bottom_ptr(target.share());
 	std::weak_ptr<typename floor::iterator::node_type> down_ptr;
-	// update the tower
-	for (std::size_t floor_counter = 1U; floor_counter <= chosen_height && tower_iter != tower_.end(); ++floor_counter, ++tower_iter)
+	for (auto iter = tower_trace.rbegin(); iter != tower_trace.rend() && iter->id <= chosen_height; ++iter)
 	{
-	    if (tower_iter->cbegin() == tower_iter->cend())
+	    if (iter->nearest != empty && compare_func()(iter->nearest->key, key) && compare_func()(key, iter->nearest->key))
 	    {
-		// floor is empty
-		tower_iter->emplace_front(key, bottom_ptr, down_ptr);
-		current_room = tower_iter->begin();
+		// room with requested key already exists
+		down_ptr = iter->nearest.share();
 	    }
 	    else
 	    {
-		current_room = tower_iter->begin();
-		std::tie(current_room, next_room) = search_floor(key, current_room);
-		if (current_room != empty)
-		{
-		    if (!(compare_func()(current_room->key, key) && compare_func()(key, current_room->key)))
-		    {
-			current_room = tower_iter->emplace(next_room, key, bottom_ptr, down_ptr);
-		    }
-		    // else the room for this key already exists on this floor so nothing to do
-		}
-	    }
-	    down_ptr = current_room.share();
-	    if (tower_iter.is_last() && 0U < (chosen_height - floor_counter))
-	    {
-		// need to grow the tower
-		tower_.emplace_back(allocator_);
+		down_ptr = iter->floor->emplace(iter->next, key, bottom_ptr, down_ptr).share();
 	    }
 	}
 	return std::make_tuple(target, true);
@@ -121,12 +116,24 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::store_regio
 	const key_type& key,
 	const typename store::iterator& start)
 {
+    const typename store::iterator empty;
     if (start == store_.end() || !start.is_valid())
     {
 	return std::make_tuple(store_.end(), store_.end());
     }
     typename store::iterator current(start);
-    typename store::iterator next(current++);
+    typename store::iterator next(start);
+    ++next;
+    if (compare_func()(current->key, key) && compare_func()(key, current->key))
+    {
+	// start already points to the room we want
+	return std::make_tuple(current, next);
+    }
+    else if (compare_func()(key, current->key))
+    {
+	// key is less than start
+	return std::make_tuple(empty, current);
+    }
     while (next != store_.end() && next.is_valid() && compare_func()(next->key, key))
     {
 	current = next;
@@ -146,15 +153,21 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 	return std::make_tuple(empty, empty);
     }
     typename floor::iterator current(start);
-    typename floor::iterator next(current++);
+    typename floor::iterator next(start);
+    ++next;
+    if (compare_func()(current->key, key) && compare_func()(key, current->key))
+    {
+	// start already points to the room we want
+	return std::make_tuple(current, next);
+    }
+    else if (compare_func()(key, current->key))
+    {
+	// key is less than start
+	return std::make_tuple(empty, current);
+    }
     while (next != empty && next.is_valid())
     {
-	if (next->bottom.expired() || next->down.expired())
-	{
-	    // TODO: erase the tower
-	    ++next;
-	}
-	else if (compare_func()(next->key, key))
+	if (compare_func()(next->key, key))
 	{
 	    current = next;
 	    ++next;
@@ -170,13 +183,13 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 template <class key_t, class value_t, class allocator_t, class compare_f>
 typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_region emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::search_tower(
 	const key_type& key,
-	std::size_t target_floor)
+	floor_id target_floor)
 {
     if (tower_.cbegin() == tower_.cend())
     {
 	return std::make_tuple(typename floor::iterator(), typename floor::iterator());
     }
-    std::size_t floor_number = tower_.size() - 1U;
+    floor_id floor_number = tower_.size() - 1U;
     typename tower::reverse_iterator tower_iter = tower_.rbegin();
     typename floor::iterator current = tower_iter->begin();
     typename floor::iterator next = tower_iter->end();
@@ -184,7 +197,7 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
     {
 	--floor_number;
 	++tower_iter;
-	std::tie(current, next) = search_floor(key, current);
+	std::tie(current, std::ignore) = search_floor(key, current);
 	// TODO: in concurrent skiplist down might be expired
 	if (current != tower_iter->end())
 	{
@@ -195,42 +208,113 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 	    current = tower_iter->begin();
 	}
     }
-    std::tie(current, next) = search_floor(key, current);
-    return std::make_tuple(current, next);
+    return search_floor(key, current);
+}
+
+template <class k, class v, class a, class c>
+std::vector<typename emplacing_skiplist<k, v, a, c>::trace> emplacing_skiplist<k, v, a, c>::trace_tower(const key_type& key)
+{
+    const typename floor::iterator empty;
+    std::vector<trace> result;
+    typename floor::iterator above = empty;
+    typename floor::iterator current;
+    typename floor::iterator next;
+    floor_id id = tower_.size() - 1U;
+    for (typename tower::reverse_iterator tower_iter = tower_.rbegin(); tower_iter != tower_.rend(); --id, ++tower_iter)
+    {
+	if (above != empty)
+	{
+	    current = above->down.lock();
+	}
+	else
+	{
+	    current = tower_iter->begin();
+	}
+	std::tie(current, next) = search_floor(key, current);
+	result.emplace_back(id, tower_iter, current, next);
+	if (current != tower_iter->end())
+	{
+	    if (compare_func()(current->key, key) && compare_func()(key, current->key))
+	    {
+		// found room matching the key
+		break;
+	    }
+	    else
+	    {
+		above = current;
+	    }
+	}
+	else
+	{
+	    // all rooms on this floor have a key greater than the requested key
+	    above = empty;
+	}
+    }
+    return result;
+}
+
+template <class k, class v, class a, class c>
+void emplacing_skiplist<k, v, a, c>::grow_tower(floor_id new_maximum)
+{
+    if (tower_.cbegin() == tower_.cend())
+    {
+	tower_.emplace_back(allocator_);
+    }
+    typename tower::iterator iter = tower_.begin();
+    for (floor_id floor_counter = 0U; floor_counter < new_maximum; ++iter, ++floor_counter)
+    {
+	if (iter.is_last())
+	{
+	    tower_.emplace_back(allocator_);
+	}
+    }
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
-std::size_t emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::chose_height() const
+std::int64_t emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::chose_height() const
 {
     if (size() <= 2)
     {
-	return 0U;
+	return -1;
     }
-    std::size_t ideal_height = static_cast<std::size_t>(std::ceil(
+    std::int64_t ideal_height = static_cast<std::int64_t>(std::ceil(
 	    std::log(static_cast<double>(size()) /
 	    std::log(static_cast<double>(height_log_base_)))));
-    std::uniform_int_distribution<std::size_t> device(0U, ideal_height + 1U);
+    std::uniform_int_distribution<std::int64_t> device(-1, ideal_height);
     auto seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator(seed);
     return device(generator);
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
-emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::record::record(const key_t& k, const value_t& v)
+emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::record::record(const key_t& a_key, const value_t& a_value)
     :
-	key(k),
-	value(v)
+	key(a_key),
+	value(a_value)
 { }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
 emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::room::room(
-	const key_t& k,
-	const std::weak_ptr<typename store::iterator::node_type>& b,
-	const std::weak_ptr<typename floor::iterator::node_type>& d)
+	const key_t& a_key,
+	const std::weak_ptr<typename store::iterator::node_type>& a_bottom,
+	const std::weak_ptr<typename floor::iterator::node_type>& a_down)
     :
-	key(k),
-	bottom(b),
-	down(d)
+	key(a_key),
+	bottom(a_bottom),
+	down(a_down)
+{ }
+
+template <class key_t, class value_t, class allocator_t, class compare_f>
+emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::trace::trace(
+	const floor_id& a_id,
+	const typename tower::reverse_iterator& a_floor,
+	const typename floor::iterator& a_nearest,
+	const typename floor::iterator& a_next)
+    :
+	id(a_id),
+	floor(a_floor),
+	nearest(a_nearest),
+	next(a_next)
 { }
 
 } // namespace container
