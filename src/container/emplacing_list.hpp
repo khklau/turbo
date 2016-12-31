@@ -28,9 +28,11 @@ public:
     basic_safe_forward();
     basic_safe_forward(const std::shared_ptr<node_t>& pointer);
     basic_safe_forward(const basic_safe_forward& other);
+    basic_safe_forward(basic_safe_forward&& other);
     template <class other_value_t>
     basic_safe_forward(const basic_safe_forward<other_value_t, node_t>& other);
     basic_safe_forward& operator=(const basic_safe_forward& other);
+    basic_safe_forward& operator=(basic_safe_forward&& other);
     template <class other_value_t>
     basic_safe_forward& operator=(const basic_safe_forward<other_value_t, node_t>& other);
     basic_safe_forward& operator=(const std::shared_ptr<node_t>& other);
@@ -66,6 +68,10 @@ public:
 	:
 	    base_iterator(static_cast<const base_iterator&>(other))
     { }
+    inline basic_safe_reverse(basic_safe_reverse&& other)
+	:
+	    base_iterator(std::forward<base_iterator>(other))
+    { }
     template <class other_value_t>
     inline basic_safe_reverse(const basic_safe_reverse<other_value_t, node_t>& other)
 	:
@@ -74,6 +80,11 @@ public:
     basic_safe_reverse& operator=(const basic_safe_reverse& other)
     {
 	return static_cast<const base_iterator&>(*this) = static_cast<const base_iterator&>(other);
+    }
+    basic_safe_reverse& operator=(basic_safe_reverse&& other)
+    {
+	base_iterator::operator=(std::forward<base_iterator>(other));
+	return *this;
     }
     template <class other_value_t>
     basic_safe_reverse& operator=(const basic_safe_reverse<other_value_t, node_t>& other)

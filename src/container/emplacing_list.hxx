@@ -28,6 +28,14 @@ basic_safe_forward<value_t, node_t>::basic_safe_forward(const basic_safe_forward
 { }
 
 template <class value_t, class node_t>
+basic_safe_forward<value_t, node_t>::basic_safe_forward(basic_safe_forward&& other)
+    :
+	pointer_(std::move(other.pointer_))
+{
+    other.pointer_.reset();
+}
+
+template <class value_t, class node_t>
 template <class other_value_t>
 basic_safe_forward<value_t, node_t>::basic_safe_forward(const basic_safe_forward<other_value_t, node_t>& other)
     :
@@ -40,6 +48,17 @@ basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operat
     if (this != &other)
     {
 	pointer_ = other.pointer_;
+    }
+    return *this;
+}
+
+template <class value_t, class node_t>
+basic_safe_forward<value_t, node_t>& basic_safe_forward<value_t, node_t>::operator=(basic_safe_forward&& other)
+{
+    if (this != &other)
+    {
+	pointer_ = std::move(other.pointer_);
+	other.pointer_.reset();
     }
     return *this;
 }
