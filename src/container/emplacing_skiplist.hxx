@@ -101,14 +101,19 @@ template <class key_t, class value_t, class allocator_t, class compare_f>
 typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::store_region emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::search(
 	const key_type& key)
 {
-    typename floor::iterator nearest_room;
     const typename floor::iterator empty;
-    std::tie(nearest_room, std::ignore) = search_tower(key, 0U);
+    std::vector<trace> tower_trace(trace_tower(key));
     // TODO: in concurrent skiplist bottom might be expired
-    iterator nearest_record((nearest_room != empty)
-	    ? nearest_room->bottom.lock()
-	    : store_.begin());
-    return search_store(key, nearest_record);
+    if (tower_trace.size() == 0U || tower_trace.back().nearest == empty)
+    {
+	// tower is empty or all keys in the tower are greater than the requested key
+	return search_store(key, store_.begin());
+    }
+    else
+    {
+	typename store::iterator nearest_record = tower_trace.back().nearest->bottom.lock();
+	return search_store(key, nearest_record);
+    }
 }
 
 template <class key_t, class value_t, class allocator_t, class compare_f>
@@ -178,37 +183,6 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 	}
     }
     return std::make_tuple(current, next);
-}
-
-template <class key_t, class value_t, class allocator_t, class compare_f>
-typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_region emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::search_tower(
-	const key_type& key,
-	floor_id target_floor)
-{
-    if (tower_.cbegin() == tower_.cend())
-    {
-	return std::make_tuple(typename floor::iterator(), typename floor::iterator());
-    }
-    floor_id floor_number = tower_.size() - 1U;
-    typename tower::reverse_iterator tower_iter = tower_.rbegin();
-    typename floor::iterator current = tower_iter->begin();
-    typename floor::iterator next = tower_iter->end();
-    while (target_floor < floor_number && tower_iter != tower_.rend())
-    {
-	--floor_number;
-	++tower_iter;
-	std::tie(current, std::ignore) = search_floor(key, current);
-	// TODO: in concurrent skiplist down might be expired
-	if (current != tower_iter->end())
-	{
-	    current = current->down.lock();
-	}
-	else
-	{
-	    current = tower_iter->begin();
-	}
-    }
-    return search_floor(key, current);
 }
 
 template <class k, class v, class a, class c>

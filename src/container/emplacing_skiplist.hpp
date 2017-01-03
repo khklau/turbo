@@ -127,7 +127,6 @@ private:
     store_region search(const key_type& key);
     store_region search_store(const key_type& key, const typename store::iterator& iter);
     floor_region search_floor(const key_type& key, const typename floor::iterator& iter);
-    floor_region search_tower(const key_type& key, floor_id target_floor);
     std::vector<trace> trace_tower(const key_type& key);
     void grow_tower(floor_id new_maximum);
     std::int64_t chose_height() const;
