@@ -13,6 +13,9 @@ namespace turbo {
 namespace container {
 
 template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator, class compare_f = std::less_equal<key_t>>
+class emplacing_skiplist_tester;
+
+template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator, class compare_f = std::less_equal<key_t>>
 class emplacing_skiplist
 {
 public:
@@ -37,6 +40,7 @@ public:
 	key_t key;
 	value_t value;
     };
+    friend class emplacing_skiplist_tester<key_t, value_t, allocator_t, compare_f>;
     static constexpr std::array<std::size_t, 3U> node_sizes
     {
 	sizeof(typename store::iterator::node_type),
