@@ -24,21 +24,39 @@ public:
     typedef typename skiplist_type::room room;
     typedef typename skiplist_type::floor floor;
     typedef typename skiplist_type::floor_region floor_region;
+    typedef typename skiplist_type::floor_id floor_id;
+    typedef typename skiplist_type::trace trace;
     emplacing_skiplist_tester(skiplist_type& skiplist)
 	:
 	    skiplist_(skiplist)
     { }
-    typename skiplist_type::floor_region search_floor(
+    inline typename skiplist_type::tower& get_tower()
+    {
+	return skiplist_.tower_;
+    }
+    inline typename skiplist_type::store& get_store()
+    {
+	return skiplist_.store_;
+    }
+    inline void grow_tower(typename skiplist_type::floor_id new_maximum)
+    {
+	skiplist_.grow_tower(new_maximum);
+    }
+    inline typename skiplist_type::floor_region search_floor(
 	    const typename skiplist_type::key_type& key,
 	    const typename skiplist_type::floor::iterator& iter)
     {
 	return skiplist_.search_floor(std::forward<decltype(key)>(key), std::forward<decltype(iter)>(iter));
     }
-    typename skiplist_type::store_region search_store(
+    inline typename skiplist_type::store_region search_store(
 	    const typename skiplist_type::key_type& key,
 	    const typename skiplist_type::store::iterator& iter)
     {
 	return skiplist_.search_store(std::forward<decltype(key)>(key), std::forward<decltype(iter)>(iter));
+    }
+    inline std::vector<typename skiplist_type::trace> trace_tower(const typename skiplist_type::key_type& key)
+    {
+	return skiplist_.trace_tower(std::forward<decltype(key)>(key));
     }
 private:
     skiplist_type& skiplist_;
@@ -74,7 +92,8 @@ TEST(emplacing_skiplist_test, search_floor_basic)
 	    });
     uint_map map1(allocator1);
     uint_tester tester1(map1);
-    typename uint_tester::floor floor1(allocator1);
+    tester1.grow_tower(0U);
+    typename uint_tester::floor& floor1 = *(tester1.get_tower().begin());
     typename uint_tester::floor::iterator current1;
     typename uint_tester::floor::iterator next1;
     const typename uint_tester::floor::iterator empty;
@@ -128,7 +147,7 @@ TEST(emplacing_skiplist_test, search_store_basic)
 	    });
     uint_map map1(allocator1);
     uint_tester tester1(map1);
-    typename uint_tester::store store1(allocator1);
+    typename uint_tester::store& store1 = tester1.get_store();
     typename uint_tester::store::iterator current1;
     typename uint_tester::store::iterator next1;
     const typename uint_tester::store::iterator empty;
@@ -165,6 +184,115 @@ TEST(emplacing_skiplist_test, search_store_basic)
     std::tie(current1, next1) = tester1.search_store(4U, store1.begin());
     EXPECT_EQ(record2, current1) << "Search of store for key greater than all records failed";
     EXPECT_EQ(empty, next1) << "Search of store for key greater than all records failed";
+}
+
+TEST(emplacing_skiplist_test, trace_tower_basic)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
+    tme::pool allocator1(
+	    8U,
+	    {
+		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[1], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[2], std::numeric_limits<std::uint8_t>::max()}
+	    });
+    uint_map map1(allocator1);
+    uint_tester tester1(map1);
+    tester1.grow_tower(1U);
+    typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
+    typename uint_tester::floor::iterator room01 = floor0.emplace_back(
+	    1U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room03 = floor0.emplace_back(
+	    3U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room05 = floor0.emplace_back(
+	    5U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room07 = floor0.emplace_back(
+	    7U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room09 = floor0.emplace_back(
+	    9U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
+    typename uint_tester::floor::iterator room13 = floor1.emplace_back(
+	    3U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>(room03.share()));
+    typename uint_tester::floor::iterator room17 = floor1.emplace_back(
+	    7U,
+	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>(room07.share()));
+    const typename uint_tester::floor::iterator empty;
+    std::vector<typename uint_tester::trace> trace0 = tester1.trace_tower(0U);
+    EXPECT_EQ(2U, trace0.size()) << "Trace for key less than all rooms in the tower failed";
+    EXPECT_EQ(empty, trace0[0].nearest) << "Trace for key less than all rooms in the tower failed";
+    EXPECT_EQ(room13, trace0[0].next) << "Trace for key less than all rooms in the tower failed";
+    EXPECT_EQ(empty, trace0[1].nearest) << "Trace for key less than all rooms in the tower failed";
+    EXPECT_EQ(room01, trace0[1].next) << "Trace for key less than all rooms in the tower failed";
+    std::vector<typename uint_tester::trace> trace1 = tester1.trace_tower(1U);
+    EXPECT_EQ(2U, trace1.size()) << "Trace for left most lower floor room failed";
+    EXPECT_EQ(empty, trace1[0].nearest) << "Trace for left most lower floor room failed";
+    EXPECT_EQ(room13, trace1[0].next) << "Trace for left most lower floor room failed";
+    EXPECT_EQ(room01, trace1[1].nearest) << "Trace for left most lower floor room failed";
+    EXPECT_EQ(room03, trace1[1].next) << "Trace for left most lower floor room failed";
+    std::vector<typename uint_tester::trace> trace2 = tester1.trace_tower(2U);
+    EXPECT_EQ(2U, trace2.size()) << "Trace for key between left and centre-left rooms on lower floor failed";
+    EXPECT_EQ(empty, trace2[0].nearest) << "Trace for key between left and centre-left rooms on lower floor failed";
+    EXPECT_EQ(room13, trace2[0].next) << "Trace for key between left and centre-left rooms on lower floor failed";
+    EXPECT_EQ(room01, trace2[1].nearest) << "Trace for key between left and centre-left rooms on lower floor failed";
+    EXPECT_EQ(room03, trace2[1].next) << "Trace for key between left and centre-left rooms on lower floor failed";
+    std::vector<typename uint_tester::trace> trace3 = tester1.trace_tower(3U);
+    EXPECT_EQ(1U, trace3.size()) << "Trace for left room on upper floor failed";
+    EXPECT_EQ(room13, trace3[0].nearest) << "Trace for left room on upper floor failed";
+    EXPECT_EQ(room17, trace3[0].next) << "Trace for left room on upper floor failed";
+    std::vector<typename uint_tester::trace> trace4 = tester1.trace_tower(4U);
+    EXPECT_EQ(2U, trace4.size()) << "Trace for key between centre-left and centre rooms on lower floor failed";
+    EXPECT_EQ(room13, trace4[0].nearest) << "Trace for key between centre-left and centre rooms on lower floor failed";
+    EXPECT_EQ(room17, trace4[0].next) << "Trace for key between centre-left and centre rooms on lower floor failed";
+    EXPECT_EQ(room03, trace4[1].nearest) << "Trace for key between centre-left and centre rooms on lower floor failed";
+    EXPECT_EQ(room05, trace4[1].next) << "Trace for key between centre-left and centre rooms on lower floor failed";
+    std::vector<typename uint_tester::trace> trace5 = tester1.trace_tower(5U);
+    EXPECT_EQ(2U, trace5.size()) << "Trace for centre room on lower floor failed";
+    EXPECT_EQ(room13, trace5[0].nearest) << "Trace for centre room on lower floor failed";
+    EXPECT_EQ(room17, trace5[0].next) << "Trace for centre room on lower floor failed";
+    EXPECT_EQ(room05, trace5[1].nearest) << "Trace for centre room on lower floor failed";
+    EXPECT_EQ(room07, trace5[1].next) << "Trace for centre room on lower floor failed";
+    std::vector<typename uint_tester::trace> trace6 = tester1.trace_tower(6U);
+    EXPECT_EQ(2U, trace6.size()) << "Trace for key between centre and centre-right rooms on lower floor failed";
+    EXPECT_EQ(room13, trace6[0].nearest) << "Trace for key between centre and centre-right rooms on lower floor failed";
+    EXPECT_EQ(room17, trace6[0].next) << "Trace for key between centre and centre-right rooms on lower floor failed";
+    EXPECT_EQ(room05, trace6[1].nearest) << "Trace for key between centre and centre-right rooms on lower floor failed";
+    EXPECT_EQ(room07, trace6[1].next) << "Trace for key between centre and centre-right rooms on lower floor failed";
+    std::vector<typename uint_tester::trace> trace7 = tester1.trace_tower(7U);
+    EXPECT_EQ(1U, trace7.size()) << "Trace for right room on upper floor failed";
+    EXPECT_EQ(room17, trace7[0].nearest) << "Trace for right room on upper floor failed";
+    EXPECT_EQ(empty, trace7[0].next) << "Trace for right room on upper floor failed";
+    std::vector<typename uint_tester::trace> trace8 = tester1.trace_tower(8U);
+    EXPECT_EQ(2U, trace8.size()) << "Trace for key between centre-right and right rooms on lower floor failed";
+    EXPECT_EQ(room17, trace8[0].nearest) << "Trace for key between centre-right and right rooms on lower floor failed";
+    EXPECT_EQ(empty, trace8[0].next) << "Trace for key between centre-right and right rooms on lower floor failed";
+    EXPECT_EQ(room07, trace8[1].nearest) << "Trace for key between centre-right and right rooms on lower floor failed";
+    EXPECT_EQ(room09, trace8[1].next) << "Trace for key between centre-right and right rooms on lower floor failed";
+    std::vector<typename uint_tester::trace> trace9 = tester1.trace_tower(9U);
+    EXPECT_EQ(2U, trace9.size()) << "Trace for right room on lower floor failed";
+    EXPECT_EQ(room17, trace9[0].nearest) << "Trace for right room on lower floor failed";
+    EXPECT_EQ(empty, trace9[0].next) << "Trace for right room on lower floor failed";
+    EXPECT_EQ(room09, trace9[1].nearest) << "Trace for right room on lower floor failed";
+    EXPECT_EQ(empty, trace9[1].next) << "Trace for right room on lower floor failed";
+    std::vector<typename uint_tester::trace> trace10 = tester1.trace_tower(10U);
+    EXPECT_EQ(2U, trace10.size()) << "Trace for key greater than all of the rooms in the tower failed";
+    EXPECT_EQ(room17, trace10[0].nearest) << "Trace for key greater than all of the rooms in the tower failed";
+    EXPECT_EQ(empty, trace10[0].next) << "Trace for key greater than all of the rooms in the tower failed";
+    EXPECT_EQ(room09, trace10[1].nearest) << "Trace for key greater than all of the rooms in the tower failed";
+    EXPECT_EQ(empty, trace10[1].next) << "Trace for key greater than all of the rooms in the tower failed";
 }
 
 TEST(emplacing_skiplist_test, find_invalid)
