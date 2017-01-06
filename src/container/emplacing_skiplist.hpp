@@ -98,6 +98,7 @@ public:
     iterator find(const key_type& key);
     template <class key_arg_t, class... value_args_t>
     std::tuple<iterator, bool> emplace(const key_arg_t& key_arg, value_args_t&&... value_args);
+    iterator erase(const key_type& key);
 private:
     typedef std::tuple<typename store::iterator, typename store::iterator> store_region;
     typedef std::tuple<typename floor::iterator, typename floor::iterator> floor_region;
@@ -124,10 +125,19 @@ private:
 	typename floor::iterator nearest;
 	typename floor::iterator next;
     };
+    enum class trace_depth
+    {
+	first_match,
+	all_matches
+    };
     store_region search(const key_type& key);
     store_region search_store(const key_type& key, const typename store::iterator& iter);
     floor_region search_floor(const key_type& key, const typename floor::iterator& iter);
-    std::vector<trace> trace_tower(const key_type& key);
+    std::vector<trace> trace_tower(const key_type& key, const trace_depth& depth);
+    inline std::vector<trace> trace_tower(const key_type& key)
+    {
+	return trace_tower(key, trace_depth::first_match);
+    }
     void grow_tower(floor_id new_maximum);
     std::int64_t chose_height() const;
     typed_allocator_type& allocator_;

@@ -11,14 +11,17 @@
 namespace turbo {
 namespace container {
 
-template <class key_t, class value_t, class allocator_t, class compare_f>
-emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator)
+template <class k, class v, class a, class c>
+emplacing_skiplist<k, v, a, c>::emplacing_skiplist(
+	typed_allocator_type& allocator)
     :
 	emplacing_skiplist(allocator, 2U)
 { }
 
-template <class key_t, class value_t, class allocator_t, class compare_f>
-emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(typed_allocator_type& allocator, std::uint16_t height_log_base)
+template <class k, class v, class a, class c>
+emplacing_skiplist<k, v, a, c>::emplacing_skiplist(
+	typed_allocator_type& allocator,
+	std::uint16_t height_log_base)
     :
 	allocator_(allocator),
 	height_log_base_(height_log_base),
@@ -26,8 +29,9 @@ emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::emplacing_skiplist(t
 	tower_(allocator_)
 { }
 
-template <class key_t, class value_t, class allocator_t, class compare_f>
-typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::iterator emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::find(const key_type& key)
+template <class k, class v, class a, class c>
+typename emplacing_skiplist<k, v, a, c>::iterator emplacing_skiplist<k, v, a, c>::find(
+	const key_type& key)
 {
     iterator target;
     std::tie(target, std::ignore) = search(key);
@@ -54,7 +58,7 @@ std::tuple<typename emplacing_skiplist<k, v, a, c>::iterator, bool> emplacing_sk
     }
     const key_type key(key_arg);
     const typename floor::iterator empty;
-    std::vector<trace> tower_trace(trace_tower(key));
+    std::vector<trace> tower_trace(trace_tower(key, trace_depth::all_matches));
     typename store::iterator nearest_record;
     typename store::iterator next_record;
     if (tower_trace.size() == 0U || tower_trace.back().nearest == empty)
@@ -97,12 +101,47 @@ std::tuple<typename emplacing_skiplist<k, v, a, c>::iterator, bool> emplacing_sk
     }
 }
 
+template <class k, class v, class a, class c>
+typename emplacing_skiplist<k, v, a, c>::iterator emplacing_skiplist<k, v, a, c>::erase(
+	const key_type& key)
+{
+    const typename floor::iterator empty;
+    std::vector<trace> tower_trace(trace_tower(key, trace_depth::all_matches));
+    typename store::iterator nearest_record;
+    if (0U < tower_trace.size() && tower_trace.rbegin().nearest != empty && !tower_trace.rbegin()->bottom.expired())
+    {
+	nearest_record = tower_trace.rbegin()->bottom.lock();
+    }
+    else
+    {
+	// tower is empty or all keys in the tower are greater than the requested key
+	nearest_record = store_.begin();
+    }
+    // erase the rooms in the tower associated with the key
+    for (auto iter = tower_trace.begin(); iter != tower_trace.end(); ++iter)
+    {
+	if (iter->nearest != empty && compare_func()(iter->nearest->key, key) && compare_func()(key, iter->nearest->key))
+	{
+	    iter->floor.erase(iter->nearest);
+	}
+    }
+    std::tie(nearest_record, std::ignore) = search_store(key, nearest_record);
+    if (nearest_record != store_.end() && compare_func()(nearest_record->key, key) && compare_func()(key, nearest_record->key))
+    {
+	return store_.erase(nearest_record);
+    }
+    else
+    {
+	return store_.end();
+    }
+}
+
 template <class key_t, class value_t, class allocator_t, class compare_f>
 typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::store_region emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::search(
 	const key_type& key)
 {
     const typename floor::iterator empty;
-    std::vector<trace> tower_trace(trace_tower(key));
+    std::vector<trace> tower_trace(trace_tower(key, trace_depth::first_match));
     // TODO: in concurrent skiplist bottom might be expired
     if (tower_trace.size() == 0U || tower_trace.back().nearest == empty)
     {
@@ -186,7 +225,9 @@ typename emplacing_skiplist<key_t, value_t, allocator_t, compare_f>::floor_regio
 }
 
 template <class k, class v, class a, class c>
-std::vector<typename emplacing_skiplist<k, v, a, c>::trace> emplacing_skiplist<k, v, a, c>::trace_tower(const key_type& key)
+std::vector<typename emplacing_skiplist<k, v, a, c>::trace> emplacing_skiplist<k, v, a, c>::trace_tower(
+	const key_type& key,
+	const trace_depth& depth)
 {
     const typename floor::iterator empty;
     std::vector<trace> result;
@@ -208,7 +249,7 @@ std::vector<typename emplacing_skiplist<k, v, a, c>::trace> emplacing_skiplist<k
 	result.emplace_back(id, tower_iter, current, next);
 	if (current != tower_iter->end())
 	{
-	    if (compare_func()(current->key, key) && compare_func()(key, current->key))
+	    if (compare_func()(current->key, key) && compare_func()(key, current->key) && depth == trace_depth::first_match)
 	    {
 		// found room matching the key
 		break;
