@@ -51,7 +51,16 @@ std::tuple<typename emplacing_skiplist<k, v, a, c>::iterator, bool> emplacing_sk
 	const key_arg_t& key_arg,
 	value_args_t&&... value_args)
 {
-    const std::int64_t chosen_height = chose_height();
+    return emplace(chose_height(), key_arg, std::forward<value_args_t>(value_args)...);
+}
+
+template <class k, class v, class a, class c>
+template <class key_arg_t, class... value_args_t>
+std::tuple<typename emplacing_skiplist<k, v, a, c>::iterator, bool> emplacing_skiplist<k, v, a, c>::emplace(
+	std::int64_t chosen_height,
+	const key_arg_t& key_arg,
+	value_args_t&&... value_args)
+{
     if (0 <= chosen_height)
     {
 	grow_tower(chosen_height);

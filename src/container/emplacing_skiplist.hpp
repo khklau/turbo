@@ -130,6 +130,8 @@ private:
 	first_match,
 	all_matches
     };
+    template <class key_arg_t, class... value_args_t>
+    std::tuple<iterator, bool> emplace(std::int64_t chosen_height, const key_arg_t& key_arg, value_args_t&&... value_args);
     store_region search(const key_type& key);
     store_region search_store(const key_type& key, const typename store::iterator& iter);
     floor_region search_floor(const key_type& key, const typename floor::iterator& iter);
