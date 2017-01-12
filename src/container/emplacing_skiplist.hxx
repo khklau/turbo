@@ -51,7 +51,7 @@ std::tuple<typename emplacing_skiplist<k, v, a, c>::iterator, bool> emplacing_sk
 	const key_arg_t& key_arg,
 	value_args_t&&... value_args)
 {
-    return emplace(chose_height(), key_arg, std::forward<value_args_t>(value_args)...);
+    return emplace(chose_height(), std::forward<decltype(key_arg)>(key_arg), std::forward<value_args_t>(value_args)...);
 }
 
 template <class k, class v, class a, class c>
