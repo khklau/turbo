@@ -58,6 +58,11 @@ public:
     {
 	return skiplist_.trace_tower(std::forward<decltype(key)>(key));
     }
+    template <class key_arg_t, class... value_args_t>
+    inline std::tuple<typename skiplist_type::iterator, bool> emplace(std::int64_t chosen_height, const key_arg_t& key_arg, value_args_t&&... value_args)
+    {
+	return skiplist_.emplace(chosen_height, std::forward<decltype(key_arg)>(key_arg), std::forward<value_args_t>(value_args)...);
+    }
 private:
     skiplist_type& skiplist_;
 };
@@ -301,6 +306,142 @@ TEST(emplacing_skiplist_test, find_invalid)
     tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     EXPECT_EQ(map1.end(), map1.find(99U)) << "Search for non-existant key did not return empty iterator";
+}
+
+TEST(emplacing_skiplist_test, emplace_tower_validation)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
+    tme::pool allocator1(
+	    8U,
+	    {
+		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[1], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[2], std::numeric_limits<std::uint8_t>::max()}
+	    });
+    uint_map map1(allocator1);
+    uint_tester tester1(map1);
+    typename uint_tester::store::iterator nearest_record;
+    typename uint_tester::store::iterator next_record;
+    typename uint_tester::floor::iterator nearest_room;
+    typename uint_tester::floor::iterator next_room;
+    typename uint_tester::store::iterator record4;
+    bool result4 = false;
+    std::tie(record4, result4) = tester1.emplace(-1, 4U, 4U);
+    std::tie(nearest_record, next_record) = tester1.search_store(4U, tester1.get_store().begin());
+    EXPECT_EQ(true, result4) << "Emplace to empty skiplist when height is -1 failed";
+    EXPECT_EQ(record4, nearest_record) << "Emplace to empty skiplist when height is -1 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Emplace to empty skiplist when height is -1 failed";
+    typename uint_tester::store::iterator record5;
+    bool result5 = false;
+    std::tie(record5, result5) = tester1.emplace(0, 5U, 5U);
+    std::tie(nearest_record, next_record) = tester1.search_store(5U, tester1.get_store().begin());
+    EXPECT_EQ(true, result5) << "Emplace to skiplist with empty tower when height is 0 failed";
+    EXPECT_EQ(record5, nearest_record) << "Emplace to skiplist with empty tower when height is 0 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Emplace to skiplist with empty tower when height is 0 failed";
+    typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
+    std::tie(nearest_room, next_room) = tester1.search_floor(5U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to skiplist with empty tower when height is 0 failed";
+    EXPECT_EQ(5U, nearest_room->key) << "Emplace to skiplist with empty tower when height is 0 failed";
+    EXPECT_EQ(floor0.end(), next_room) << "Emplace to skiplist with empty tower when height is 0 failed";
+    typename uint_tester::store::iterator record3;
+    bool result3 = false;
+    std::tie(record3, result3) = tester1.emplace(1, 3U, 3U);
+    std::tie(nearest_record, next_record) = tester1.search_store(3U, tester1.get_store().begin());
+    EXPECT_EQ(true, result3) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_EQ(record3, nearest_record) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_EQ(record4, next_record) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(3U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_EQ(3U, nearest_room->key) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_NE(floor0.end(), next_room) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_EQ(5U, next_room->key) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
+    std::tie(nearest_room, next_room) = tester1.search_floor(3U, floor1.begin());
+    EXPECT_NE(floor1.end(), nearest_room) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_EQ(3U, nearest_room->key) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    EXPECT_EQ(floor1.end(), next_room) << "Emplace to skiplist with empty top floor when height is 1 failed";
+    typename uint_tester::store::iterator record8;
+    bool result8 = false;
+    std::tie(record8, result8) = tester1.emplace(-1, 8U, 8U);
+    std::tie(nearest_record, next_record) = tester1.search_store(8U, tester1.get_store().begin());
+    EXPECT_EQ(true, result8) << "Emplace to end of skiplist when height is -1 failed";
+    EXPECT_EQ(record8, nearest_record) << "Emplace to end of skiplist when height is -1 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Emplace to end of skiplist when height is -1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(8U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to end of skiplist when height is -1 failed";
+    EXPECT_NE(8U, nearest_room->key) << "Emplace to end of skiplist when height is -1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(8U, floor1.begin());
+    EXPECT_NE(floor1.end(), nearest_room) << "Emplace to end of skiplist when height is -1 failed";
+    EXPECT_NE(8U, nearest_room->key) << "Emplace to end of skiplist when height is -1 failed";
+    typename uint_tester::store::iterator record9;
+    bool result9 = false;
+    std::tie(record9, result9) = tester1.emplace(0, 9U, 9U);
+    std::tie(nearest_record, next_record) = tester1.search_store(9U, tester1.get_store().begin());
+    EXPECT_EQ(true, result9) << "Emplace to back of bottom floor when height is 0 failed";
+    EXPECT_EQ(record9, nearest_record) << "Emplace to back of bottom floor when height is 0 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Emplace to back of bottom floor when height is 0 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(9U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to back of bottom floor when height is 0 failed";
+    EXPECT_EQ(9U, nearest_room->key) << "Emplace to back of bottom floor when height is 0 failed";
+    EXPECT_EQ(floor0.end(), next_room) << "Emplace to back of bottom floor when height is 0 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(9U, floor1.begin());
+    EXPECT_NE(floor1.end(), nearest_room) << "Emplace to back of bottom floor when height is 0 failed";
+    EXPECT_NE(9U, nearest_room->key) << "Emplace to back of bottom floor when height is 0 failed";
+    typename uint_tester::store::iterator record7;
+    bool result7 = false;
+    std::tie(record7, result7) = tester1.emplace(1, 7U, 7U);
+    std::tie(nearest_record, next_record) = tester1.search_store(7U, tester1.get_store().begin());
+    EXPECT_EQ(true, result7) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_EQ(record7, nearest_record) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_EQ(record8, next_record) << "Emplace to back of top floor when height is 1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(7U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_EQ(7U, nearest_room->key) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_NE(floor0.end(), next_room) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_EQ(9U, next_room->key) << "Emplace to back of top floor when height is 1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(7U, floor1.begin());
+    EXPECT_NE(floor1.end(), nearest_room) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_EQ(7U, nearest_room->key) << "Emplace to back of top floor when height is 1 failed";
+    EXPECT_EQ(floor1.end(), next_room) << "Emplace to back of top floor when height is 1 failed";
+    typename uint_tester::store::iterator record2;
+    bool result2 = false;
+    std::tie(record2, result2) = tester1.emplace(-1, 2U, 2U);
+    std::tie(nearest_record, next_record) = tester1.search_store(2U, tester1.get_store().begin());
+    EXPECT_EQ(true, result2) << "Emplace to front of non-empty store when height is -1 failed";
+    EXPECT_EQ(record2, nearest_record) << "Emplace to front of non-empty store when height is -1 failed";
+    EXPECT_EQ(record3, next_record) << "Emplace to front of non-empty store when height is -1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(2U, floor0.begin());
+    EXPECT_EQ(floor0.end(), nearest_room) << "Emplace to front of non-empty store when height is -1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(2U, floor1.begin());
+    EXPECT_EQ(floor1.end(), nearest_room) << "Emplace to front of non-empty store when height is -1 failed";
+    typename uint_tester::store::iterator record1;
+    bool result1 = false;
+    std::tie(record1, result1) = tester1.emplace(0, 1U, 1U);
+    std::tie(nearest_record, next_record) = tester1.search_store(1U, tester1.get_store().begin());
+    EXPECT_EQ(true, result1) << "Emplace to front of bottom floor when height is 0 failed";
+    EXPECT_EQ(record1, nearest_record) << "Emplace to front of bottom floor when height is 0 failed";
+    EXPECT_EQ(record2, next_record) << "Emplace to front of bottom floor when height is 0 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(1U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to front of bottom floor when height is 0 failed";
+    EXPECT_EQ(1U, nearest_room->key) << "Emplace to front of bottom floor when height is 0 failed";
+    EXPECT_NE(floor0.end(), next_room) << "Emplace to front of bottom floor when height is 0 failed";
+    EXPECT_EQ(3U, next_room->key) << "Emplace to front of bottom floor when height is 0 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(1U, floor1.begin());
+    EXPECT_EQ(floor1.end(), nearest_room) << "Emplace to front of bottom floor when height is 0 failed";
+    typename uint_tester::store::iterator record6;
+    bool result6 = false;
+    std::tie(record6, result6) = tester1.emplace(-1, 6U, 6U);
+    std::tie(nearest_record, next_record) = tester1.search_store(6U, tester1.get_store().begin());
+    EXPECT_EQ(true, result6) << "Emplace to middle of non-empty store when height is -1 failed";
+    EXPECT_EQ(record6, nearest_record) << "Emplace to middle of non-empty store when height is -1 failed";
+    EXPECT_EQ(record7, next_record) << "Emplace to middle of non-empty store when height is -1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(6U, floor0.begin());
+    EXPECT_NE(floor0.end(), nearest_room) << "Emplace to middle of non-empty store when height is -1 failed";
+    EXPECT_NE(6U, nearest_room->key) << "Emplace to middle of non-empty store when height is -1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(6U, floor1.begin());
+    EXPECT_NE(floor1.end(), nearest_room) << "Emplace to middle of non-empty store when height is -1 failed";
+    EXPECT_NE(6U, nearest_room->key) << "Emplace to middle of non-empty store when height is -1 failed";
 }
 
 TEST(emplacing_skiplist_test, emplace_basic)
