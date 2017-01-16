@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <random>
 #include <string>
 #include <gtest/gtest.h>
@@ -308,6 +309,70 @@ TEST(emplacing_skiplist_test, find_invalid)
     EXPECT_EQ(map1.end(), map1.find(99U)) << "Search for non-existant key did not return empty iterator";
 }
 
+TEST(emplacing_skiplist_test, find_basic)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
+    tme::pool allocator1(
+	    8U,
+	    {
+		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[1], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[2], std::numeric_limits<std::uint8_t>::max()}
+	    });
+    uint_map map1(allocator1);
+    uint_tester tester1(map1);
+    tester1.grow_tower(1U);
+    typename uint_tester::store::iterator record1 = tester1.get_store().emplace_back(1U, 1U);
+    typename uint_tester::store::iterator record3 = tester1.get_store().emplace_back(3U, 3U);
+    typename uint_tester::store::iterator record5 = tester1.get_store().emplace_back(5U, 5U);
+    typename uint_tester::store::iterator record6 = tester1.get_store().emplace_back(6U, 6U);
+    typename uint_tester::store::iterator record7 = tester1.get_store().emplace_back(7U, 7U);
+    typename uint_tester::store::iterator record9 = tester1.get_store().emplace_back(9U, 9U);
+    typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
+    typename uint_tester::floor::iterator room01 = floor0.emplace_back(
+	    1U,
+	    record1.share(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room03 = floor0.emplace_back(
+	    3U,
+	    record3.share(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room05 = floor0.emplace_back(
+	    5U,
+	    record5.share(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room07 = floor0.emplace_back(
+	    7U,
+	    record7.share(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor::iterator room09 = floor0.emplace_back(
+	    9U,
+	    record9.share(),
+	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+    typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
+    typename uint_tester::floor::iterator room13 = floor1.emplace_back(
+	    3U,
+	    record3.share(),
+	    room03.share());
+    typename uint_tester::floor::iterator room17 = floor1.emplace_back(
+	    7U,
+	    record7.share(),
+	    room07.share());
+    const typename uint_tester::floor::iterator empty;
+    EXPECT_EQ(record1, map1.find(1U)) << "Search for existing key 1 failed";
+    EXPECT_EQ(tester1.get_store().end(), map1.find(2U)) << "Search for non-existant key 2 failed";
+    EXPECT_EQ(record3, map1.find(3U)) << "Search for existing key 3 failed";
+    EXPECT_EQ(tester1.get_store().end(), map1.find(4U)) << "Search for non-existant key 4 failed";
+    EXPECT_EQ(record5, map1.find(5U)) << "Search for existing key 5 failed";
+    EXPECT_EQ(record6, map1.find(6U)) << "Search for existing key 6 failed";
+    EXPECT_EQ(record7, map1.find(7U)) << "Search for existing key 7 failed";
+    EXPECT_EQ(tester1.get_store().end(), map1.find(8U)) << "Search for non-existant key 8 failed";
+    EXPECT_EQ(record9, map1.find(9U)) << "Search for existing key 9 failed";
+    typename uint_tester::store::iterator record10 = tester1.get_store().emplace_back(10U, 10U);
+    EXPECT_EQ(record10, map1.find(10U)) << "Search for existing key 10 failed";
+}
+
 TEST(emplacing_skiplist_test, emplace_tower_validation)
 {
     typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
@@ -514,7 +579,163 @@ TEST(emplacing_skiplist_test, emplace_duplicate)
     EXPECT_EQ(std::string("bar"), map1.crbegin()->value) << "Just emplaced key & value is not ordered";
 }
 
-TEST(emplacing_skiplist_test, emplace_many)
+TEST(emplacing_skiplist_test, erase_tower_validation)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
+    tme::pool allocator1(
+	    8U,
+	    {
+		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[1], std::numeric_limits<std::uint8_t>::max()},
+		{uint_map::node_sizes[2], std::numeric_limits<std::uint8_t>::max()}
+	    });
+    uint_map map1(allocator1);
+    uint_tester tester1(map1);
+    const typename uint_tester::floor::iterator empty_room;
+    typename uint_tester::floor::iterator nearest_room;
+    typename uint_tester::floor::iterator next_room;
+    typename uint_tester::store::iterator nearest_record;
+    typename uint_tester::store::iterator next_record;
+    typename uint_map::iterator record1 = std::get<0U>(tester1.emplace(0, 1U, 1U));
+    typename uint_map::iterator record2 = std::get<0U>(tester1.emplace(-1, 2U, 2U));
+    typename uint_map::iterator record3 = std::get<0U>(tester1.emplace(1, 3U, 3U));
+    typename uint_map::iterator record4 = std::get<0U>(tester1.emplace(-1, 4U, 4U));
+    typename uint_map::iterator record5 = std::get<0U>(tester1.emplace(0, 5U, 5U));
+    typename uint_map::iterator record6 = std::get<0U>(tester1.emplace(-1, 6U, 6U));
+    typename uint_map::iterator record7 = std::get<0U>(tester1.emplace(1, 7U, 7U));
+    typename uint_map::iterator record8 = std::get<0U>(tester1.emplace(-1, 8U, 8U));
+    typename uint_map::iterator record9 = std::get<0U>(tester1.emplace(0, 9U, 9U));
+    typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
+    typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
+    // Erase 6
+    EXPECT_EQ(record7, map1.erase(6U)) << "Erase of key 6 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(6U, floor1.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 6 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 6 failed";
+    EXPECT_EQ(3U, nearest_room->key) << "Erase of key 6 failed";
+    EXPECT_EQ(7U, next_room->key) << "Erase of key 6 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(6U, floor0.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 6 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 6 failed";
+    EXPECT_EQ(5U, nearest_room->key) << "Erase of key 6 failed";
+    EXPECT_EQ(7U, next_room->key) << "Erase of key 6 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(6U, tester1.get_store().begin());
+    EXPECT_NE(tester1.get_store().end(), nearest_record) << "Erase of key 6 failed";
+    EXPECT_NE(tester1.get_store().end(), next_record) << "Erase of key 6 failed";
+    EXPECT_EQ(5U, nearest_record->key) << "Erase of key 6 failed";
+    EXPECT_EQ(7U, next_record->key) << "Erase of key 6 failed";
+    // Erase 1
+    EXPECT_EQ(record2, map1.erase(1U)) << "Erase of key 1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(1U, floor1.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 1 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 1 failed";
+    EXPECT_EQ(3U, next_room->key) << "Erase of key 1 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(1U, floor0.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 1 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 1 failed";
+    EXPECT_EQ(3U, next_room->key) << "Erase of key 1 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(1U, tester1.get_store().begin());
+    EXPECT_EQ(tester1.get_store().end(), nearest_record) << "Erase of key 1 failed";
+    EXPECT_NE(tester1.get_store().end(), next_record) << "Erase of key 1 failed";
+    EXPECT_EQ(2U, next_record->key) << "Erase of key 1 failed";
+    // Erase 2
+    EXPECT_EQ(record3, map1.erase(2U)) << "Erase of key 2 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(2U, floor1.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 2 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 2 failed";
+    EXPECT_EQ(3U, next_room->key) << "Erase of key 2 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(2U, floor0.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 2 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 2 failed";
+    EXPECT_EQ(3U, next_room->key) << "Erase of key 2 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(2U, tester1.get_store().begin());
+    EXPECT_EQ(tester1.get_store().end(), nearest_record) << "Erase of key 2 failed";
+    EXPECT_NE(tester1.get_store().end(), next_record) << "Erase of key 2 failed";
+    EXPECT_EQ(3U, next_record->key) << "Erase of key 2 failed";
+    // Erase 7
+    EXPECT_EQ(record8, map1.erase(7U)) << "Erase of key 7 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(7U, floor1.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 7 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 7 failed";
+    EXPECT_EQ(3U, nearest_room->key) << "Erase of key 7 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(7U, floor0.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 7 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 7 failed";
+    EXPECT_EQ(5U, nearest_room->key) << "Erase of key 7 failed";
+    EXPECT_EQ(9U, next_room->key) << "Erase of key 7 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(7U, tester1.get_store().begin());
+    EXPECT_NE(tester1.get_store().end(), nearest_record) << "Erase of key 7 failed";
+    EXPECT_NE(tester1.get_store().end(), next_record) << "Erase of key 7 failed";
+    EXPECT_EQ(5U, nearest_record->key) << "Erase of key 7 failed";
+    EXPECT_EQ(8U, next_record->key) << "Erase of key 7 failed";
+    // Erase 9
+    EXPECT_EQ(tester1.get_store().end(), map1.erase(9U)) << "Erase of key 9 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(9U, floor1.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 9 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 9 failed";
+    EXPECT_EQ(3U, nearest_room->key) << "Erase of key 9 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(9U, floor0.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 9 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 9 failed";
+    EXPECT_EQ(5U, nearest_room->key) << "Erase of key 9 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(9U, tester1.get_store().begin());
+    EXPECT_NE(tester1.get_store().end(), nearest_record) << "Erase of key 9 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Erase of key 9 failed";
+    EXPECT_EQ(8U, nearest_record->key) << "Erase of key 9 failed";
+    // Erase 8
+    EXPECT_EQ(tester1.get_store().end(), map1.erase(8U)) << "Erase of key 8 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(8U, floor1.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 8 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 8 failed";
+    EXPECT_EQ(3U, nearest_room->key) << "Erase of key 8 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(8U, floor0.begin());
+    EXPECT_NE(empty_room, nearest_room) << "Erase of key 8 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 8 failed";
+    EXPECT_EQ(5U, nearest_room->key) << "Erase of key 8 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(8U, tester1.get_store().begin());
+    EXPECT_NE(tester1.get_store().end(), nearest_record) << "Erase of key 8 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Erase of key 8 failed";
+    EXPECT_EQ(5U, nearest_record->key) << "Erase of key 8 failed";
+    // Erase 3
+    EXPECT_EQ(record4, map1.erase(3U)) << "Erase of key 3 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(3U, floor1.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 3 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 3 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(3U, floor0.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 3 failed";
+    EXPECT_NE(empty_room, next_room) << "Erase of key 3 failed";
+    EXPECT_EQ(5U, next_room->key) << "Erase of key 3 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(3U, tester1.get_store().begin());
+    EXPECT_EQ(tester1.get_store().end(), nearest_record) << "Erase of key 3 failed";
+    EXPECT_NE(tester1.get_store().end(), next_record) << "Erase of key 3 failed";
+    EXPECT_EQ(4U, next_record->key) << "Erase of key 3 failed";
+    // Erase 5
+    EXPECT_EQ(tester1.get_store().end(), map1.erase(5U)) << "Erase of key 5 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(5U, floor1.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 5 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 5 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(5U, floor0.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 5 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 5 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(5U, tester1.get_store().begin());
+    EXPECT_NE(tester1.get_store().end(), nearest_record) << "Erase of key 5 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Erase of key 5 failed";
+    EXPECT_EQ(4U, nearest_record->key) << "Erase of key 5 failed";
+    // Erase 4
+    EXPECT_EQ(tester1.get_store().end(), map1.erase(4U)) << "Erase of key 4 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(4U, floor1.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 4 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 4 failed";
+    std::tie(nearest_room, next_room) = tester1.search_floor(4U, floor0.begin());
+    EXPECT_EQ(empty_room, nearest_room) << "Erase of key 4 failed";
+    EXPECT_EQ(empty_room, next_room) << "Erase of key 4 failed";
+    std::tie(nearest_record, next_record) = tester1.search_store(4U, tester1.get_store().begin());
+    EXPECT_EQ(tester1.get_store().end(), nearest_record) << "Erase of key 4 failed";
+    EXPECT_EQ(tester1.get_store().end(), next_record) << "Erase of key 4 failed";
+}
+
+TEST(emplacing_skiplist_test, perf_test_skiplist_emplace)
 {
     typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
     tme::pool allocator1(
@@ -530,6 +751,17 @@ TEST(emplacing_skiplist_test, emplace_many)
     {
 	std::uint32_t value = device() >> 16U;
 	map1.emplace(value, value);
-	//EXPECT_EQ(value, map1.find(value)->value) << "Could not find just emplaced key & value";
+    }
+}
+
+TEST(emplacing_skiplist_test, perf_test_map_emplace)
+{
+    typedef std::map<std::uint32_t, std::uint32_t> uint_map;
+    uint_map map1;
+    std::random_device device;
+    for (std::uint32_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	std::uint32_t value = device() >> 16U;
+	map1.emplace(value, value);
     }
 }
