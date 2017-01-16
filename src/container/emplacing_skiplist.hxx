@@ -117,9 +117,9 @@ typename emplacing_skiplist<k, v, a, c>::iterator emplacing_skiplist<k, v, a, c>
     const typename floor::iterator empty;
     std::vector<trace> tower_trace(trace_tower(key, trace_depth::all_matches));
     typename store::iterator nearest_record;
-    if (0U < tower_trace.size() && tower_trace.rbegin().nearest != empty && !tower_trace.rbegin()->bottom.expired())
+    if (0U < tower_trace.size() && tower_trace.rbegin()->nearest != empty && !tower_trace.rbegin()->nearest->bottom.expired())
     {
-	nearest_record = tower_trace.rbegin()->bottom.lock();
+	nearest_record = tower_trace.rbegin()->nearest->bottom.lock();
     }
     else
     {
@@ -129,9 +129,12 @@ typename emplacing_skiplist<k, v, a, c>::iterator emplacing_skiplist<k, v, a, c>
     // erase the rooms in the tower associated with the key
     for (auto iter = tower_trace.begin(); iter != tower_trace.end(); ++iter)
     {
-	if (iter->nearest != empty && compare_func()(iter->nearest->key, key) && compare_func()(key, iter->nearest->key))
+	if (iter->nearest != empty
+		&& iter->floor != tower_.rend()
+		&& compare_func()(iter->nearest->key, key)
+		&& compare_func()(key, iter->nearest->key))
 	{
-	    iter->floor.erase(iter->nearest);
+	    iter->floor->erase(iter->nearest);
 	}
     }
     std::tie(nearest_record, std::ignore) = search_store(key, nearest_record);
