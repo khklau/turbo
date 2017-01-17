@@ -735,6 +735,57 @@ TEST(emplacing_skiplist_test, erase_tower_validation)
     EXPECT_EQ(tester1.get_store().end(), next_record) << "Erase of key 4 failed";
 }
 
+TEST(emplacing_skiplist_test, erase_basic)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    string_map map1(allocator1);
+    string_map::iterator iter;
+    string_map::iterator record6 = std::get<0U>(map1.emplace(6U, "foo"));
+    string_map::iterator record9 = std::get<0U>(map1.emplace(9U, "bar"));
+    string_map::iterator record20 = std::get<0U>(map1.emplace(20U, "blah"));
+    string_map::iterator record45 = std::get<0U>(map1.emplace(45U, "woot"));
+    EXPECT_EQ(record20, map1.erase(9U)) << "Erase of key 9 failed";
+    iter = map1.find(6U);
+    ++iter;
+    EXPECT_NE(map1.end(), iter) << "Erase of key 9 failed";
+    EXPECT_EQ(iter->key, 20U) << "Erase of key 9 failed";
+    EXPECT_EQ(record45, map1.erase(20U)) << "Erase of key 20 failed";
+    iter = map1.find(6U);
+    ++iter;
+    EXPECT_NE(map1.end(), iter) << "Erase of key 20 failed";
+    EXPECT_EQ(iter->key, 45U) << "Erase of key 20 failed";
+    EXPECT_EQ(record45, map1.erase(6U)) << "Erase of key 6 failed";
+    iter = map1.begin();
+    EXPECT_NE(map1.end(), iter) << "Erase of key 6 failed";
+    EXPECT_EQ(iter->key, 45U) << "Erase of key 6 failed";
+    EXPECT_EQ(map1.end(), map1.erase(45U)) << "Erase of key 45 failed";
+    iter = map1.find(45U);
+    EXPECT_EQ(map1.end(), iter) << "Erase of key 45 failed";
+}
+
+TEST(emplacing_skiplist_test, erase_invalid)
+{
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    string_map map1(allocator1);
+    string_map::iterator iter;
+    string_map::iterator record6 = std::get<0U>(map1.emplace(6U, "foo"));
+    string_map::iterator record9 = std::get<0U>(map1.emplace(9U, "bar"));
+    string_map::iterator record20 = std::get<0U>(map1.emplace(20U, "blah"));
+    string_map::iterator record45 = std::get<0U>(map1.emplace(45U, "woot"));
+    EXPECT_EQ(record20, map1.erase(9U)) << "Erase of key 9 failed";
+    iter = map1.find(6U);
+    ++iter;
+    EXPECT_NE(map1.end(), iter) << "Erase of key 9 failed";
+    EXPECT_EQ(iter->key, 20U) << "Erase of key 9 failed";
+    EXPECT_EQ(record20, map1.erase(9U)) << "Erase of key 9 failed";
+    iter = map1.find(6U);
+    ++iter;
+    EXPECT_NE(map1.end(), iter) << "Erase of key 9 failed";
+    EXPECT_EQ(iter->key, 20U) << "Erase of key 9 failed";
+}
+
 TEST(emplacing_skiplist_test, perf_test_skiplist_emplace)
 {
     typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
