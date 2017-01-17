@@ -117,6 +117,7 @@ typename emplacing_skiplist<k, v, a, c>::iterator emplacing_skiplist<k, v, a, c>
     const typename floor::iterator empty;
     std::vector<trace> tower_trace(trace_tower(key, trace_depth::all_matches));
     typename store::iterator nearest_record;
+    typename store::iterator next_record;
     if (0U < tower_trace.size() && tower_trace.rbegin()->nearest != empty && !tower_trace.rbegin()->nearest->bottom.expired())
     {
 	nearest_record = tower_trace.rbegin()->nearest->bottom.lock();
@@ -137,14 +138,14 @@ typename emplacing_skiplist<k, v, a, c>::iterator emplacing_skiplist<k, v, a, c>
 	    iter->floor->erase(iter->nearest);
 	}
     }
-    std::tie(nearest_record, std::ignore) = search_store(key, nearest_record);
+    std::tie(nearest_record, next_record) = search_store(key, nearest_record);
     if (nearest_record != store_.end() && compare_func()(nearest_record->key, key) && compare_func()(key, nearest_record->key))
     {
 	return store_.erase(nearest_record);
     }
     else
     {
-	return store_.end();
+	return next_record;
     }
 }
 
