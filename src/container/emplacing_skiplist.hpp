@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
-#include <memory>
 #include <tuple>
 #include <vector>
 #include <turbo/container/emplacing_list.hpp>
@@ -25,6 +24,12 @@ private:
     typedef emplacing_list<record, allocator_t> store;
     typedef emplacing_list<room, allocator_t> floor;
     typedef emplacing_list<floor, allocator_t> tower;
+    typedef typename store::iterator store_iterator;
+    typedef typename store::reverse_iterator store_reverse_iterator;
+    typedef typename floor::iterator floor_iterator;
+    typedef typename floor::reverse_iterator floor_reverse_iterator;
+    typedef typename tower::iterator tower_iterator;
+    typedef typename tower::reverse_iterator tower_reverse_iterator;
 public:
     typedef key_t key_type;
     typedef value_t value_type;
@@ -43,15 +48,15 @@ public:
     friend class emplacing_skiplist_tester<key_t, value_t, allocator_t, compare_f>;
     static constexpr std::array<std::size_t, 3U> node_sizes
     {
-	sizeof(typename store::iterator::node_type),
-	sizeof(typename floor::iterator::node_type),
-	sizeof(typename tower::iterator::node_type)
+	sizeof(typename store_iterator::node_type),
+	sizeof(typename floor_iterator::node_type),
+	sizeof(typename tower_iterator::node_type)
     };
     static constexpr std::array<std::size_t, 3U> node_alignments
     {
-	alignof(typename store::iterator::node_type),
-	alignof(typename floor::iterator::node_type),
-	alignof(typename tower::iterator::node_type)
+	alignof(typename store_iterator::node_type),
+	alignof(typename floor_iterator::node_type),
+	alignof(typename tower_iterator::node_type)
     };
     explicit emplacing_skiplist(typed_allocator_type& allocator);
     emplacing_skiplist(typed_allocator_type& allocator, std::uint16_t height_log_base);
@@ -100,30 +105,30 @@ public:
     std::tuple<iterator, bool> emplace(const key_arg_t& key_arg, value_args_t&&... value_args);
     iterator erase(const key_type& key);
 private:
-    typedef std::tuple<typename store::iterator, typename store::iterator> store_region;
-    typedef std::tuple<typename floor::iterator, typename floor::iterator> floor_region;
+    typedef std::tuple<store_iterator, store_iterator> store_region;
+    typedef std::tuple<floor_iterator, floor_iterator> floor_region;
     typedef std::uint32_t floor_id;
     struct room
     {
 	room(
 		const key_t& a_key,
-		const std::weak_ptr<typename store::iterator::node_type>& a_bottom,
-		const std::weak_ptr<typename floor::iterator::node_type>& a_down);
+		typename store_iterator::node_type* a_bottom,
+		typename floor_iterator::node_type* a_down);
 	key_t key;
-	std::weak_ptr<typename store::iterator::node_type> bottom;
-	std::weak_ptr<typename floor::iterator::node_type> down;
+	typename store_iterator::node_type* bottom;
+	typename floor_iterator::node_type* down;
     };
     struct trace
     {
 	trace(
 		const floor_id& a_id,
-		const typename tower::reverse_iterator& a_floor,
-		const typename floor::iterator& a_nearest,
-		const typename floor::iterator& a_next);
+		const tower_reverse_iterator& a_floor,
+		const floor_iterator& a_nearest,
+		const floor_iterator& a_next);
 	floor_id id;
-	typename tower::reverse_iterator floor;
-	typename floor::iterator nearest;
-	typename floor::iterator next;
+	tower_reverse_iterator floor;
+	floor_iterator nearest;
+	floor_iterator next;
     };
     enum class trace_depth
     {
@@ -133,8 +138,8 @@ private:
     template <class key_arg_t, class... value_args_t>
     std::tuple<iterator, bool> emplace(std::int64_t chosen_height, const key_arg_t& key_arg, value_args_t&&... value_args);
     store_region search(const key_type& key);
-    store_region search_store(const key_type& key, const typename store::iterator& iter);
-    floor_region search_floor(const key_type& key, const typename floor::iterator& iter);
+    store_region search_store(const key_type& key, const store_iterator& iter);
+    floor_region search_floor(const key_type& key, const floor_iterator& iter);
     std::vector<trace> trace_tower(const key_type& key, const trace_depth& depth);
     inline std::vector<trace> trace_tower(const key_type& key)
     {

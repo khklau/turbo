@@ -22,9 +22,11 @@ public:
     typedef typename skiplist_type::record record;
     typedef typename skiplist_type::store store;
     typedef typename skiplist_type::store_region store_region;
+    typedef typename skiplist_type::store_iterator store_iterator;
     typedef typename skiplist_type::room room;
     typedef typename skiplist_type::floor floor;
     typedef typename skiplist_type::floor_region floor_region;
+    typedef typename skiplist_type::floor_iterator floor_iterator;
     typedef typename skiplist_type::floor_id floor_id;
     typedef typename skiplist_type::trace trace;
     emplacing_skiplist_tester(skiplist_type& skiplist)
@@ -45,13 +47,13 @@ public:
     }
     inline typename skiplist_type::floor_region search_floor(
 	    const typename skiplist_type::key_type& key,
-	    const typename skiplist_type::floor::iterator& iter)
+	    const typename skiplist_type::floor_iterator& iter)
     {
 	return skiplist_.search_floor(std::forward<decltype(key)>(key), std::forward<decltype(iter)>(iter));
     }
     inline typename skiplist_type::store_region search_store(
 	    const typename skiplist_type::key_type& key,
-	    const typename skiplist_type::store::iterator& iter)
+	    const typename skiplist_type::store_iterator& iter)
     {
 	return skiplist_.search_store(std::forward<decltype(key)>(key), std::forward<decltype(iter)>(iter));
     }
@@ -100,16 +102,16 @@ TEST(emplacing_skiplist_test, search_floor_basic)
     uint_tester tester1(map1);
     tester1.grow_tower(0U);
     typename uint_tester::floor& floor1 = *(tester1.get_tower().begin());
-    typename uint_tester::floor::iterator current1;
-    typename uint_tester::floor::iterator next1;
-    const typename uint_tester::floor::iterator empty;
+    typename uint_tester::floor_iterator current1;
+    typename uint_tester::floor_iterator next1;
+    const typename uint_tester::floor_iterator empty;
     std::tie(current1, next1) = tester1.search_floor(0U, floor1.begin());
     EXPECT_EQ(empty, current1) << "Search of empty floor did not return empty result";
     EXPECT_EQ(empty, next1) << "Search of empty floor did not return empty result";
-    typename uint_tester::floor::iterator room1 = floor1.emplace_back(
+    typename uint_tester::floor_iterator room1 = floor1.emplace_back(
 	    1U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+	    nullptr,
+	    nullptr);
     std::tie(current1, next1) = tester1.search_floor(0U, floor1.begin());
     EXPECT_EQ(empty, current1) << "Search of floor for key less than all rooms failed";
     EXPECT_EQ(room1, next1) << "Search of floor for key less than all rooms failed";
@@ -119,10 +121,10 @@ TEST(emplacing_skiplist_test, search_floor_basic)
     std::tie(current1, next1) = tester1.search_floor(2U, floor1.begin());
     EXPECT_EQ(room1, current1) << "Search of empty floor for key greater than all rooms failed";
     EXPECT_EQ(empty, next1) << "Search of empty floor did key greater than all rooms failed";
-    typename uint_tester::floor::iterator room2 = floor1.emplace_back(
+    typename uint_tester::floor_iterator room2 = floor1.emplace_back(
 	    3U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+	    nullptr,
+	    nullptr);
     std::tie(current1, next1) = tester1.search_floor(0U, floor1.begin());
     EXPECT_EQ(empty, current1) << "Search of floor for key less than all rooms failed";
     EXPECT_EQ(room1, next1) << "Search of floor for key less than all rooms failed";
@@ -154,13 +156,13 @@ TEST(emplacing_skiplist_test, search_store_basic)
     uint_map map1(allocator1);
     uint_tester tester1(map1);
     typename uint_tester::store& store1 = tester1.get_store();
-    typename uint_tester::store::iterator current1;
-    typename uint_tester::store::iterator next1;
-    const typename uint_tester::store::iterator empty;
+    typename uint_tester::store_iterator current1;
+    typename uint_tester::store_iterator next1;
+    const typename uint_tester::store_iterator empty;
     std::tie(current1, next1) = tester1.search_store(0U, store1.begin());
     EXPECT_EQ(empty, current1) << "Search of empty store did not return empty result";
     EXPECT_EQ(empty, next1) << "Search of empty store did not return empty result";
-    typename uint_tester::store::iterator record1 = store1.emplace_back(
+    typename uint_tester::store_iterator record1 = store1.emplace_back(
 	    1U,
 	    1U);
     std::tie(current1, next1) = tester1.search_store(0U, store1.begin());
@@ -172,7 +174,7 @@ TEST(emplacing_skiplist_test, search_store_basic)
     std::tie(current1, next1) = tester1.search_store(2U, store1.begin());
     EXPECT_EQ(record1, current1) << "Search of empty store for key greater than all records failed";
     EXPECT_EQ(empty, next1) << "Search of empty store did key greater than all records failed";
-    typename uint_tester::store::iterator record2 = store1.emplace_back(
+    typename uint_tester::store_iterator record2 = store1.emplace_back(
 	    3U,
 	    3U);
     std::tie(current1, next1) = tester1.search_store(0U, store1.begin());
@@ -207,36 +209,36 @@ TEST(emplacing_skiplist_test, trace_tower_basic)
     uint_tester tester1(map1);
     tester1.grow_tower(1U);
     typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
-    typename uint_tester::floor::iterator room01 = floor0.emplace_back(
+    typename uint_tester::floor_iterator room01 = floor0.emplace_back(
 	    1U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room03 = floor0.emplace_back(
+	    nullptr,
+	    nullptr);
+    typename uint_tester::floor_iterator room03 = floor0.emplace_back(
 	    3U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room05 = floor0.emplace_back(
+	    nullptr,
+	    nullptr);
+    typename uint_tester::floor_iterator room05 = floor0.emplace_back(
 	    5U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room07 = floor0.emplace_back(
+	    nullptr,
+	    nullptr);
+    typename uint_tester::floor_iterator room07 = floor0.emplace_back(
 	    7U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room09 = floor0.emplace_back(
+	    nullptr,
+	    nullptr);
+    typename uint_tester::floor_iterator room09 = floor0.emplace_back(
 	    9U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+	    nullptr,
+	    nullptr);
     typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
-    typename uint_tester::floor::iterator room13 = floor1.emplace_back(
+    typename uint_tester::floor_iterator room13 = floor1.emplace_back(
 	    3U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>(room03.share()));
-    typename uint_tester::floor::iterator room17 = floor1.emplace_back(
+	    nullptr,
+	    room03.ptr());
+    typename uint_tester::floor_iterator room17 = floor1.emplace_back(
 	    7U,
-	    std::weak_ptr<typename uint_tester::store::iterator::node_type>(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>(room07.share()));
-    const typename uint_tester::floor::iterator empty;
+	    nullptr,
+	    room07.ptr());
+    const typename uint_tester::floor_iterator empty;
     std::vector<typename uint_tester::trace> trace0 = tester1.trace_tower(0U);
     EXPECT_EQ(2U, trace0.size()) << "Trace for key less than all rooms in the tower failed";
     EXPECT_EQ(empty, trace0[0].nearest) << "Trace for key less than all rooms in the tower failed";
@@ -323,43 +325,43 @@ TEST(emplacing_skiplist_test, find_basic)
     uint_map map1(allocator1);
     uint_tester tester1(map1);
     tester1.grow_tower(1U);
-    typename uint_tester::store::iterator record1 = tester1.get_store().emplace_back(1U, 1U);
-    typename uint_tester::store::iterator record3 = tester1.get_store().emplace_back(3U, 3U);
-    typename uint_tester::store::iterator record5 = tester1.get_store().emplace_back(5U, 5U);
-    typename uint_tester::store::iterator record6 = tester1.get_store().emplace_back(6U, 6U);
-    typename uint_tester::store::iterator record7 = tester1.get_store().emplace_back(7U, 7U);
-    typename uint_tester::store::iterator record9 = tester1.get_store().emplace_back(9U, 9U);
+    typename uint_tester::store_iterator record1 = tester1.get_store().emplace_back(1U, 1U);
+    typename uint_tester::store_iterator record3 = tester1.get_store().emplace_back(3U, 3U);
+    typename uint_tester::store_iterator record5 = tester1.get_store().emplace_back(5U, 5U);
+    typename uint_tester::store_iterator record6 = tester1.get_store().emplace_back(6U, 6U);
+    typename uint_tester::store_iterator record7 = tester1.get_store().emplace_back(7U, 7U);
+    typename uint_tester::store_iterator record9 = tester1.get_store().emplace_back(9U, 9U);
     typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
-    typename uint_tester::floor::iterator room01 = floor0.emplace_back(
+    typename uint_tester::floor_iterator room01 = floor0.emplace_back(
 	    1U,
-	    record1.share(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room03 = floor0.emplace_back(
+	    record1.ptr(),
+	    nullptr);
+    typename uint_tester::floor_iterator room03 = floor0.emplace_back(
 	    3U,
-	    record3.share(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room05 = floor0.emplace_back(
+	    record3.ptr(),
+	    nullptr);
+    typename uint_tester::floor_iterator room05 = floor0.emplace_back(
 	    5U,
-	    record5.share(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room07 = floor0.emplace_back(
+	    record5.ptr(),
+	    nullptr);
+    typename uint_tester::floor_iterator room07 = floor0.emplace_back(
 	    7U,
-	    record7.share(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
-    typename uint_tester::floor::iterator room09 = floor0.emplace_back(
+	    record7.ptr(),
+	    nullptr);
+    typename uint_tester::floor_iterator room09 = floor0.emplace_back(
 	    9U,
-	    record9.share(),
-	    std::weak_ptr<typename uint_tester::floor::iterator::node_type>());
+	    record9.ptr(),
+	    nullptr);
     typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
-    typename uint_tester::floor::iterator room13 = floor1.emplace_back(
+    typename uint_tester::floor_iterator room13 = floor1.emplace_back(
 	    3U,
-	    record3.share(),
-	    room03.share());
-    typename uint_tester::floor::iterator room17 = floor1.emplace_back(
+	    record3.ptr(),
+	    room03.ptr());
+    typename uint_tester::floor_iterator room17 = floor1.emplace_back(
 	    7U,
-	    record7.share(),
-	    room07.share());
-    const typename uint_tester::floor::iterator empty;
+	    record7.ptr(),
+	    room07.ptr());
+    const typename uint_tester::floor_iterator empty;
     EXPECT_EQ(record1, map1.find(1U)) << "Search for existing key 1 failed";
     EXPECT_EQ(tester1.get_store().end(), map1.find(2U)) << "Search for non-existant key 2 failed";
     EXPECT_EQ(record3, map1.find(3U)) << "Search for existing key 3 failed";
@@ -369,7 +371,7 @@ TEST(emplacing_skiplist_test, find_basic)
     EXPECT_EQ(record7, map1.find(7U)) << "Search for existing key 7 failed";
     EXPECT_EQ(tester1.get_store().end(), map1.find(8U)) << "Search for non-existant key 8 failed";
     EXPECT_EQ(record9, map1.find(9U)) << "Search for existing key 9 failed";
-    typename uint_tester::store::iterator record10 = tester1.get_store().emplace_back(10U, 10U);
+    typename uint_tester::store_iterator record10 = tester1.get_store().emplace_back(10U, 10U);
     EXPECT_EQ(record10, map1.find(10U)) << "Search for existing key 10 failed";
 }
 
@@ -386,18 +388,18 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
 	    });
     uint_map map1(allocator1);
     uint_tester tester1(map1);
-    typename uint_tester::store::iterator nearest_record;
-    typename uint_tester::store::iterator next_record;
-    typename uint_tester::floor::iterator nearest_room;
-    typename uint_tester::floor::iterator next_room;
-    typename uint_tester::store::iterator record4;
+    typename uint_tester::store_iterator nearest_record;
+    typename uint_tester::store_iterator next_record;
+    typename uint_tester::floor_iterator nearest_room;
+    typename uint_tester::floor_iterator next_room;
+    typename uint_tester::store_iterator record4;
     bool result4 = false;
     std::tie(record4, result4) = tester1.emplace(-1, 4U, 4U);
     std::tie(nearest_record, next_record) = tester1.search_store(4U, tester1.get_store().begin());
     EXPECT_EQ(true, result4) << "Emplace to empty skiplist when height is -1 failed";
     EXPECT_EQ(record4, nearest_record) << "Emplace to empty skiplist when height is -1 failed";
     EXPECT_EQ(tester1.get_store().end(), next_record) << "Emplace to empty skiplist when height is -1 failed";
-    typename uint_tester::store::iterator record5;
+    typename uint_tester::store_iterator record5;
     bool result5 = false;
     std::tie(record5, result5) = tester1.emplace(0, 5U, 5U);
     std::tie(nearest_record, next_record) = tester1.search_store(5U, tester1.get_store().begin());
@@ -409,7 +411,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     EXPECT_NE(floor0.end(), nearest_room) << "Emplace to skiplist with empty tower when height is 0 failed";
     EXPECT_EQ(5U, nearest_room->key) << "Emplace to skiplist with empty tower when height is 0 failed";
     EXPECT_EQ(floor0.end(), next_room) << "Emplace to skiplist with empty tower when height is 0 failed";
-    typename uint_tester::store::iterator record3;
+    typename uint_tester::store_iterator record3;
     bool result3 = false;
     std::tie(record3, result3) = tester1.emplace(1, 3U, 3U);
     std::tie(nearest_record, next_record) = tester1.search_store(3U, tester1.get_store().begin());
@@ -426,7 +428,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     EXPECT_NE(floor1.end(), nearest_room) << "Emplace to skiplist with empty top floor when height is 1 failed";
     EXPECT_EQ(3U, nearest_room->key) << "Emplace to skiplist with empty top floor when height is 1 failed";
     EXPECT_EQ(floor1.end(), next_room) << "Emplace to skiplist with empty top floor when height is 1 failed";
-    typename uint_tester::store::iterator record8;
+    typename uint_tester::store_iterator record8;
     bool result8 = false;
     std::tie(record8, result8) = tester1.emplace(-1, 8U, 8U);
     std::tie(nearest_record, next_record) = tester1.search_store(8U, tester1.get_store().begin());
@@ -439,7 +441,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     std::tie(nearest_room, next_room) = tester1.search_floor(8U, floor1.begin());
     EXPECT_NE(floor1.end(), nearest_room) << "Emplace to end of skiplist when height is -1 failed";
     EXPECT_NE(8U, nearest_room->key) << "Emplace to end of skiplist when height is -1 failed";
-    typename uint_tester::store::iterator record9;
+    typename uint_tester::store_iterator record9;
     bool result9 = false;
     std::tie(record9, result9) = tester1.emplace(0, 9U, 9U);
     std::tie(nearest_record, next_record) = tester1.search_store(9U, tester1.get_store().begin());
@@ -453,7 +455,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     std::tie(nearest_room, next_room) = tester1.search_floor(9U, floor1.begin());
     EXPECT_NE(floor1.end(), nearest_room) << "Emplace to back of bottom floor when height is 0 failed";
     EXPECT_NE(9U, nearest_room->key) << "Emplace to back of bottom floor when height is 0 failed";
-    typename uint_tester::store::iterator record7;
+    typename uint_tester::store_iterator record7;
     bool result7 = false;
     std::tie(record7, result7) = tester1.emplace(1, 7U, 7U);
     std::tie(nearest_record, next_record) = tester1.search_store(7U, tester1.get_store().begin());
@@ -469,7 +471,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     EXPECT_NE(floor1.end(), nearest_room) << "Emplace to back of top floor when height is 1 failed";
     EXPECT_EQ(7U, nearest_room->key) << "Emplace to back of top floor when height is 1 failed";
     EXPECT_EQ(floor1.end(), next_room) << "Emplace to back of top floor when height is 1 failed";
-    typename uint_tester::store::iterator record2;
+    typename uint_tester::store_iterator record2;
     bool result2 = false;
     std::tie(record2, result2) = tester1.emplace(-1, 2U, 2U);
     std::tie(nearest_record, next_record) = tester1.search_store(2U, tester1.get_store().begin());
@@ -480,7 +482,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     EXPECT_EQ(floor0.end(), nearest_room) << "Emplace to front of non-empty store when height is -1 failed";
     std::tie(nearest_room, next_room) = tester1.search_floor(2U, floor1.begin());
     EXPECT_EQ(floor1.end(), nearest_room) << "Emplace to front of non-empty store when height is -1 failed";
-    typename uint_tester::store::iterator record1;
+    typename uint_tester::store_iterator record1;
     bool result1 = false;
     std::tie(record1, result1) = tester1.emplace(0, 1U, 1U);
     std::tie(nearest_record, next_record) = tester1.search_store(1U, tester1.get_store().begin());
@@ -494,7 +496,7 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
     EXPECT_EQ(3U, next_room->key) << "Emplace to front of bottom floor when height is 0 failed";
     std::tie(nearest_room, next_room) = tester1.search_floor(1U, floor1.begin());
     EXPECT_EQ(floor1.end(), nearest_room) << "Emplace to front of bottom floor when height is 0 failed";
-    typename uint_tester::store::iterator record6;
+    typename uint_tester::store_iterator record6;
     bool result6 = false;
     std::tie(record6, result6) = tester1.emplace(-1, 6U, 6U);
     std::tie(nearest_record, next_record) = tester1.search_store(6U, tester1.get_store().begin());
@@ -592,11 +594,11 @@ TEST(emplacing_skiplist_test, erase_tower_validation)
 	    });
     uint_map map1(allocator1);
     uint_tester tester1(map1);
-    const typename uint_tester::floor::iterator empty_room;
-    typename uint_tester::floor::iterator nearest_room;
-    typename uint_tester::floor::iterator next_room;
-    typename uint_tester::store::iterator nearest_record;
-    typename uint_tester::store::iterator next_record;
+    const typename uint_tester::floor_iterator empty_room;
+    typename uint_tester::floor_iterator nearest_room;
+    typename uint_tester::floor_iterator next_room;
+    typename uint_tester::store_iterator nearest_record;
+    typename uint_tester::store_iterator next_record;
     typename uint_map::iterator record1 = std::get<0U>(tester1.emplace(0, 1U, 1U));
     typename uint_map::iterator record2 = std::get<0U>(tester1.emplace(-1, 2U, 2U));
     typename uint_map::iterator record3 = std::get<0U>(tester1.emplace(1, 3U, 3U));
