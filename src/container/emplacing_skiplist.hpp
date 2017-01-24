@@ -7,6 +7,7 @@
 #include <tuple>
 #include <vector>
 #include <turbo/container/emplacing_list.hpp>
+#include <turbo/memory/typed_allocator.hpp>
 
 namespace turbo {
 namespace container {
