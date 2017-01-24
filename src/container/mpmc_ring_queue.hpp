@@ -105,11 +105,11 @@ private:
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
-    alignas(LEVEL1_DCACHE_LINESIZE) std::vector<node_type, allocator_t<node_type>> buffer_;
-    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> head_;
-    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> tail_;
-    alignas(LEVEL1_DCACHE_LINESIZE) handle_list<mpmc_producer<value_t, allocator_t>> producer_list;
-    alignas(LEVEL1_DCACHE_LINESIZE) handle_list<mpmc_consumer<value_t, allocator_t>> consumer_list;
+    std::vector<node_type, allocator_t<node_type>> buffer_;
+    std::atomic<uint32_t> head_;
+    std::atomic<uint32_t> tail_;
+    handle_list<mpmc_producer<value_t, allocator_t>> producer_list;
+    handle_list<mpmc_consumer<value_t, allocator_t>> consumer_list;
 };
 
 template <template <class type_t> class allocator_t>
@@ -138,11 +138,11 @@ private:
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
-    alignas(LEVEL1_DCACHE_LINESIZE) std::vector<node_type, allocator_t<node_type>> buffer_;
-    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> head_;
-    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> tail_;
-    alignas(LEVEL1_DCACHE_LINESIZE) handle_list<mpmc_producer<std::uint32_t, allocator_t>> producer_list;
-    alignas(LEVEL1_DCACHE_LINESIZE) handle_list<mpmc_consumer<std::uint32_t, allocator_t>> consumer_list;
+    std::vector<node_type, allocator_t<node_type>> buffer_;
+    std::atomic<uint32_t> head_;
+    std::atomic<uint32_t> tail_;
+    handle_list<mpmc_producer<std::uint32_t, allocator_t>> producer_list;
+    handle_list<mpmc_consumer<std::uint32_t, allocator_t>> consumer_list;
 };
 
 template <template <class type_t> class allocator_t>
@@ -171,11 +171,11 @@ private:
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
-    alignas(LEVEL1_DCACHE_LINESIZE) std::vector<node_type, allocator_t<node_type>> buffer_;
-    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> head_;
-    alignas(LEVEL1_DCACHE_LINESIZE) std::atomic<uint32_t> tail_;
-    alignas(LEVEL1_DCACHE_LINESIZE) handle_list<mpmc_producer<std::uint64_t, allocator_t>> producer_list;
-    alignas(LEVEL1_DCACHE_LINESIZE) handle_list<mpmc_consumer<std::uint64_t, allocator_t>> consumer_list;
+    std::vector<node_type, allocator_t<node_type>> buffer_;
+    std::atomic<uint32_t> head_;
+    std::atomic<uint32_t> tail_;
+    handle_list<mpmc_producer<std::uint64_t, allocator_t>> producer_list;
+    handle_list<mpmc_consumer<std::uint64_t, allocator_t>> consumer_list;
 };
 
 } // namespace container
