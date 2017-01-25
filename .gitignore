@@ -39,3 +39,6 @@
 /bin
 /lib
 /include
+
+# Ctags
+tags
