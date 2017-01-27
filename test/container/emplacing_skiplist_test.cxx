@@ -788,16 +788,26 @@ TEST(emplacing_skiplist_test, erase_invalid)
     EXPECT_EQ(iter->key, 20U) << "Erase of key 9 failed";
 }
 
-TEST(emplacing_skiplist_test, perf_test_skiplist_emplace)
+class emplacing_skiplist_perf_test : public ::testing::Test
 {
+public:
     typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    tme::pool allocator1(
-	    8U,
-	    {
-		{uint_map::node_sizes[0], std::numeric_limits<std::uint16_t>::max()},
-		{uint_map::node_sizes[1], std::numeric_limits<std::uint16_t>::max()},
-		{uint_map::node_sizes[2], std::numeric_limits<std::uint16_t>::max()}
-	    });
+    emplacing_skiplist_perf_test()
+	:
+	    allocator1(
+		    8U,
+		    {
+			{uint_map::node_sizes[0], 1U << 14U, 4U},
+			{uint_map::node_sizes[1], 1U << 15U, 8U},
+			{uint_map::node_sizes[2], 64U}
+		    })
+    { }
+protected:
+    tme::pool allocator1;
+};
+
+TEST_F(emplacing_skiplist_perf_test, perf_test_skiplist_emplace)
+{
     uint_map map1(allocator1);
     std::random_device device;
     for (std::uint32_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
@@ -807,10 +817,9 @@ TEST(emplacing_skiplist_test, perf_test_skiplist_emplace)
     }
 }
 
-TEST(emplacing_skiplist_test, perf_test_map_emplace)
+TEST_F(emplacing_skiplist_perf_test, perf_test_map_emplace)
 {
-    typedef std::map<std::uint32_t, std::uint32_t> uint_map;
-    uint_map map1;
+    std::map<std::uint32_t, std::uint32_t> map1;
     std::random_device device;
     for (std::uint32_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
     {
