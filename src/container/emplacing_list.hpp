@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
-#include <stdexcept>
 #include <utility>
 #include <turbo/memory/typed_allocator.hpp>
 
@@ -141,13 +140,6 @@ public:
 };
 
 } // namespace emplacing_list_iterator
-
-class invalid_dereference : public std::out_of_range
-{
-public:
-    explicit inline invalid_dereference(const std::string& what) : out_of_range(what) { }
-    explicit inline invalid_dereference(const char* what) : out_of_range(what) { }
-};
 
 template <class value_t, class typed_allocator_t = turbo::memory::typed_allocator>
 class emplacing_list

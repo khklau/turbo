@@ -2,6 +2,7 @@
 #define TURBO_CONTAINER_EMPLACING_LIST_HXX
 
 #include <turbo/container/emplacing_list.hpp>
+#include <turbo/container/invalid_dereference_error.hpp>
 #include <turbo/toolset/extension.hpp>
 
 namespace turbo {
@@ -93,7 +94,7 @@ value_t& basic_forward<value_t, node_t>::operator*()
     }
     else
     {
-	throw invalid_dereference("cannot dereference invalid emplacing_list iterator");
+	throw invalid_dereference_error("cannot dereference invalid emplacing_list iterator");
     }
 }
 
@@ -106,7 +107,7 @@ value_t* basic_forward<value_t, node_t>::operator->()
     }
     else
     {
-	throw invalid_dereference("cannot dereference emplacing_list iterator");
+	throw invalid_dereference_error("cannot dereference emplacing_list iterator");
     }
 }
 
