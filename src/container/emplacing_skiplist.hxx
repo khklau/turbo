@@ -12,6 +12,12 @@ namespace turbo {
 namespace container {
 
 template <class k, class v, class a, class c>
+constexpr std::array<std::size_t, 3U> emplacing_skiplist<k, v, a, c>::node_sizes;
+
+template <class k, class v, class a, class c>
+constexpr std::array<std::size_t, 3U> emplacing_skiplist<k, v, a, c>::node_alignments;
+
+template <class k, class v, class a, class c>
 emplacing_skiplist<k, v, a, c>::emplacing_skiplist(
 	typed_allocator_type& allocator)
     :
