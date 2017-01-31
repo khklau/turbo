@@ -73,6 +73,10 @@ public:
 	tmp.set_tag(tag);
 	return tmp;
     }
+    inline void reset()
+    {
+	ptr_ = nullptr;
+    }
     inline void reset(value_t* ptr)
     {
 	ptr_ = ptr;
@@ -89,10 +93,12 @@ private:
     friend class std::atomic<tagged_ptr<value_t, tag_t>>;
     constexpr std::uintptr_t ptr_mask()
     {
+	// FIXME: should depend on pointer size rather than hard coding the tag area size
 	return std::numeric_limits<std::uintptr_t>::max() - 3U;
     }
     constexpr std::uintptr_t tag_mask()
     {
+	// FIXME: should depend on pointer size rather than hard coding the tag area size
 	return static_cast<std::uintptr_t>(3U);
     }
     value_t* ptr_;
