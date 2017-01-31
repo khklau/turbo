@@ -332,7 +332,7 @@ TEST(emplacing_skiplist_test, find_basic)
     typename uint_tester::store_iterator record7 = tester1.get_store().emplace_back(7U, 7U);
     typename uint_tester::store_iterator record9 = tester1.get_store().emplace_back(9U, 9U);
     typename uint_tester::floor& floor0 = *(tester1.get_tower().begin());
-    typename uint_tester::floor_iterator room01 = floor0.emplace_back(
+    floor0.emplace_back(
 	    1U,
 	    record1.ptr(),
 	    nullptr);
@@ -340,7 +340,7 @@ TEST(emplacing_skiplist_test, find_basic)
 	    3U,
 	    record3.ptr(),
 	    nullptr);
-    typename uint_tester::floor_iterator room05 = floor0.emplace_back(
+    floor0.emplace_back(
 	    5U,
 	    record5.ptr(),
 	    nullptr);
@@ -348,16 +348,16 @@ TEST(emplacing_skiplist_test, find_basic)
 	    7U,
 	    record7.ptr(),
 	    nullptr);
-    typename uint_tester::floor_iterator room09 = floor0.emplace_back(
+    floor0.emplace_back(
 	    9U,
 	    record9.ptr(),
 	    nullptr);
     typename uint_tester::floor& floor1 = *(tester1.get_tower().rbegin());
-    typename uint_tester::floor_iterator room13 = floor1.emplace_back(
+    floor1.emplace_back(
 	    3U,
 	    record3.ptr(),
 	    room03.ptr());
-    typename uint_tester::floor_iterator room17 = floor1.emplace_back(
+    floor1.emplace_back(
 	    7U,
 	    record7.ptr(),
 	    room07.ptr());
