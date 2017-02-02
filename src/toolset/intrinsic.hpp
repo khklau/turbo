@@ -47,8 +47,24 @@ inline std::uint64_t count_leading_zero(std::uint64_t input)
     return (_BitScanReverse64(result&, input) == 0) ? uint64_digits() : uint64_digits() - result + 1U;
 #else
     std::uint32_t high_result = count_leading_zero(static_cast<std::uint32_t>((input & 0xFFFFFFFF00000000) >> uint32_digits()));
-    return (high_result != uint32_digits()) ? high_result : count_leading_zero(static_cast<std::uint32_t>(input & 0x00000000FFFFFFFF)) + uint32_digits();
+    return (high_result != uint32_digits())
+	    ? high_result
+	    : count_leading_zero(static_cast<std::uint32_t>(input & 0x00000000FFFFFFFF)) + uint32_digits();
 #endif
+}
+
+inline std::uint32_t count_leading_zero(std::uint8_t input)
+{
+    return count_leading_zero(static_cast<std::uint32_t>(input))
+	    + std::numeric_limits<std::uint8_t>::digits
+	    - std::numeric_limits<std::uint32_t>::digits;
+}
+
+inline std::uint32_t count_leading_zero(std::uint16_t input)
+{
+    return count_leading_zero(static_cast<std::uint32_t>(input))
+	    + std::numeric_limits<std::uint16_t>::digits
+	    - std::numeric_limits<std::uint32_t>::digits;
 }
 
 } // namespace toolset
