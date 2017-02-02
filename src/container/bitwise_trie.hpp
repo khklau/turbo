@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <array>
 #include <iterator>
+#include <tuple>
 #include <turbo/memory/tagged_ptr.hpp>
 #include <turbo/memory/typed_allocator.hpp>
 
@@ -13,10 +14,11 @@ namespace container {
 
 namespace bitwise_trie_iterator {
 
-template <class value_t, class node_t>
+template <class key_t, class value_t, class node_t>
 class basic_forward : public std::bidirectional_iterator_tag
 {
 public:
+    typedef key_t key_type;
     typedef value_t value_type;
     typedef value_t* pointer;
     typedef value_t& reference;
@@ -28,11 +30,11 @@ public:
     basic_forward(const basic_forward& other);
     basic_forward(basic_forward&& other);
     template <class other_value_t>
-    basic_forward(const basic_forward<other_value_t, node_t>& other);
+    basic_forward(const basic_forward<key_type, other_value_t, node_type>& other);
     basic_forward& operator=(const basic_forward& other);
     basic_forward& operator=(basic_forward&& other);
     template <class other_value_t>
-    basic_forward& operator=(const basic_forward<other_value_t, node_t>& other);
+    basic_forward& operator=(const basic_forward<key_type, other_value_t, node_type>& other);
     basic_forward& operator=(node_type* other);
     ~basic_forward() = default;
     bool operator==(const basic_forward& other) const;
@@ -45,15 +47,17 @@ public:
     basic_forward operator--(int);
     inline node_type* ptr() const { return pointer_; }
     inline bool is_valid() const { return pointer_ != nullptr; }
+    key_type get_key() const;
 private:
     node_type* pointer_;
 };
 
-template <class value_t, class node_t>
-class basic_reverse : private basic_forward<value_t, node_t>
+template <class key_t, class value_t, class node_t>
+class basic_reverse : private basic_forward<key_t, value_t, node_t>
 {
 public:
-    typedef basic_forward<value_t, node_t> base_iterator;
+    typedef basic_forward<key_t, value_t, node_t> base_iterator;
+    typedef key_t key_type;
     typedef value_t value_type;
     typedef value_t* pointer;
     typedef value_t& reference;
@@ -74,9 +78,9 @@ public:
 	    base_iterator(std::forward<base_iterator>(other))
     { }
     template <class other_value_t>
-    inline basic_reverse(const basic_reverse<other_value_t, node_t>& other)
+    inline basic_reverse(const basic_reverse<key_type, other_value_t, node_type>& other)
 	:
-	    base_iterator(static_cast<const typename basic_reverse<other_value_t, node_t>::base_iterator&>(other))
+	    base_iterator(static_cast<const typename basic_reverse<key_type, other_value_t, node_type>::base_iterator&>(other))
     { }
     basic_reverse& operator=(const basic_reverse& other)
     {
@@ -88,9 +92,10 @@ public:
 	return *this;
     }
     template <class other_value_t>
-    basic_reverse& operator=(const basic_reverse<other_value_t, node_t>& other)
+    basic_reverse& operator=(const basic_reverse<key_type, other_value_t, node_type>& other)
     {
-	return static_cast<const base_iterator&>(*this) = static_cast<const typename basic_reverse<other_value_t, node_t>::base_iterator&>(other);
+	return static_cast<const base_iterator&>(*this) =
+		static_cast<const typename basic_reverse<key_type, other_value_t, node_type>::base_iterator&>(other);
     }
     basic_reverse& operator=(node_type* other)
     {
@@ -127,7 +132,9 @@ public:
 	base_iterator::operator++(0);
 	return *this;
     }
+    using base_iterator::ptr;
     using base_iterator::is_valid;
+    using base_iterator::get_key;
 };
 
 } // namespace bitwise_trie_iterator
@@ -140,6 +147,9 @@ public:
 };
 
 template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator>
+class bitwise_trie_tester;
+
+template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator>
 class bitwise_trie final
 {
 private:
@@ -149,17 +159,10 @@ public:
     typedef key_t key_type;
     typedef value_t value_type;
     typedef allocator_t allocator_type;
-    struct record
-    {
-	template <class key_arg_t, class... value_args_t>
-	record(const key_arg_t& key_arg, value_args_t&&... value_args);
-	key_t key;
-	value_t value;
-    };
-    typedef bitwise_trie_iterator::basic_forward<const record, leaf> const_iterator;
-    typedef bitwise_trie_iterator::basic_forward<record, leaf> iterator;
-    typedef bitwise_trie_iterator::basic_reverse<const record, leaf> const_reverse_iterator;
-    typedef bitwise_trie_iterator::basic_reverse<record, leaf> reverse_iterator;
+    typedef bitwise_trie_iterator::basic_forward<key_type, const value_type, leaf> const_iterator;
+    typedef bitwise_trie_iterator::basic_forward<key_type, value_type, leaf> iterator;
+    typedef bitwise_trie_iterator::basic_reverse<key_type, const value_type, leaf> const_reverse_iterator;
+    typedef bitwise_trie_iterator::basic_reverse<key_type, value_type, leaf> reverse_iterator;
     static const std::size_t radix = 2U;
     static constexpr std::array<std::size_t, 2U> node_sizes
     {
@@ -175,12 +178,23 @@ public:
     {
 	return sizeof(key_type) * 8U;
     }
+    static constexpr std::size_t radix_bit_size()
+    {
+	return static_cast<std::size_t>(std::trunc(
+		std::log(static_cast<double>(radix) /
+		std::log(static_cast<double>(2U)))));
+    }
+    static constexpr key_type radix_mask()
+    {
+	return ((1U << radix_bit_size()) - 1U) << (key_bit_size() - radix_bit_size());
+    }
     static constexpr std::size_t depth()
     {
 	return static_cast<std::size_t>(std::ceil(
 		std::log(static_cast<double>(key_bit_size()) /
 		std::log(static_cast<double>(radix)))));
     }
+    static_assert(radix_bit_size() < key_bit_size(), "radix must be smaller than key");
     bitwise_trie(allocator_type& allocator);
     inline std::size_t size() const noexcept
     {
@@ -218,13 +232,16 @@ public:
     {
 	return const_reverse_iterator();
     }
+    template <class... value_args_t>
+    std::tuple<iterator, bool> emplace(key_type key, value_args_t&&... value_args);
+    friend class bitwise_trie_tester<key_type, value_type, allocator_type>;
 private:
     struct leaf
     {
-	template <class key_arg_t, class... value_args_t>
-	leaf(branch* a_branch, const key_arg_t& key_arg, value_args_t&&... value_args);
-	const branch* parent;
-	record value;
+	template <class... value_args_t>
+	leaf(key_type key, value_args_t&&... value_args);
+	const key_type key;
+	value_type value;
     };
     enum class child_type
     {
@@ -237,16 +254,20 @@ private:
 	branch();
 	std::array<branch_ptr, radix> children;
     };
-    leaf* min();
-    leaf* max();
-    template <class key_arg_t, class... value_args_t>
-    leaf* create_leaf(branch* a_branch, const key_arg_t& key_arg, value_args_t&&... value_args);
+    static inline key_type get_prefix(key_type key)
+    {
+	return (key & radix_mask()) >> (key_bit_size() - radix_bit_size());
+    }
+    leaf* min() const;
+    leaf* max() const;
+    template <class... value_args_t>
+    leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
     void destroy_leaf(leaf* pointer);
     branch* create_branch();
     void destroy_branch(branch* pointer);
     allocator_type& allocator_;
     std::size_t size_;
-    branch* root_;
+    branch_ptr root_;
     std::array<branch*, key_bit_size()> leading_zero_index_;
 };
 
