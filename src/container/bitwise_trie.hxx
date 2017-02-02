@@ -170,8 +170,7 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
 	size_(0U),
 	root_()
 {
-    branch_ptr empty;
-    empty.set_tag(child_type::branch);
+    branch_ptr empty(child_type::branch);
     std::fill_n(leading_zero_index_.begin(), leading_zero_index_.max_size(), empty);
 }
 
@@ -204,12 +203,10 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	if (current_branch->is_empty())
 	{
 	    branch* new_branch = create_branch();
-	    current_branch->reset(new_branch);
-	    current_branch->set_tag(child_type::branch);
+	    current_branch->reset(new_branch, child_type::branch);
 	    if (trace_prefix == 0U && 1 < branch_level)
 	    {
-		leading_zero_index_[branch_level - 1U].reset(new_branch);
-		leading_zero_index_[branch_level - 1U].set_tag(child_type::branch);
+		leading_zero_index_[branch_level - 1U].reset(new_branch, child_type::branch);
 	    }
 	}
 	current_branch = &((*current_branch)->children[branch_prefix]);
@@ -219,8 +216,7 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
     if (current_branch->is_empty())
     {
 	leaf* new_leaf = create_leaf(key, std::forward<value_args_t>(value_args)...);
-	current_branch->reset(static_cast<branch*>(static_cast<void*>(new_leaf)));
-	current_branch->set_tag(child_type::leaf);
+	current_branch->reset(static_cast<branch*>(static_cast<void*>(new_leaf)), child_type::leaf);
 	++size_;
 	return std::make_tuple(iterator(new_leaf), true);
     }
@@ -245,8 +241,7 @@ bitwise_trie<k, v, a>::leaf::leaf(typename bitwise_trie<k, v ,a>::key_type key_a
 template <class k, class v, class a>
 bitwise_trie<k, v, a>::branch::branch()
 {
-    branch_ptr empty;
-    empty.set_tag(child_type::branch);
+    branch_ptr empty(child_type::branch);
     std::fill_n(children.begin(), children.max_size(), empty);
 }
 

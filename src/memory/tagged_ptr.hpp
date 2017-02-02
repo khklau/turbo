@@ -19,17 +19,13 @@ public:
 };
 
 template <class value_t, class tag_t>
-class tagged_ptr
+class tagged_ptr final
 {
 public:
     typedef value_t value_type;
     typedef tag_t tag_type;
     typedef value_t* value_ptr_type;
-    inline tagged_ptr() noexcept
-	:
-	    ptr_(nullptr)
-    { }
-    inline explicit tagged_ptr(value_t* ptr)
+    inline explicit tagged_ptr(value_type* ptr)
 	:
 	    ptr_(ptr)
     {
@@ -38,6 +34,20 @@ public:
 	    throw unaligned_ptr_error("Given pointer is not a multiple of 4");
 	}
     }
+    inline explicit tagged_ptr(value_type* ptr, tag_type tag)
+	:
+	    tagged_ptr(ptr)
+    {
+	set_tag(tag);
+    }
+    inline explicit tagged_ptr(tag_type tag) noexcept
+	:
+	    tagged_ptr(nullptr, tag)
+    { }
+    inline tagged_ptr() noexcept
+	:
+	    tagged_ptr(nullptr)
+    { }
     tagged_ptr(const tagged_ptr<value_t, tag_t>& other) = default;
     tagged_ptr(tagged_ptr<value_t, tag_t>&& other) = default;
     tagged_ptr<value_t, tag_t>& operator=(const tagged_ptr<value_t, tag_t>& other) = default;
@@ -80,6 +90,16 @@ public:
     inline void reset(value_t* ptr)
     {
 	ptr_ = ptr;
+    }
+    inline void reset(tag_type tag)
+    {
+	ptr_ = nullptr;
+	set_tag(tag);
+    }
+    inline void reset(value_t* ptr, tag_type tag)
+    {
+	ptr_ = ptr;
+	set_tag(tag);
     }
     inline value_t& operator*()
     {
