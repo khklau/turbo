@@ -2,7 +2,9 @@
 #define TURBO_CONTAINER_BITWISE_TRIE_HXX
 
 #include <turbo/container/bitwise_trie.hpp>
+#include <algorithm>
 #include <turbo/container/invalid_dereference_error.hpp>
+#include <turbo/toolset/intrinsic.hpp>
 
 namespace turbo {
 namespace container {
@@ -168,10 +170,9 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
 	size_(0U),
 	root_()
 {
-    for (auto&& index_ptr: leading_zero_index_)
-    {
-	index_ptr = nullptr;
-    }
+    branch_ptr empty;
+    empty.set_tag(child_type::branch);
+    std::fill_n(leading_zero_index_.begin(), leading_zero_index_.max_size(), empty);
 }
 
 template <class k, class v, class a>
@@ -180,19 +181,40 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	typename bitwise_trie<k, v ,a>::key_type key,
 	value_args_t&&... value_args)
 {
-    branch_ptr* current_branch = &root_;
+    std::size_t zero_count = turbo::toolset::count_leading_zero(key);
+    branch_ptr& shortcut = leading_zero_index_[zero_count];
+    branch_ptr* current_branch = nullptr;
     key_type current_key = key;
-    key_type branch_prefix = key;
-    for (std::size_t branch_level = 1U; branch_level < depth() ; ++branch_level)
+    std::size_t branch_level = 1U;
+    if (shortcut.is_empty() || zero_count == 0U || zero_count == key_bit_size())
     {
+	current_branch = &root_;
+    }
+    else
+    {
+	current_branch = &shortcut;
+	branch_level = zero_count + 1U;
+	current_key = current_key << (zero_count * radix_bit_size());
+    }
+    key_type trace_prefix = 0U;
+    key_type branch_prefix = key;
+    for (; branch_level <= depth() ; ++branch_level)
+    {
+	branch_prefix = get_prefix(current_key);
 	if (current_branch->is_empty())
 	{
-	    current_branch->reset(create_branch());
+	    branch* new_branch = create_branch();
+	    current_branch->reset(new_branch);
 	    current_branch->set_tag(child_type::branch);
+	    if (trace_prefix == 0U && 1 < branch_level)
+	    {
+		leading_zero_index_[branch_level - 1U].reset(new_branch);
+		leading_zero_index_[branch_level - 1U].set_tag(child_type::branch);
+	    }
 	}
-	branch_prefix = get_prefix(current_key);
 	current_branch = &((*current_branch)->children[branch_prefix]);
 	current_key = current_key << radix_bit_size();
+	trace_prefix = (trace_prefix << radix_bit_size()) + branch_prefix;
     }
     if (current_branch->is_empty())
     {
@@ -223,11 +245,9 @@ bitwise_trie<k, v, a>::leaf::leaf(typename bitwise_trie<k, v ,a>::key_type key_a
 template <class k, class v, class a>
 bitwise_trie<k, v, a>::branch::branch()
 {
-    for (auto&& child_ptr: children)
-    {
-	child_ptr.reset();
-	child_ptr.set_tag(child_type::branch);
-    }
+    branch_ptr empty;
+    empty.set_tag(child_type::branch);
+    std::fill_n(children.begin(), children.max_size(), empty);
 }
 
 template <class k, class v, class a>
@@ -241,6 +261,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::min() const
     while (!current.is_empty())
     {
 	auto child_iter = current->children.begin();
+	auto end = current->children.end();
 	while (child_iter != current->children.end())
 	{
 	    if (!child_iter->is_empty() && child_iter->get_tag() == child_type::leaf)
@@ -257,7 +278,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::min() const
 		++child_iter;
 	    }
 	}
-	if (child_iter == current->children.end())
+	if (child_iter == end)
 	{
 	    // every branch should have at least 1 child so this means the trie is invalid
 	    throw invalid_bitwise_trie_error("branch has no children");
@@ -277,6 +298,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::max() const
     while (!current.is_empty())
     {
 	auto child_iter = current->children.rbegin();
+	auto end = current->children.rend();
 	while (child_iter != current->children.rend())
 	{
 	    if (!child_iter->is_empty() && child_iter->get_tag() == child_type::leaf)
@@ -293,7 +315,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::max() const
 		++child_iter;
 	    }
 	}
-	if (child_iter == current->children.rend())
+	if (child_iter == end)
 	{
 	    // every branch should have at least 1 child so this means the trie is invalid
 	    throw invalid_bitwise_trie_error("branch has no children");

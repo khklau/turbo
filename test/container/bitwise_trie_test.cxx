@@ -1,5 +1,6 @@
 #include <turbo/container/bitwise_trie.hpp>
 #include <turbo/container/bitwise_trie.hxx>
+#include <map>
 #include <gtest/gtest.h>
 #include <turbo/memory/pool.hpp>
 #include <turbo/memory/pool.hxx>
@@ -45,7 +46,6 @@ private:
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
 
-/*
 TEST(bitwise_trie_test, get_prefix)
 {
     typedef tco::bitwise_trie_tester<std::uint32_t, std::string, tme::pool> map_tester;
@@ -64,7 +64,6 @@ TEST(bitwise_trie_test, empty_trie)
     EXPECT_EQ(map1.cend(), map1.cbegin()) << "The cbegin and cend iterators of an empty trie are not equal";
     EXPECT_EQ(map1.crend(), map1.crbegin()) << "The crbegin and crend iterators of an empty trie are not equal";
 }
-*/
 
 TEST(bitwise_trie_test, emplace_basic)
 {
@@ -75,7 +74,7 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_TRUE(std::get<1>(result1)) << "Emplace failed";
     EXPECT_NE(map1.end(), std::get<0>(result1)) << "Emplace failed";
     EXPECT_EQ(std::string("bar"), *std::get<0>(result1)) << "Emplace failed";
-    EXPECT_EQ(1U, map1.size()) << "Size of skiplist after 1 emplace is not 1";
+    EXPECT_EQ(1U, map1.size()) << "Size of trie after 1 emplace is not 1";
     /*
     EXPECT_NE(map1.end(), map1.find(64U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("bar"), *map1.find(64U)) << "Could not find just emplaced key & value";
@@ -88,7 +87,7 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_TRUE(std::get<1>(result2)) << "Emplace failed";
     EXPECT_NE(map1.end(), std::get<0>(result2)) << "Emplace failed";
     EXPECT_EQ(std::string("foo"), *std::get<0>(result2)) << "Emplace failed";
-    EXPECT_EQ(2U, map1.size()) << "Size of skiplist after 2 emplace is not 2";
+    EXPECT_EQ(2U, map1.size()) << "Size of trie after 2 emplace is not 2";
     /*
     EXPECT_NE(map1.end(), map1.find(32U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("foo"), map1.find(32U)->value) << "Could not find just emplaced key & value";
@@ -101,7 +100,7 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_TRUE(std::get<1>(result3)) << "Emplace failed";
     EXPECT_NE(map1.end(), std::get<0>(result3)) << "Emplace failed";
     EXPECT_EQ(std::string("blah"), *std::get<0>(result3)) << "Emplace failed";
-    EXPECT_EQ(3U, map1.size()) << "Size of skiplist after 3 emplace is not 3";
+    EXPECT_EQ(3U, map1.size()) << "Size of trie after 3 emplace is not 3";
     /*
     EXPECT_NE(map1.end(), map1.find(128U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("blah"), map1.find(128U)->value) << "Could not find just emplaced key & value";
@@ -124,4 +123,38 @@ TEST(bitwise_trie_test, emplace_basic)
     ++iter2;
     EXPECT_EQ(std::string("foo"), iter2->value) << "Just emplaced key & value is not ordered";
     */
+}
+
+class bitwise_trie_perf_test : public ::testing::Test
+{
+public:
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_map;
+    bitwise_trie_perf_test()
+	:
+	    allocator1(8U, { {uint_map::node_sizes[0], (1U << 16U) - 1U + (1U << 15U), 4U} })
+    { }
+protected:
+    tme::pool allocator1;
+};
+
+TEST_F(bitwise_trie_perf_test, perf_test_trie_emplace)
+{
+    uint_map map1(allocator1);
+    std::random_device device;
+    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	std::uint64_t value = device() >> 16U;
+	map1.emplace(value, value);
+    }
+}
+
+TEST_F(bitwise_trie_perf_test, perf_test_map_emplace)
+{
+    std::map<std::uint64_t, std::uint64_t> map1;
+    std::random_device device;
+    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	std::uint64_t value = device() >> 16U;
+	map1.emplace(value, value);
+    }
 }

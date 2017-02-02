@@ -6,6 +6,7 @@
 #include <array>
 #include <iterator>
 #include <tuple>
+#include <turbo/math/const_expr.hpp>
 #include <turbo/memory/tagged_ptr.hpp>
 #include <turbo/memory/typed_allocator.hpp>
 
@@ -180,7 +181,7 @@ public:
     }
     static constexpr std::size_t radix_bit_size()
     {
-	return static_cast<std::size_t>(std::trunc(
+	return static_cast<std::size_t>(turbo::math::const_expr::trunc(
 		std::log(static_cast<double>(radix) /
 		std::log(static_cast<double>(2U)))));
     }
@@ -190,9 +191,7 @@ public:
     }
     static constexpr std::size_t depth()
     {
-	return static_cast<std::size_t>(std::ceil(
-		std::log(static_cast<double>(key_bit_size()) /
-		std::log(static_cast<double>(radix)))));
+	return key_bit_size() / radix_bit_size();
     }
     static_assert(radix_bit_size() < key_bit_size(), "radix must be smaller than key");
     bitwise_trie(allocator_type& allocator);
@@ -268,7 +267,7 @@ private:
     allocator_type& allocator_;
     std::size_t size_;
     branch_ptr root_;
-    std::array<branch*, key_bit_size()> leading_zero_index_;
+    std::array<branch_ptr, depth()> leading_zero_index_;
 };
 
 } // namespace container
