@@ -184,7 +184,6 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
     branch_ptr& shortcut = leading_zero_index_[zero_count];
     branch_ptr* current_branch = nullptr;
     uint_trie_prefix<key_type, radix> prefix(key);
-    std::size_t branch_level = 0U;
     if (shortcut.is_empty() || zero_count == trie_prefix::key_bit_size())
     {
 	current_branch = &root_;
@@ -192,10 +191,9 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
     else
     {
 	current_branch = &shortcut;
-	branch_level = zero_count;
 	prefix = prefix << zero_count;
     }
-    for (; branch_level < depth() ; ++branch_level)
+    for (; prefix.get_usage_count() < depth(); prefix = prefix << 1U)
     {
 	if (current_branch->is_empty())
 	{
@@ -203,11 +201,10 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	    current_branch->reset(new_branch, child_type::branch);
 	    if (prefix.get_common_prefix() == 0U)
 	    {
-		leading_zero_index_[branch_level].reset(new_branch, child_type::branch);
+		leading_zero_index_[prefix.get_usage_count()].reset(new_branch, child_type::branch);
 	    }
 	}
 	current_branch = &((*current_branch)->children[prefix.get_next_prefix()]);
-	prefix = prefix << 1U;
     }
     if (current_branch->is_empty())
     {
