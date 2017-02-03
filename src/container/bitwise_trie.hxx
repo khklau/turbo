@@ -184,29 +184,29 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
     branch_ptr& shortcut = leading_zero_index_[zero_count];
     branch_ptr* current_branch = nullptr;
     key_type current_key = key;
-    std::size_t branch_level = 1U;
-    if (shortcut.is_empty() || zero_count == 0U || zero_count == key_bit_size())
+    std::size_t branch_level = 0U;
+    if (shortcut.is_empty() || zero_count == key_bit_size())
     {
 	current_branch = &root_;
     }
     else
     {
 	current_branch = &shortcut;
-	branch_level = zero_count + 1U;
+	branch_level = zero_count;
 	current_key = current_key << (zero_count * radix_bit_size());
     }
     key_type trace_prefix = 0U;
     key_type branch_prefix = key;
-    for (; branch_level <= depth() ; ++branch_level)
+    for (; branch_level < depth() ; ++branch_level)
     {
 	branch_prefix = get_prefix(current_key);
 	if (current_branch->is_empty())
 	{
 	    branch* new_branch = create_branch();
 	    current_branch->reset(new_branch, child_type::branch);
-	    if (trace_prefix == 0U && 1 < branch_level)
+	    if (trace_prefix == 0U)
 	    {
-		leading_zero_index_[branch_level - 1U].reset(new_branch, child_type::branch);
+		leading_zero_index_[branch_level].reset(new_branch, child_type::branch);
 	    }
 	}
 	current_branch = &((*current_branch)->children[branch_prefix]);
