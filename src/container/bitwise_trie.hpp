@@ -1,12 +1,11 @@
 #ifndef TURBO_CONTAINER_BITWISE_TRIE_HPP
 #define TURBO_CONTAINER_BITWISE_TRIE_HPP
 
-#include <cmath>
 #include <cstdint>
 #include <array>
 #include <iterator>
 #include <tuple>
-#include <turbo/math/const_expr.hpp>
+#include <turbo/container/trie_prefix.hpp>
 #include <turbo/memory/tagged_ptr.hpp>
 #include <turbo/memory/typed_allocator.hpp>
 
@@ -175,25 +174,6 @@ public:
 	alignof(leaf),
 	alignof(branch)
     };
-    static constexpr std::size_t key_bit_size()
-    {
-	return sizeof(key_type) * 8U;
-    }
-    static constexpr std::size_t radix_bit_size()
-    {
-	return static_cast<std::size_t>(turbo::math::const_expr::trunc(
-		std::log(static_cast<double>(radix) /
-		std::log(static_cast<double>(2U)))));
-    }
-    static constexpr key_type radix_mask()
-    {
-	return ((1U << radix_bit_size()) - 1U) << (key_bit_size() - radix_bit_size());
-    }
-    static constexpr std::size_t depth()
-    {
-	return key_bit_size() / radix_bit_size();
-    }
-    static_assert(radix_bit_size() < key_bit_size(), "radix must be smaller than key");
     bitwise_trie(allocator_type& allocator);
     inline std::size_t size() const noexcept
     {
@@ -235,6 +215,13 @@ public:
     std::tuple<iterator, bool> emplace(key_type key, value_args_t&&... value_args);
     friend class bitwise_trie_tester<key_type, value_type, allocator_type>;
 private:
+    enum class child_type
+    {
+	branch = 0U,
+	leaf
+    };
+    typedef turbo::memory::tagged_ptr<branch, child_type> branch_ptr;
+    typedef uint_trie_prefix<key_type, radix> trie_prefix;
     struct leaf
     {
 	template <class... value_args_t>
@@ -242,20 +229,14 @@ private:
 	const key_type key;
 	value_type value;
     };
-    enum class child_type
-    {
-	branch = 0U,
-	leaf
-    };
-    typedef turbo::memory::tagged_ptr<branch, child_type> branch_ptr;
     struct branch
     {
 	branch();
 	std::array<branch_ptr, radix> children;
     };
-    static inline key_type get_prefix(key_type key)
+    static constexpr std::size_t depth()
     {
-	return (key & radix_mask()) >> (key_bit_size() - radix_bit_size());
+	return trie_prefix::key_bit_size() / trie_prefix::radix_bit_size();
     }
     leaf* min() const;
     leaf* max() const;

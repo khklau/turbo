@@ -46,15 +46,6 @@ private:
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
 
-TEST(bitwise_trie_test, get_prefix)
-{
-    typedef tco::bitwise_trie_tester<std::uint32_t, std::string, tme::pool> map_tester;
-    EXPECT_EQ(32U, map_tester::trie_type::key_bit_size()) << "key_bit_size calculation is wrong";
-    EXPECT_EQ(1U, map_tester::trie_type::radix_bit_size()) << "radix_bit_size calculation is wrong";
-    EXPECT_EQ(1U, map_tester::get_prefix(0xf0000000U)) << "get_prefix failed when most significant bit is 1";
-    EXPECT_EQ(0U, map_tester::get_prefix(0x0000000fU)) << "get_prefix failed when most significant bit is 1";
-}
-
 TEST(bitwise_trie_test, empty_trie)
 {
     typedef tco::bitwise_trie<std::uint32_t, std::string, tme::pool> string_map;

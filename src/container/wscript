@@ -16,7 +16,8 @@ publicHeaders = [
     'mpmc_ring_queue.hpp',
     'mpmc_ring_queue.hxx',
     'spsc_ring_queue.hpp',
-    'spsc_ring_queue.hxx']
+    'spsc_ring_queue.hxx',
+    'trie_prefix.hpp']
 
 def name(context):
     return os.path.basename(str(context.path))
