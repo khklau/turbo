@@ -168,11 +168,9 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
     :
 	allocator_(allocator),
 	size_(0U),
-	root_()
-{
-    branch_ptr empty(child_type::branch);
-    std::fill_n(leading_zero_index_.begin(), leading_zero_index_.max_size(), empty);
-}
+	root_(),
+	index_(root_)
+{ }
 
 template <class k, class v, class a>
 template <class... value_args_t>
@@ -180,20 +178,10 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	typename bitwise_trie<k, v ,a>::key_type key,
 	value_args_t&&... value_args)
 {
-    std::size_t zero_count = turbo::toolset::count_leading_zero(key);
-    branch_ptr& shortcut = leading_zero_index_[zero_count];
     branch_ptr* current_branch = nullptr;
-    uint_trie_prefix<key_type, radix> prefix(key);
-    if (shortcut.is_empty() || zero_count == trie_prefix::key_bit_size())
-    {
-	current_branch = &root_;
-    }
-    else
-    {
-	current_branch = &shortcut;
-	prefix = prefix << zero_count;
-    }
-    for (; prefix.get_usage_count() < depth(); prefix = prefix << 1U)
+    trie_prefix prefix(key);
+    std::tie(current_branch, prefix) = index_.search(key);
+    for (; prefix.get_usage_count() < trie_prefix::max_usage(); prefix = prefix << 1U)
     {
 	if (current_branch->is_empty())
 	{
@@ -201,7 +189,7 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	    current_branch->reset(new_branch, child_type::branch);
 	    if (prefix.get_common_prefix() == 0U)
 	    {
-		leading_zero_index_[prefix.get_usage_count()].reset(new_branch, child_type::branch);
+		index_.insert(new_branch, prefix);
 	    }
 	}
 	current_branch = &((*current_branch)->children[prefix.get_next_prefix()]);
@@ -236,6 +224,40 @@ bitwise_trie<k, v, a>::branch::branch()
 {
     branch_ptr empty(child_type::branch);
     std::fill_n(children.begin(), children.max_size(), empty);
+}
+
+template <class k, class v, class a>
+bitwise_trie<k, v, a>::leading_zero_index::leading_zero_index(branch_ptr& root)
+    :
+	root_(root)
+{
+    branch_ptr empty(child_type::branch);
+    std::fill_n(index_.begin(), index_.max_size(), empty);
+}
+
+template <class k, class v, class a>
+std::tuple<typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k, v, a>::trie_prefix> bitwise_trie<k, v, a>::leading_zero_index::search(
+	key_type key)
+{
+    std::size_t zero_count = turbo::toolset::count_leading_zero(key);
+    branch_ptr& shortcut = index_[zero_count];
+    trie_prefix prefix(key);
+    if (shortcut.is_empty() || zero_count == trie_prefix::key_bit_size())
+    {
+	return std::make_tuple(&root_, prefix);
+    }
+    else
+    {
+	return std::make_tuple(&shortcut, prefix << zero_count);
+    }
+}
+
+template <class k, class v, class a>
+void bitwise_trie<k, v, a>::leading_zero_index::insert(
+	branch* branch,
+	const trie_prefix& prefix)
+{
+    index_[prefix.get_usage_count()].reset(branch, child_type::branch);
 }
 
 template <class k, class v, class a>

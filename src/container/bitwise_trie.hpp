@@ -234,10 +234,19 @@ private:
 	branch();
 	std::array<branch_ptr, radix> children;
     };
-    static constexpr std::size_t depth()
+    class leading_zero_index
     {
-	return trie_prefix::key_bit_size() / trie_prefix::radix_bit_size();
-    }
+    public:
+	leading_zero_index(branch_ptr& root);
+	leading_zero_index(const leading_zero_index&) = delete;
+	~leading_zero_index() = default;
+	leading_zero_index& operator=(const leading_zero_index&) = delete;
+	inline std::tuple<branch_ptr*, trie_prefix> search(key_type key);
+	void insert(branch* branch, const trie_prefix& prefix);
+    private:
+	branch_ptr& root_;
+	std::array<branch_ptr, trie_prefix::max_usage()> index_;
+    };
     leaf* min() const;
     leaf* max() const;
     template <class... value_args_t>
@@ -248,7 +257,7 @@ private:
     allocator_type& allocator_;
     std::size_t size_;
     branch_ptr root_;
-    std::array<branch_ptr, depth()> leading_zero_index_;
+    leading_zero_index index_;
 };
 
 } // namespace container
