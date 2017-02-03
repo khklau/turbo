@@ -27,6 +27,10 @@ public:
     {
 	return ((1U << radix_bit_size()) - 1U) << (key_bit_size() - radix_bit_size());
     }
+    static constexpr std::size_t max_usage()
+    {
+	return key_bit_size() / radix_bit_size();
+    }
     static_assert(radix_bit_size() < key_bit_size(), "radix must be smaller than key");
     uint_trie_prefix() = delete;
     inline uint_trie_prefix(key_type key)
