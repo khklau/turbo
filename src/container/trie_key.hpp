@@ -44,12 +44,14 @@ public:
     inline uint_trie_key(uint_type key)
 	:
 	    key_(key),
-	    push_cursor_(0U),
+	    push_cursor_(key_bit_size()),
 	    pop_cursor_(0U)
     { }
     inline uint_trie_key()
 	:
-	    uint_trie_key(0U)
+	    key_(0U),
+	    push_cursor_(0U),
+	    pop_cursor_(0U)
     { }
     inline uint_trie_key(const uint_trie_key& other) = default;
     ~uint_trie_key() = default;
@@ -90,7 +92,13 @@ public:
     }
     inline std::tuple<pop_result, uint_type> pop()
     {
-	return std::make_tuple(pop_result::success, 0U);
+	if (is_empty())
+	{
+	    return std::make_tuple(pop_result::key_empty, 0U);
+	}
+	uint_type prefix = (key_ & radix_mask(pop_cursor_)) >> (key_bit_size() - radix_bit_size() - pop_cursor_);
+	pop_cursor_ += radix_bit_size();
+	return std::make_tuple(pop_result::success, prefix);
     }
 private:
     inline uint_type predecessor_mask(std::uint8_t cursor) const
