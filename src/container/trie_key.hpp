@@ -18,12 +18,12 @@ class uint_trie_key
 public:
     typedef uint_t uint_type;
     static_assert(!std::numeric_limits<uint_type>::is_signed, "uint_t template parameter must be an unsigned integral");
-    enum class push_result
+    enum class write_result
     {
 	success = 0U,
 	key_full
     };
-    enum class pop_result
+    enum class read_result
     {
 	success = 0U,
 	prefix_unavailable
@@ -44,61 +44,61 @@ public:
     inline uint_trie_key(uint_type key)
 	:
 	    key_(key),
-	    push_cursor_(key_bit_size()),
-	    pop_cursor_(0U)
+	    write_cursor_(key_bit_size()),
+	    read_cursor_(0U)
     { }
     inline uint_trie_key()
 	:
 	    key_(0U),
-	    push_cursor_(0U),
-	    pop_cursor_(0U)
+	    write_cursor_(0U),
+	    read_cursor_(0U)
     { }
     inline uint_trie_key(const uint_trie_key& other) = default;
     ~uint_trie_key() = default;
     uint_trie_key& operator=(const uint_trie_key& other) = default;
     inline bool is_unavailable() const
     {
-	return push_cursor_ == pop_cursor_;
+	return write_cursor_ == read_cursor_;
     }
     inline bool is_full() const
     {
-	return push_cursor_ == key_bit_size();
+	return write_cursor_ == key_bit_size();
     }
-    inline std::tuple<get_result, uint_type> get_pushed_prefixes() const
+    inline std::tuple<get_result, uint_type> get_written_prefixes() const
     {
-	if (TURBO_UNLIKELY(push_cursor_ == 0U))
+	if (TURBO_UNLIKELY(write_cursor_ == 0U))
 	{
 	    return std::make_tuple(get_result::unavailable, 0U);
 	}
-	return std::make_tuple(get_result::success, key_ & predecessor_mask(push_cursor_));
+	return std::make_tuple(get_result::success, key_ & predecessor_mask(write_cursor_));
     }
-    inline std::tuple<get_result, uint_type> get_popped_prefixes() const
+    inline std::tuple<get_result, uint_type> get_read_prefixes() const
     {
-	if (TURBO_UNLIKELY(pop_cursor_ == 0U))
+	if (TURBO_UNLIKELY(read_cursor_ == 0U))
 	{
 	    return std::make_tuple(get_result::unavailable, 0U);
 	}
-	return std::make_tuple(get_result::success, key_ & predecessor_mask(pop_cursor_));
+	return std::make_tuple(get_result::success, key_ & predecessor_mask(read_cursor_));
     }
-    inline push_result push(uint_type prefix)
+    inline write_result write(uint_type prefix)
     {
 	if (is_full())
 	{
-	    return push_result::key_full;
+	    return write_result::key_full;
 	}
-	key_ = clear_prefix(key_, push_cursor_) | align(prefix, push_cursor_);
-	push_cursor_ += radix_bit_size();
-	return push_result::success;
+	key_ = clear_prefix(key_, write_cursor_) | align(prefix, write_cursor_);
+	write_cursor_ += radix_bit_size();
+	return write_result::success;
     }
-    inline std::tuple<pop_result, uint_type> pop()
+    inline std::tuple<read_result, uint_type> read()
     {
 	if (is_unavailable())
 	{
-	    return std::make_tuple(pop_result::prefix_unavailable, 0U);
+	    return std::make_tuple(read_result::prefix_unavailable, 0U);
 	}
-	uint_type prefix = (key_ & radix_mask(pop_cursor_)) >> (key_bit_size() - radix_bit_size() - pop_cursor_);
-	pop_cursor_ += radix_bit_size();
-	return std::make_tuple(pop_result::success, prefix);
+	uint_type prefix = (key_ & radix_mask(read_cursor_)) >> (key_bit_size() - radix_bit_size() - read_cursor_);
+	read_cursor_ += radix_bit_size();
+	return std::make_tuple(read_result::success, prefix);
     }
 private:
     inline uint_type predecessor_mask(std::uint8_t cursor) const
@@ -122,8 +122,8 @@ private:
 	return key & ~(radix_mask(cursor));
     }
     uint_type key_;
-    std::uint8_t push_cursor_;
-    std::uint8_t pop_cursor_;
+    std::uint8_t write_cursor_;
+    std::uint8_t read_cursor_;
 };
 
 } // namespace container
