@@ -26,7 +26,7 @@ public:
     enum class pop_result
     {
 	success = 0U,
-	key_empty
+	prefix_unavailable
     };
     enum class get_result
     {
@@ -56,7 +56,7 @@ public:
     inline uint_trie_key(const uint_trie_key& other) = default;
     ~uint_trie_key() = default;
     uint_trie_key& operator=(const uint_trie_key& other) = default;
-    inline bool is_empty() const
+    inline bool is_unavailable() const
     {
 	return push_cursor_ == pop_cursor_;
     }
@@ -92,9 +92,9 @@ public:
     }
     inline std::tuple<pop_result, uint_type> pop()
     {
-	if (is_empty())
+	if (is_unavailable())
 	{
-	    return std::make_tuple(pop_result::key_empty, 0U);
+	    return std::make_tuple(pop_result::prefix_unavailable, 0U);
 	}
 	uint_type prefix = (key_ & radix_mask(pop_cursor_)) >> (key_bit_size() - radix_bit_size() - pop_cursor_);
 	pop_cursor_ += radix_bit_size();
