@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
+#include <turbo/algorithm/recovery.hxx>
 
 namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;

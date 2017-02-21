@@ -11,6 +11,7 @@
 #include <thread>
 #include <utility>
 #include <turbo/algorithm/recovery.hpp>
+#include <turbo/algorithm/recovery.hxx>
 
 namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;

@@ -1,6 +1,7 @@
 #include "block.hpp"
 #include <algorithm>
 #include <turbo/algorithm/recovery.hpp>
+#include <turbo/algorithm/recovery.hxx>
 #include <turbo/memory/alignment.hpp>
 #include <turbo/container/mpmc_ring_queue.hxx>
 #include <turbo/toolset/extension.hpp>

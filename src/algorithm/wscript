@@ -7,7 +7,6 @@ publicHeaders = [
     'string.hpp']
 
 sourceFiles = [
-    'recovery.cxx',
     'string.cxx']
 
 def name(context):

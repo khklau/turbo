@@ -14,7 +14,8 @@ enum class try_state
     retry
 };
 
-TURBO_SYMBOL_DECL void retry_with_random_backoff(const std::function<try_state ()>& func, uint64_t max_backoff = 32U);
+template <typename func_t>
+TURBO_SYMBOL_DECL inline void retry_with_random_backoff(func_t func, uint64_t max_backoff = 32U);
 
 template <class try_clause_t, class ensure_clause_t>
 TURBO_SYMBOL_DECL inline void try_and_ensure(const try_clause_t& try_clause, const ensure_clause_t& ensure_clause);

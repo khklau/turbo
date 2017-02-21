@@ -1,8 +1,10 @@
 #include <turbo/container/trie_key.hpp>
+#include <random>
 #include <gtest/gtest.h>
 
 namespace tco = turbo::container;
 
+/*
 TEST(uint_trie_key_test, empty_key)
 {
     typedef tco::uint_trie_key<std::uint32_t, 2U> uint32_key;
@@ -374,4 +376,78 @@ TEST(uint_trie_key_test, write_then_read)
     EXPECT_EQ(1U, std::get<1>(result4)) << "read failed on written key";
     ++iter2;
     EXPECT_EQ(uint16_key::read_result::out_of_bounds, std::get<0>(key1.read(iter2))) << "read succeeded on empty key";
+}
+*/
+
+TEST(uint_trie_key_perf_test, perf_test_read)
+{
+    typedef tco::uint_trie_key<std::uint16_t, 2U> uint16_key;
+    std::random_device device;
+    std::uint16_t output = 0U;
+    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	uint16_key key(static_cast<std::uint16_t>(device() >> 16U));
+	for (auto iter = key.begin(); iter != key.end(); ++iter)
+	{
+	    //output += std::get<1>(key.read(iter));
+	    output += key.read(iter);
+	}
+    }
+    EXPECT_NE(0U, output);
+}
+
+TEST(uint_trie_key_perf_test, perf_test_preceding)
+{
+    typedef tco::uint_trie_key<std::uint16_t, 2U> uint16_key;
+    std::random_device device;
+    std::uint16_t output = 0U;
+    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	uint16_key key(static_cast<std::uint16_t>(device() >> 16U));
+	for (auto iter = key.begin(); iter != key.end(); ++iter)
+	{
+	    /*
+	    auto result = key.get_preceding_prefixes(iter);
+	    if (std::get<0>(result) == uint16_key::get_result::success)
+	    {
+		output += std::get<1>(result);
+	    }
+	    */
+	    output += key.get_preceding_prefixes(iter);
+	}
+    }
+    EXPECT_NE(0U, output);
+}
+
+TEST(uint_trie_key_perf_test, perf_test_count)
+{
+    typedef tco::uint_trie_key<std::uint16_t, 2U> uint16_key;
+    std::random_device device;
+    std::uint16_t output = 0U;
+    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	uint16_key key(static_cast<std::uint16_t>(device() >> 16U));
+	for (auto iter = key.begin(); iter != key.end(); ++iter)
+	{
+	    output += iter.get_index();
+	}
+    }
+    EXPECT_NE(1U, output);
+}
+
+TEST(uint_trie_key_perf_test, perf_test_shift)
+{
+    typedef tco::uint_trie_key<std::uint16_t, 2U> uint16_key;
+    std::random_device device;
+    std::uint16_t output = 0U;
+    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    {
+	uint16_key key(static_cast<std::uint16_t>(device() >> 16U));
+	for (auto iter = key.begin(); iter != key.end();)
+	{
+	    iter += 2U;
+	    ++output;
+	}
+    }
+    EXPECT_NE(1U, output);
 }

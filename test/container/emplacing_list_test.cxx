@@ -7,6 +7,7 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
+#include <turbo/algorithm/recovery.hxx>
 #include <turbo/memory/pool.hpp>
 #include <turbo/memory/pool.hxx>
 

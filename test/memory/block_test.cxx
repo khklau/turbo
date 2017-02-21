@@ -10,6 +10,7 @@
 #include <utility>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
+#include <turbo/algorithm/recovery.hxx>
 #include <turbo/container/mpmc_ring_queue.hpp>
 #include <turbo/container/mpmc_ring_queue.hxx>
 
