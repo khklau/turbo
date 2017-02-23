@@ -57,15 +57,25 @@ public:
 	typedef std::uint8_t index_type;
 	inline iterator()
 	    :
-		index_(max_prefix_capacity())
+		index_(0U)
 	{ }
 	inline explicit iterator(index_type index)
 	    :
 		index_(index)
 	{ }
-	iterator(const iterator& other) = default;
+	iterator(const iterator& other)
+	    :
+		index_(other.index_)
+	{ }
 	~iterator() = default;
-	iterator& operator=(const iterator& other) = default;
+	iterator& operator=(const iterator& other)
+	{
+	    if (this != &other)
+	    {
+		index_ = other.index_;
+	    }
+	    return *this;
+	}
 	inline bool operator==(const iterator& other) const
 	{
 	    return (!is_valid() && !other.is_valid()) || index_ == other.index_;
@@ -119,11 +129,15 @@ public:
     }
     static constexpr iterator end()
     {
-	return iterator();
+	return iterator(max_prefix_capacity());
+    }
+    inline uint_type get_key() const
+    {
+	return key_;
     }
     inline std::tuple<get_result, uint_type> get_preceding_prefixes(iterator iter) const
     {
-	if (TURBO_UNLIKELY(iter.get_index() == 0U))
+	if (iter.get_index() == 0U)
 	{
 	    return std::make_tuple(get_result::unavailable, 0U);
 	}
