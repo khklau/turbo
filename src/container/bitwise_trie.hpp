@@ -5,7 +5,7 @@
 #include <array>
 #include <iterator>
 #include <tuple>
-#include <turbo/container/trie_prefix.hpp>
+#include <turbo/container/trie_key.hpp>
 #include <turbo/memory/tagged_ptr.hpp>
 #include <turbo/memory/typed_allocator.hpp>
 
@@ -221,7 +221,7 @@ private:
 	leaf
     };
     typedef turbo::memory::tagged_ptr<branch, child_type> branch_ptr;
-    typedef uint_trie_prefix<key_type, radix> trie_prefix;
+    typedef uint_trie_key<key_type, radix> trie_key;
     struct leaf
     {
 	template <class... value_args_t>
@@ -241,14 +241,19 @@ private:
 	leading_zero_index(const leading_zero_index&) = delete;
 	~leading_zero_index() = default;
 	leading_zero_index& operator=(const leading_zero_index&) = delete;
-	inline std::tuple<branch_ptr*, trie_prefix> search(key_type key);
-	void insert(branch* branch, const trie_prefix& prefix);
+	inline std::tuple<branch_ptr*, typename trie_key::iterator> search(const trie_key& key);
+	inline std::tuple<const branch_ptr*, typename trie_key::iterator> const_search(const trie_key& key) const;
+	void insert(branch* branch, const typename trie_key::iterator& iter);
     private:
 	branch_ptr& root_;
-	std::array<branch_ptr, trie_prefix::max_usage()> index_;
+	std::array<branch_ptr, trie_key::max_prefix_capacity()> index_;
     };
-    leaf* min() const;
-    leaf* max() const;
+    template <typename compare_t>
+    leaf* least_search(key_type key, compare_t compare_func) const;
+    template <typename compare_t>
+    leaf* most_search(key_type key, compare_t compare_func) const;
+    inline leaf* min() const;
+    inline leaf* max() const;
     template <class... value_args_t>
     leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
     void destroy_leaf(leaf* pointer);

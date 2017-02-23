@@ -179,20 +179,22 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	value_args_t&&... value_args)
 {
     branch_ptr* current_branch = nullptr;
-    trie_prefix prefix(key);
-    std::tie(current_branch, prefix) = index_.search(key);
-    for (; prefix.get_usage_count() < trie_prefix::max_usage(); prefix = prefix << 1U)
+    trie_key tkey(key);
+    typename trie_key::iterator iter = tkey.begin();
+    std::tie(current_branch, iter) = index_.search(tkey);
+    for (; iter.is_valid(); ++iter)
     {
 	if (current_branch->is_empty())
 	{
 	    branch* new_branch = create_branch();
 	    current_branch->reset(new_branch, child_type::branch);
-	    if (prefix.get_common_prefix() == 0U)
+	    auto result = tkey.get_preceding_prefixes(iter);
+	    if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
 	    {
-		index_.insert(new_branch, prefix);
+		index_.insert(new_branch, iter);
 	    }
 	}
-	current_branch = &((*current_branch)->children[prefix.get_next_prefix()]);
+	current_branch = &((*current_branch)->children[std::get<1>(tkey.read(iter))]);
     }
     if (current_branch->is_empty())
     {
@@ -236,102 +238,156 @@ bitwise_trie<k, v, a>::leading_zero_index::leading_zero_index(branch_ptr& root)
 }
 
 template <class k, class v, class a>
-std::tuple<typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k, v, a>::trie_prefix> bitwise_trie<k, v, a>::leading_zero_index::search(
-	key_type key)
+std::tuple<typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k, v, a>::trie_key::iterator> bitwise_trie<k, v, a>::leading_zero_index::search(
+	const trie_key& key)
 {
-    std::size_t zero_count = turbo::toolset::count_leading_zero(key);
+    std::size_t zero_count = turbo::toolset::count_leading_zero(key.get_key());
     branch_ptr& shortcut = index_[zero_count];
-    trie_prefix prefix(key);
-    if (shortcut.is_empty() || zero_count == trie_prefix::key_bit_size())
+    typename trie_key::iterator iter = key.begin();
+    if (shortcut.is_empty() || zero_count == trie_key::key_bit_size())
     {
-	return std::make_tuple(&root_, prefix);
+	return std::make_tuple(&root_, iter);
     }
     else
     {
-	return std::make_tuple(&shortcut, prefix << zero_count);
+	iter += zero_count;
+	return std::make_tuple(&shortcut, iter);
+    }
+}
+
+template <class k, class v, class a>
+std::tuple<const typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k, v, a>::trie_key::iterator> bitwise_trie<k, v, a>::leading_zero_index::const_search(
+	const trie_key& key) const
+{
+    std::size_t zero_count = turbo::toolset::count_leading_zero(key.get_key());
+    const branch_ptr& shortcut = index_[zero_count];
+    typename trie_key::iterator iter = key.begin();
+    if (shortcut.is_empty() || zero_count == trie_key::key_bit_size())
+    {
+	return std::make_tuple(&root_, iter);
+    }
+    else
+    {
+	iter += zero_count;
+	return std::make_tuple(&shortcut, iter);
     }
 }
 
 template <class k, class v, class a>
 void bitwise_trie<k, v, a>::leading_zero_index::insert(
 	branch* branch,
-	const trie_prefix& prefix)
+	const typename trie_key::iterator& iter)
 {
-    index_[prefix.get_usage_count()].reset(branch, child_type::branch);
+    index_[iter.get_index()].reset(branch, child_type::branch);
+}
+
+template <class k, class v, class a>
+template <typename compare_t>
+typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::least_search(
+	typename bitwise_trie<k, v ,a>::key_type key,
+	compare_t compare_func) const
+{
+    const branch_ptr* current_branch = nullptr;
+    trie_key key_wanted(key);
+    trie_key key_found(key);
+    typename trie_key::iterator iter = key_wanted.begin();
+    std::tie(current_branch, iter) = index_.const_search(key_wanted);
+    for (; iter.is_valid(); ++iter)
+    {
+	if (current_branch == nullptr || current_branch->is_empty())
+	{
+	    return nullptr;
+	}
+	std::size_t child_index = 0U;
+	std::size_t index_max = (*current_branch)->children.max_size();
+	for (; child_index < index_max; ++child_index)
+	{
+	    const branch_ptr& child_branch = (*current_branch)->children[child_index];
+	    key_found.write(iter, child_index);
+	    if (!child_branch.is_empty() && compare_func(iter, key_wanted, key_found, child_branch))
+	    {
+		if (child_branch.get_tag() == child_type::leaf)
+		{
+		    return static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr()));
+		}
+		else if (child_branch.get_tag() == child_type::branch)
+		{
+		    current_branch = &child_branch;
+		    break;
+		}
+	    }
+	}
+	if (child_index == index_max)
+	{
+	    // every branch should have at least 1 child so this means the trie is invalid
+	    throw invalid_bitwise_trie_error("branch has no children");
+	}
+    }
+    return nullptr;
+}
+
+template <class k, class v, class a>
+template <typename compare_t>
+typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::most_search(
+	typename bitwise_trie<k, v ,a>::key_type key,
+	compare_t compare_func) const
+{
+    const branch_ptr* current_branch = nullptr;
+    trie_key key_wanted(key);
+    trie_key key_found(key);
+    typename trie_key::iterator iter = key_wanted.begin();
+    std::tie(current_branch, iter) = index_.const_search(key_wanted);
+    for (; iter.is_valid(); ++iter)
+    {
+	if (current_branch == nullptr || current_branch->is_empty())
+	{
+	    return nullptr;
+	}
+	std::int64_t child_index = (*current_branch)->children.max_size() - 1U;
+	for (; 0 <= child_index; --child_index)
+	{
+	    const branch_ptr& child_branch = (*current_branch)->children[child_index];
+	    key_found.write(iter, child_index);
+	    if (!child_branch.is_empty() && compare_func(iter, key_wanted, key_found, child_branch))
+	    {
+		if (child_branch.get_tag() == child_type::leaf)
+		{
+		    return static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr()));
+		}
+		else if (child_branch.get_tag() == child_type::branch)
+		{
+		    current_branch = &child_branch;
+		    break;
+		}
+	    }
+	}
+	if (child_index < 0)
+	{
+	    // every branch should have at least 1 child so this means the trie is invalid
+	    throw invalid_bitwise_trie_error("branch has no children");
+	}
+    }
+    return nullptr;
 }
 
 template <class k, class v, class a>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::min() const
 {
-    if (root_.is_empty())
+    return least_search(std::numeric_limits<key_type>::min(),
+	    [] (const typename trie_key::iterator&, const trie_key&, const trie_key&, const branch_ptr&) -> bool
     {
-	return nullptr;
-    }
-    branch_ptr current(root_);
-    while (!current.is_empty())
-    {
-	auto child_iter = current->children.begin();
-	auto end = current->children.end();
-	while (child_iter != current->children.end())
-	{
-	    if (!child_iter->is_empty() && child_iter->get_tag() == child_type::leaf)
-	    {
-		return static_cast<leaf*>(static_cast<void*>(child_iter->get_ptr()));
-	    }
-	    else if (!child_iter->is_empty() && child_iter->get_tag() == child_type::branch)
-	    {
-		current = *child_iter;
-		break;
-	    }
-	    else
-	    {
-		++child_iter;
-	    }
-	}
-	if (child_iter == end)
-	{
-	    // every branch should have at least 1 child so this means the trie is invalid
-	    throw invalid_bitwise_trie_error("branch has no children");
-	}
-    }
-    return nullptr;
+	return true;
+    });
 }
 
 template <class k, class v, class a>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::max() const
 {
-    if (root_.is_empty())
+    return most_search(std::numeric_limits<key_type>::min(),
+	    [] (const typename trie_key::iterator&, const trie_key&, const trie_key&, const branch_ptr&) -> bool
     {
-	return nullptr;
-    }
-    branch_ptr current(root_);
-    while (!current.is_empty())
-    {
-	auto child_iter = current->children.rbegin();
-	auto end = current->children.rend();
-	while (child_iter != current->children.rend())
-	{
-	    if (!child_iter->is_empty() && child_iter->get_tag() == child_type::leaf)
-	    {
-		return static_cast<leaf*>(static_cast<void*>(child_iter->get_ptr()));
-	    }
-	    else if (!child_iter->is_empty() && child_iter->get_tag() == child_type::branch)
-	    {
-		current = *child_iter;
-		break;
-	    }
-	    else
-	    {
-		++child_iter;
-	    }
-	}
-	if (child_iter == end)
-	{
-	    // every branch should have at least 1 child so this means the trie is invalid
-	    throw invalid_bitwise_trie_error("branch has no children");
-	}
-    }
-    return nullptr;
+	return true;
+    });
 }
 
 template <class k, class v, class a>
