@@ -48,11 +48,37 @@ public:
 	:
 	    tagged_ptr(nullptr)
     { }
-    tagged_ptr(const tagged_ptr<value_t, tag_t>& other) = default;
-    tagged_ptr(tagged_ptr<value_t, tag_t>&& other) = default;
-    tagged_ptr<value_t, tag_t>& operator=(const tagged_ptr<value_t, tag_t>& other) = default;
-    tagged_ptr<value_t, tag_t>& operator=(tagged_ptr<value_t, tag_t>&& other) = default;
-    ~tagged_ptr() noexcept = default;
+    inline tagged_ptr(const tagged_ptr<value_t, tag_t>& other)
+	:
+	    ptr_(other.ptr_)
+    { }
+    inline tagged_ptr(tagged_ptr<value_t, tag_t>&& other)
+	:
+	    ptr_(other.ptr_)
+    {
+	other.reset();
+    }
+    inline tagged_ptr<value_t, tag_t>& operator=(const tagged_ptr<value_t, tag_t>& other)
+    {
+	if (this != &other)
+	{
+	    ptr_ = other.ptr_;
+	}
+	return *this;
+    }
+    inline tagged_ptr<value_t, tag_t>& operator=(tagged_ptr<value_t, tag_t>&& other)
+    {
+	if (this != &other)
+	{
+	    ptr_ = other.ptr_;
+	    other.reset();
+	}
+	return *this;
+    }
+    ~tagged_ptr() noexcept
+    {
+	reset();
+    }
     inline value_t* get_ptr() const
     {
 	return reinterpret_cast<value_t*>(reinterpret_cast<std::uintptr_t>(ptr_) & ptr_mask());
@@ -101,9 +127,17 @@ public:
 	ptr_ = ptr;
 	set_tag(tag);
     }
+    inline const value_t& operator*() const
+    {
+	return *get_ptr();
+    }
     inline value_t& operator*()
     {
 	return *get_ptr();
+    }
+    inline const value_t* operator->() const
+    {
+	return get_ptr();
     }
     inline value_t* operator->()
     {
