@@ -26,30 +26,32 @@ public:
     typedef std::ptrdiff_t difference_type;
     typedef std::bidirectional_iterator_tag iterator_category;
     typedef node_t node_type;
-    basic_forward() noexcept;
-    basic_forward(node_type* pointer) noexcept;
-    basic_forward(const basic_forward& other);
-    basic_forward(basic_forward&& other);
+    inline explicit basic_forward(trie_type& trie) noexcept;
+    inline basic_forward(trie_type& trie, node_type* pointer) noexcept;
+    inline basic_forward(const basic_forward& other);
+    inline basic_forward(basic_forward&& other);
     template <class other_value_t>
-    basic_forward(const basic_forward<trie_type, key_type, other_value_t, node_type>& other);
-    basic_forward& operator=(const basic_forward& other);
-    basic_forward& operator=(basic_forward&& other);
+    inline basic_forward(const basic_forward<trie_type, key_type, other_value_t, node_type>& other);
+    inline basic_forward& operator=(const basic_forward& other);
+    inline basic_forward& operator=(basic_forward&& other);
     template <class other_value_t>
-    basic_forward& operator=(const basic_forward<trie_type, key_type, other_value_t, node_type>& other);
-    basic_forward& operator=(node_type* other);
+    inline basic_forward& operator=(const basic_forward<trie_type, key_type, other_value_t, node_type>& other);
+    inline basic_forward& operator=(node_type* other);
     ~basic_forward() = default;
-    bool operator==(const basic_forward& other) const;
+    inline bool operator==(const basic_forward& other) const;
     inline bool operator!=(const basic_forward& other) const { return !(*this == other); }
-    value_t& operator*();
-    value_t* operator->();
-    basic_forward& operator++();
-    basic_forward operator++(int);
-    basic_forward& operator--();
-    basic_forward operator--(int);
-    inline node_type* ptr() const { return pointer_; }
+    inline value_t& operator*();
+    inline value_t* operator->();
+    inline basic_forward& operator++();
+    inline basic_forward operator++(int);
+    inline basic_forward& operator--();
+    inline basic_forward operator--(int);
+    inline trie_type& get_trie() { return trie_; }
+    inline node_type* get_ptr() const { return pointer_; }
     inline bool is_valid() const { return pointer_ != nullptr; }
-    key_type get_key() const;
+    inline key_type get_key() const;
 private:
+    trie_type& trie_;
     node_type* pointer_;
 };
 
@@ -66,10 +68,13 @@ public:
     typedef std::ptrdiff_t difference_type;
     typedef std::bidirectional_iterator_tag iterator_category;
     typedef node_t node_type;
-    basic_reverse() = default;
-    inline basic_reverse(node_type* pointer) noexcept
+    inline explicit basic_reverse(trie_type& trie)
 	:
-	    base_iterator(pointer)
+	    base_iterator(trie)
+    { }
+    inline basic_reverse(trie_type& trie, node_type* pointer) noexcept
+	:
+	    base_iterator(trie, pointer)
     { }
     inline basic_reverse(const basic_reverse& other)
 	:
@@ -84,22 +89,22 @@ public:
 	:
 	    base_iterator(static_cast<const typename basic_reverse<trie_type, key_type, other_value_t, node_type>::base_iterator&>(other))
     { }
-    basic_reverse& operator=(const basic_reverse& other)
+    inline basic_reverse& operator=(const basic_reverse& other)
     {
 	return static_cast<const base_iterator&>(*this) = static_cast<const base_iterator&>(other);
     }
-    basic_reverse& operator=(basic_reverse&& other)
+    inline basic_reverse& operator=(basic_reverse&& other)
     {
 	base_iterator::operator=(std::forward<base_iterator>(other));
 	return *this;
     }
     template <class other_value_t>
-    basic_reverse& operator=(const basic_reverse<trie_type, key_type, other_value_t, node_type>& other)
+    inline basic_reverse& operator=(const basic_reverse<trie_type, key_type, other_value_t, node_type>& other)
     {
 	return static_cast<const base_iterator&>(*this) =
 		static_cast<const typename basic_reverse<trie_type, key_type, other_value_t, node_type>::base_iterator&>(other);
     }
-    basic_reverse& operator=(node_type* other)
+    inline basic_reverse& operator=(node_type* other)
     {
 	return static_cast<const base_iterator&>(*this) = other;
     }
@@ -134,7 +139,8 @@ public:
 	base_iterator::operator++(0);
 	return *this;
     }
-    using base_iterator::ptr;
+    using base_iterator::get_trie;
+    using base_iterator::get_ptr;
     using base_iterator::is_valid;
     using base_iterator::get_key;
 };
@@ -184,35 +190,35 @@ public:
     }
     inline iterator begin()
     {
-	return iterator(min());
+	return iterator(*this, min());
     }
     inline iterator end() noexcept
     {
-	return iterator();
+	return iterator(*this);
     }
     inline const_iterator cbegin()
     {
-	return const_iterator(min());
+	return const_iterator(*this, min());
     }
     inline const_iterator cend() noexcept
     {
-	return const_iterator();
+	return const_iterator(*this);
     }
     inline reverse_iterator rbegin()
     {
-	return reverse_iterator(max());
+	return reverse_iterator(*this, max());
     }
     inline reverse_iterator rend() noexcept
     {
-	return reverse_iterator();
+	return reverse_iterator(*this);
     }
     inline const_reverse_iterator crbegin()
     {
-	return const_reverse_iterator(max());
+	return const_reverse_iterator(*this, max());
     }
     inline const_reverse_iterator crend() noexcept
     {
-	return const_reverse_iterator();
+	return const_reverse_iterator(*this);
     }
     template <class... value_args_t>
     std::tuple<iterator, bool> emplace(key_type key, value_args_t&&... value_args);

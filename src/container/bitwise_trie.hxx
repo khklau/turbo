@@ -12,26 +12,30 @@ namespace container {
 namespace bitwise_trie_iterator {
 
 template <class t, class k, class v, class n>
-basic_forward<t, k, v, n>::basic_forward() noexcept
+basic_forward<t, k, v, n>::basic_forward(trie_type& trie) noexcept
     :
+	trie_(trie),
 	pointer_(nullptr)
 { }
 
 template <class t, class k, class v, class n>
-basic_forward<t, k, v, n>::basic_forward(node_type* pointer) noexcept
+basic_forward<t, k, v, n>::basic_forward(trie_type& trie, node_type* pointer) noexcept
     :
+	trie_(trie),
 	pointer_(pointer)
 { }
 
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>::basic_forward(const basic_forward& other)
     :
+	trie_(other.trie_),
 	pointer_(other.pointer_)
 { }
 
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>::basic_forward(basic_forward&& other)
     :
+	trie_(other.trie_),
 	pointer_(std::move(other.pointer_))
 {
     other.pointer_ = nullptr;
@@ -41,13 +45,14 @@ template <class t, class k, class v, class n>
 template <class other_value_t>
 basic_forward<t, k, v, n>::basic_forward(const basic_forward<t, k, other_value_t, n>& other)
     :
-	pointer_(other.ptr())
+	trie_(other.get_trie()),
+	pointer_(other.get_ptr())
 { }
 
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(const basic_forward& other)
 {
-    if (this != &other)
+    if (this != &other && &trie_ == &other.trie_)
     {
 	pointer_ = other.pointer_;
     }
@@ -57,7 +62,7 @@ basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(const basic_forw
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(basic_forward&& other)
 {
-    if (this != &other)
+    if (this != &other && &trie_ == &other.trie_)
     {
 	pointer_ = std::move(other.pointer_);
 	other.pointer_ = nullptr;
@@ -69,7 +74,10 @@ template <class t, class k, class v, class n>
 template <class other_value_t>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(const basic_forward<t, k, other_value_t, n>& other)
 {
-    pointer_ = other.ptr();
+    if (&trie_ == &other.trie_)
+    {
+	pointer_ = other.get_ptr();
+    }
     return *this;
 }
 
@@ -83,7 +91,7 @@ basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(node_type* other
 template <class t, class k, class v, class n>
 bool basic_forward<t, k, v, n>::operator==(const basic_forward& other) const
 {
-    return pointer_ == other.pointer_;
+    return &trie_ == &other.trie_ && pointer_ == other.pointer_;
 }
 
 template <class t, class k, class v, class n>
@@ -201,11 +209,11 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	leaf* new_leaf = create_leaf(key, std::forward<value_args_t>(value_args)...);
 	current_branch->reset(static_cast<branch*>(static_cast<void*>(new_leaf)), child_type::leaf);
 	++size_;
-	return std::make_tuple(iterator(new_leaf), true);
+	return std::make_tuple(iterator(*this, new_leaf), true);
     }
     else if (current_branch->get_tag() == child_type::leaf)
     {
-	return std::make_tuple(iterator(static_cast<leaf*>(static_cast<void*>(current_branch->get_ptr()))), false);
+	return std::make_tuple(iterator(*this, static_cast<leaf*>(static_cast<void*>(current_branch->get_ptr()))), false);
     }
     else
     {
