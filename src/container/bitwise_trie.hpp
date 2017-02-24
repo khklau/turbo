@@ -14,10 +14,11 @@ namespace container {
 
 namespace bitwise_trie_iterator {
 
-template <class key_t, class value_t, class node_t>
+template <class trie_t, class key_t, class value_t, class node_t>
 class basic_forward : public std::bidirectional_iterator_tag
 {
 public:
+    typedef trie_t trie_type;
     typedef key_t key_type;
     typedef value_t value_type;
     typedef value_t* pointer;
@@ -30,11 +31,11 @@ public:
     basic_forward(const basic_forward& other);
     basic_forward(basic_forward&& other);
     template <class other_value_t>
-    basic_forward(const basic_forward<key_type, other_value_t, node_type>& other);
+    basic_forward(const basic_forward<trie_type, key_type, other_value_t, node_type>& other);
     basic_forward& operator=(const basic_forward& other);
     basic_forward& operator=(basic_forward&& other);
     template <class other_value_t>
-    basic_forward& operator=(const basic_forward<key_type, other_value_t, node_type>& other);
+    basic_forward& operator=(const basic_forward<trie_type, key_type, other_value_t, node_type>& other);
     basic_forward& operator=(node_type* other);
     ~basic_forward() = default;
     bool operator==(const basic_forward& other) const;
@@ -52,11 +53,12 @@ private:
     node_type* pointer_;
 };
 
-template <class key_t, class value_t, class node_t>
-class basic_reverse : private basic_forward<key_t, value_t, node_t>
+template <class trie_t, class key_t, class value_t, class node_t>
+class basic_reverse : private basic_forward<trie_t, key_t, value_t, node_t>
 {
 public:
-    typedef basic_forward<key_t, value_t, node_t> base_iterator;
+    typedef basic_forward<trie_t, key_t, value_t, node_t> base_iterator;
+    typedef trie_t trie_type;
     typedef key_t key_type;
     typedef value_t value_type;
     typedef value_t* pointer;
@@ -78,9 +80,9 @@ public:
 	    base_iterator(std::forward<base_iterator>(other))
     { }
     template <class other_value_t>
-    inline basic_reverse(const basic_reverse<key_type, other_value_t, node_type>& other)
+    inline basic_reverse(const basic_reverse<trie_type, key_type, other_value_t, node_type>& other)
 	:
-	    base_iterator(static_cast<const typename basic_reverse<key_type, other_value_t, node_type>::base_iterator&>(other))
+	    base_iterator(static_cast<const typename basic_reverse<trie_type, key_type, other_value_t, node_type>::base_iterator&>(other))
     { }
     basic_reverse& operator=(const basic_reverse& other)
     {
@@ -92,10 +94,10 @@ public:
 	return *this;
     }
     template <class other_value_t>
-    basic_reverse& operator=(const basic_reverse<key_type, other_value_t, node_type>& other)
+    basic_reverse& operator=(const basic_reverse<trie_type, key_type, other_value_t, node_type>& other)
     {
 	return static_cast<const base_iterator&>(*this) =
-		static_cast<const typename basic_reverse<key_type, other_value_t, node_type>::base_iterator&>(other);
+		static_cast<const typename basic_reverse<trie_type, key_type, other_value_t, node_type>::base_iterator&>(other);
     }
     basic_reverse& operator=(node_type* other)
     {
@@ -159,10 +161,11 @@ public:
     typedef key_t key_type;
     typedef value_t value_type;
     typedef allocator_t allocator_type;
-    typedef bitwise_trie_iterator::basic_forward<key_type, const value_type, leaf> const_iterator;
-    typedef bitwise_trie_iterator::basic_forward<key_type, value_type, leaf> iterator;
-    typedef bitwise_trie_iterator::basic_reverse<key_type, const value_type, leaf> const_reverse_iterator;
-    typedef bitwise_trie_iterator::basic_reverse<key_type, value_type, leaf> reverse_iterator;
+    typedef bitwise_trie<key_type, value_type, allocator_type> self_type;
+    typedef bitwise_trie_iterator::basic_forward<self_type, key_type, const value_type, leaf> const_iterator;
+    typedef bitwise_trie_iterator::basic_forward<self_type, key_type, value_type, leaf> iterator;
+    typedef bitwise_trie_iterator::basic_reverse<self_type, key_type, const value_type, leaf> const_reverse_iterator;
+    typedef bitwise_trie_iterator::basic_reverse<self_type, key_type, value_type, leaf> reverse_iterator;
     static const std::size_t radix = 2U;
     static constexpr std::array<std::size_t, 2U> node_sizes
     {

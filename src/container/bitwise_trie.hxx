@@ -11,41 +11,41 @@ namespace container {
 
 namespace bitwise_trie_iterator {
 
-template <class k, class v, class n>
-basic_forward<k, v, n>::basic_forward() noexcept
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>::basic_forward() noexcept
     :
 	pointer_(nullptr)
 { }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>::basic_forward(node_type* pointer) noexcept
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>::basic_forward(node_type* pointer) noexcept
     :
 	pointer_(pointer)
 { }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>::basic_forward(const basic_forward& other)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>::basic_forward(const basic_forward& other)
     :
 	pointer_(other.pointer_)
 { }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>::basic_forward(basic_forward&& other)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>::basic_forward(basic_forward&& other)
     :
 	pointer_(std::move(other.pointer_))
 {
     other.pointer_ = nullptr;
 }
 
-template <class k, class v, class n>
+template <class t, class k, class v, class n>
 template <class other_value_t>
-basic_forward<k, v, n>::basic_forward(const basic_forward<k, other_value_t, n>& other)
+basic_forward<t, k, v, n>::basic_forward(const basic_forward<t, k, other_value_t, n>& other)
     :
 	pointer_(other.ptr())
 { }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>& basic_forward<k, v, n>::operator=(const basic_forward& other)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(const basic_forward& other)
 {
     if (this != &other)
     {
@@ -54,8 +54,8 @@ basic_forward<k, v, n>& basic_forward<k, v, n>::operator=(const basic_forward& o
     return *this;
 }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>& basic_forward<k, v, n>::operator=(basic_forward&& other)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(basic_forward&& other)
 {
     if (this != &other)
     {
@@ -65,29 +65,29 @@ basic_forward<k, v, n>& basic_forward<k, v, n>::operator=(basic_forward&& other)
     return *this;
 }
 
-template <class k, class v, class n>
+template <class t, class k, class v, class n>
 template <class other_value_t>
-basic_forward<k, v, n>& basic_forward<k, v, n>::operator=(const basic_forward<k, other_value_t, n>& other)
+basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(const basic_forward<t, k, other_value_t, n>& other)
 {
     pointer_ = other.ptr();
     return *this;
 }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>& basic_forward<k, v, n>::operator=(node_type* other)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator=(node_type* other)
 {
     pointer_ = other;
     return *this;
 }
 
-template <class k, class v, class n>
-bool basic_forward<k, v, n>::operator==(const basic_forward& other) const
+template <class t, class k, class v, class n>
+bool basic_forward<t, k, v, n>::operator==(const basic_forward& other) const
 {
     return pointer_ == other.pointer_;
 }
 
-template <class k, class v, class n>
-typename basic_forward<k, v, n>::value_type& basic_forward<k, v, n>::operator*()
+template <class t, class k, class v, class n>
+typename basic_forward<t, k, v, n>::value_type& basic_forward<t, k, v, n>::operator*()
 {
     if (pointer_ != nullptr)
     {
@@ -99,8 +99,8 @@ typename basic_forward<k, v, n>::value_type& basic_forward<k, v, n>::operator*()
     }
 }
 
-template <class k, class v, class n>
-typename basic_forward<k, v, n>::value_type* basic_forward<k, v, n>::operator->()
+template <class t, class k, class v, class n>
+typename basic_forward<t, k, v, n>::value_type* basic_forward<t, k, v, n>::operator->()
 {
     if (pointer_ != nullptr)
     {
@@ -112,38 +112,38 @@ typename basic_forward<k, v, n>::value_type* basic_forward<k, v, n>::operator->(
     }
 }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>& basic_forward<k, v, n>::operator++()
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator++()
 {
     // TODO
     return *this;
 }
 
-template <class k, class v, class n>
-basic_forward<k, v, n> basic_forward<k, v, n>::operator++(int)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n> basic_forward<t, k, v, n>::operator++(int)
 {
-    basic_forward<k, v, n> tmp = *this;
+    basic_forward<t, k, v, n> tmp = *this;
     ++(*this);
     return tmp;
 }
 
-template <class k, class v, class n>
-basic_forward<k, v, n>& basic_forward<k, v, n>::operator--()
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator--()
 {
     // TODO
     return *this;
 }
 
-template <class k, class v, class n>
-basic_forward<k, v, n> basic_forward<k, v, n>::operator--(int)
+template <class t, class k, class v, class n>
+basic_forward<t, k, v, n> basic_forward<t, k, v, n>::operator--(int)
 {
-    basic_forward<k, v, n> tmp = *this;
+    basic_forward<t, k, v, n> tmp = *this;
     --(*this);
     return tmp;
 }
 
-template <class k, class v, class n>
-typename basic_forward<k, v, n>::key_type basic_forward<k, v, n>::get_key() const
+template <class t, class k, class v, class n>
+typename basic_forward<t, k, v, n>::key_type basic_forward<t, k, v, n>::get_key() const
 {
     if (pointer_ != nullptr)
     {
