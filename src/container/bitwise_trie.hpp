@@ -168,9 +168,9 @@ public:
     typedef value_t value_type;
     typedef allocator_t allocator_type;
     typedef bitwise_trie<key_type, value_type, allocator_type> self_type;
-    typedef bitwise_trie_iterator::basic_forward<self_type, key_type, const value_type, leaf> const_iterator;
+    typedef bitwise_trie_iterator::basic_forward<const self_type, key_type, const value_type, leaf> const_iterator;
     typedef bitwise_trie_iterator::basic_forward<self_type, key_type, value_type, leaf> iterator;
-    typedef bitwise_trie_iterator::basic_reverse<self_type, key_type, const value_type, leaf> const_reverse_iterator;
+    typedef bitwise_trie_iterator::basic_reverse<const self_type, key_type, const value_type, leaf> const_reverse_iterator;
     typedef bitwise_trie_iterator::basic_reverse<self_type, key_type, value_type, leaf> reverse_iterator;
     static const std::size_t radix = 2U;
     static constexpr std::array<std::size_t, 2U> node_sizes
@@ -196,11 +196,11 @@ public:
     {
 	return iterator(*this);
     }
-    inline const_iterator cbegin()
+    inline const_iterator cbegin() const
     {
 	return const_iterator(*this, min());
     }
-    inline const_iterator cend() noexcept
+    inline const_iterator cend() const noexcept
     {
 	return const_iterator(*this);
     }
@@ -212,11 +212,11 @@ public:
     {
 	return reverse_iterator(*this);
     }
-    inline const_reverse_iterator crbegin()
+    inline const_reverse_iterator crbegin() const
     {
 	return const_reverse_iterator(*this, max());
     }
-    inline const_reverse_iterator crend() noexcept
+    inline const_reverse_iterator crend() const noexcept
     {
 	return const_reverse_iterator(*this);
     }
