@@ -327,8 +327,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::least_search(
 	}
 	if (child_index == index_max)
 	{
-	    // every branch should have at least 1 child so this means the trie is invalid
-	    throw invalid_bitwise_trie_error("branch has no children");
+	    return nullptr;
 	}
     }
     return nullptr;
@@ -371,8 +370,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::most_search(
 	}
 	if (child_index < 0)
 	{
-	    // every branch should have at least 1 child so this means the trie is invalid
-	    throw invalid_bitwise_trie_error("branch has no children");
+	    return nullptr;
 	}
     }
     return nullptr;
