@@ -105,6 +105,14 @@ public:
 	{
 	    return index_ < max_prefix_capacity();
 	}
+	inline bool is_min_index() const
+	{
+	    return index_ == 0U;
+	}
+	inline bool is_max_index() const
+	{
+	    return index_ == (max_prefix_capacity() - 1U);
+	}
 	inline index_type get_index() const
 	{
 	    return index_;
