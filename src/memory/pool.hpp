@@ -151,12 +151,14 @@ public:
     template <class value_t>
     inline void deallocate(value_t* pointer)
     {
-	return deallocate(pointer, 1U);
+	deallocate(pointer, 1U);
     }
 private:
     pool(block::capacity_type default_capacity, std::uint8_t step_factor, const std::vector<block_config>& config);
     void* allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void* hint);
     void deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity);
+    template <class value_t>
+    inline void unmake(value_t* pointer);
     block::capacity_type default_capacity_;
     std::size_t step_factor_;
     std::size_t smallest_block_;
