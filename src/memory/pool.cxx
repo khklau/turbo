@@ -265,30 +265,31 @@ std::vector<block_config> calibrate(const std::vector<block_config>& config, std
 	}
 	std::size_t desired_size = sorted.cbegin()->block_size;
 	std::vector<block_config> result;
-	auto this_step = sorted.cbegin();
+	auto current_step = sorted.cbegin();
 	do
 	{
-	    auto next_step = std::find_if(this_step, sorted.cend(), [&] (const block_config& config) -> bool
+	    auto next_step = std::find_if(current_step, sorted.cend(), [&] (const block_config& config) -> bool
 	    {
 		return desired_size < config.block_size;
 	    });
-	    if (next_step == this_step)
+	    if (next_step == current_step)
 	    {
+		// no configuration set for this particular desired size
 		result.emplace_back(desired_size, 0U);
 	    }
 	    else
 	    {
 		std::size_t total_capacity = 0U;
-		std::for_each(this_step, next_step, [&] (const block_config& config) -> void
+		std::for_each(current_step, next_step, [&] (const block_config& config) -> void
 		{
 		    total_capacity += config.initial_capacity;
 		});
 		result.emplace_back(desired_size, total_capacity);
+		current_step = next_step;
 	    }
 	    desired_size *= step_factor;
-	    this_step = next_step;
 	}
-	while (this_step != sorted.cend());
+	while (current_step != sorted.cend());
 	return std::move(result);
     }
     else

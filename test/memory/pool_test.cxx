@@ -7,6 +7,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <random>
 #include <string>
 #include <thread>
 #include <utility>
@@ -1794,6 +1795,59 @@ TEST(pool_test, calibrate_positive)
 	    << "{" << actual5[0].block_size << ", " << actual5[0].initial_capacity << "}, "
 	    << "{" << actual5[1].block_size << ", " << actual5[1].initial_capacity << "}, "
 	    << "{" << actual5[2].block_size << ", " << actual5[2].initial_capacity << "} ]";
+}
+
+TEST(pool_test, calibrate_repeating)
+{
+    std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {64U, 16U} };
+    std::vector<tme::block_config> expected1{ {32U, 8U}, {64U, 20U} };
+    std::vector<tme::block_config> actual1(tme::calibrate(input1, 2U));
+    EXPECT_TRUE(!actual1.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect calibration for config requiring just a reorder: "
+	    << "expected [ "
+	    << "{" << expected1[0].block_size << ", " << expected1[0].initial_capacity << "}, "
+	    << "{" << expected1[1].block_size << ", " << expected1[1].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual1[0].block_size << ", " << actual1[0].initial_capacity << "}, "
+	    << "{" << actual1[1].block_size << ", " << actual1[1].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input2{ {32U, 4U}, {32U, 8U}, {16U, 16U} };
+    std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 12U} };
+    std::vector<tme::block_config> actual2(tme::calibrate(input2, 2U));
+    EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect calibration for config requiring just a reorder: "
+	    << "expected [ "
+	    << "{" << expected2[0].block_size << ", " << expected2[0].initial_capacity << "}, "
+	    << "{" << expected2[1].block_size << ", " << expected2[1].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual2[0].block_size << ", " << actual2[0].initial_capacity << "}, "
+	    << "{" << actual2[1].block_size << ", " << actual2[1].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input3{ {8U, 4U}, {24U, 8U}, {24U, 16U} };
+    std::vector<tme::block_config> expected3{ {8U, 4U}, {16U, 0U}, {32U, 24U} };
+    std::vector<tme::block_config> actual3(tme::calibrate(input3, 2U));
+    EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect calibration for config requiring a bucket size adjustment: "
+	    << "expected [ "
+	    << "{" << expected3[0].block_size << ", " << expected3[0].initial_capacity << "}, "
+	    << "{" << expected3[1].block_size << ", " << expected3[1].initial_capacity << "}, "
+	    << "{" << expected3[2].block_size << ", " << expected3[2].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual3[0].block_size << ", " << actual3[0].initial_capacity << "}, "
+	    << "{" << actual3[1].block_size << ", " << actual3[1].initial_capacity << "}, "
+	    << "{" << actual3[2].block_size << ", " << actual3[2].initial_capacity << "} ]";
+
+    std::vector<tme::block_config> input4{ {24U, 4U}, {16U, 8U}, {24U, 16U} };
+    std::vector<tme::block_config> expected4{ {16U, 8U}, {32U, 20U} };
+    std::vector<tme::block_config> actual4(tme::calibrate(input4, 2U));
+    EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
+    EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect calibration for config requiring a bucket size adjustment: "
+	    << "expected [ "
+	    << "{" << expected4[0].block_size << ", " << expected4[0].initial_capacity << "}, "
+	    << "{" << expected4[1].block_size << ", " << expected4[1].initial_capacity << "} ] - "
+	    << "actual [ "
+	    << "{" << actual4[0].block_size << ", " << actual4[0].initial_capacity << "}, "
+	    << "{" << actual4[1].block_size << ", " << actual4[1].initial_capacity << "} ]";
 }
 
 TEST(pool_test, calibrate_negative)
