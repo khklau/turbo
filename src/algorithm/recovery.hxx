@@ -2,6 +2,7 @@
 #define TURBO_ALGORITHM_RECOVERY_HXX
 
 #include <turbo/algorithm/recovery.hpp>
+#include <chrono>
 #include <random>
 
 namespace turbo {
@@ -11,7 +12,8 @@ namespace recovery {
 template <typename func_t>
 void retry_with_random_backoff(func_t func, uint64_t max_backoff)
 {
-    std::random_device device;
+    //std::random_device device;
+    std::mt19937 device(std::chrono::system_clock::now().time_since_epoch().count());
     uint64_t limit = 0U;
     while (func() == try_state::retry)
     {
