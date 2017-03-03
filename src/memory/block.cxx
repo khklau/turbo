@@ -90,20 +90,9 @@ block::block(std::size_t value_size, capacity_type capacity, std::size_t alignme
     else
     {
 	capacity_ = capacity;
-	namespace tar = turbo::algorithm::recovery;
 	for (capacity_type index = 0; index < capacity_; ++index)
 	{
-	    tar::retry_with_random_backoff([&] () -> tar::try_state
-	    {
-		if (free_list_.try_enqueue_copy(index) == free_list_type::producer::result::success)
-		{
-		    return tar::try_state::done;
-		}
-		else
-		{
-		    return tar::try_state::retry;
-		}
-	    });
+	    free_list_.try_enqueue_copy(index);
 	}
     }
 }
