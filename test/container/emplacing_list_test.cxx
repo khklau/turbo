@@ -965,14 +965,21 @@ TEST(emplacing_list_test, multi_consecutive_erase_middle)
     EXPECT_EQ(list1.crend(), iter1b) << "Emplace in the middle of a non-empty list produced invalid links";
 }
 
-TEST(emplacing_list_test, perf_test_list_emplace)
+class emplacing_list_perf_test : public ::testing::Test
+{
+public:
+    typedef tco::emplacing_list<std::uint32_t, tme::pool> uint_list;
+    emplacing_list_perf_test()
+	:
+	    allocator1(8U, { {uint_list::allocation_size(), std::numeric_limits<std::uint16_t>::max()} })
+    { }
+protected:
+    tme::pool allocator1;
+};
+
+TEST_F(emplacing_list_perf_test, perf_test_list_emplace)
 {
     typedef tco::emplacing_list<std::uint32_t, tme::pool> uint_list;
-    tme::pool allocator1(
-	    8U,
-	    {
-		{uint_list::allocation_size(), std::numeric_limits<std::uint16_t>::max() * 2U}
-	    });
     uint_list list1(allocator1);
     list1.emplace_front(0U);
     list1.emplace_back(0U);
@@ -986,7 +993,7 @@ TEST(emplacing_list_test, perf_test_list_emplace)
     }
 }
 
-TEST(emplacing_list_test, perf_test_stdlist_emplace)
+TEST_F(emplacing_list_perf_test, perf_test_stdlist_emplace)
 {
     typedef std::list<std::uint32_t> uint_list;
     uint_list list1;
