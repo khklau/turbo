@@ -12,6 +12,20 @@
 namespace turbo {
 namespace memory {
 
+inline std::size_t pool::find_block_bucket(std::size_t allocation_size) const
+{
+    std::size_t allocation_exponent = std::llround(std::ceil(std::log2(allocation_size)));
+    if (allocation_size == 0U || allocation_exponent < smallest_block_exponent_)
+    {
+	// to prevent underflow error
+	return 0U;
+    }
+    else
+    {
+	return allocation_exponent - smallest_block_exponent_;
+    }
+}
+
 template <class value_t, class ...args_t>
 std::pair<make_result, pool_unique_ptr<value_t>> pool::make_unique(args_t&&... args)
 {

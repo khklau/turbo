@@ -117,8 +117,7 @@ class TURBO_SYMBOL_DECL pool
 {
 public:
     pool(block::capacity_type default_capacity, const std::vector<block_config>& config);
-    pool(block::capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor);
-    std::size_t find_block_bucket(std::size_t allocation_size) const;
+    inline std::size_t find_block_bucket(std::size_t allocation_size) const;
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
     template <class value_t, class... args_t>
@@ -154,18 +153,17 @@ public:
 	deallocate(pointer, 1U);
     }
 private:
-    pool(block::capacity_type default_capacity, std::uint8_t step_factor, const std::vector<block_config>& config);
+    pool(const std::vector<block_config>& config, block::capacity_type default_capacity);
     void* allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void* hint);
     void deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity);
     template <class value_t>
     inline void unmake(value_t* pointer);
     block::capacity_type default_capacity_;
-    std::size_t step_factor_;
-    std::size_t smallest_block_;
+    std::size_t smallest_block_exponent_;
     std::vector<block_list> block_map_;
 };
 
-std::vector<block_config> calibrate(const std::vector<block_config>& config, std::uint8_t step_factor);
+std::vector<block_config> calibrate(const std::vector<block_config>& config);
 
 } // namespace memory
 } // namespace turbo

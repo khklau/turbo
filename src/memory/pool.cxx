@@ -1,7 +1,9 @@
 #include "pool.hpp"
+#include "pool.hxx"
 #include <cmath>
 #include <algorithm>
 #include <turbo/memory/alignment.hpp>
+#include <turbo/memory/alignment.hxx>
 #include <turbo/toolset/extension.hpp>
 
 namespace turbo {
@@ -183,34 +185,15 @@ std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type c
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
     :
-	pool(default_capacity, 2U, calibrate(config, 2U))
+	pool(calibrate(config), default_capacity)
 { }
 
-pool::pool(capacity_type default_capacity, const std::vector<block_config>& config, std::uint8_t step_factor)
+pool::pool(const std::vector<block_config>& config, capacity_type default_capacity)
     :
-	pool(default_capacity, step_factor, calibrate(config, step_factor))
-{ }
-
-pool::pool(capacity_type default_capacity, std::uint8_t step_factor, const std::vector<block_config>& config)
-    :
-	default_capacity_(default_capacity),
-	step_factor_(step_factor < 2U ? 2U : step_factor),
-	smallest_block_(config.cbegin()->block_size),
+	default_capacity_(std::llround(std::pow(2U, std::ceil(std::log2(default_capacity))))),
+	smallest_block_exponent_(std::llround(std::log2(config.cbegin()->block_size))),
 	block_map_(config.cbegin(), config.cend())
 { }
-
-std::size_t pool::find_block_bucket(std::size_t allocation_size) const
-{
-    if (allocation_size <= smallest_block_)
-    {
-	// to prevent underflow error
-	return 0U;
-    }
-    else
-    {
-	return static_cast<std::size_t>(std::ceil(std::log(static_cast<double>(allocation_size) / smallest_block_) / std::log(step_factor_)));
-    }
-}
 
 void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
 {
@@ -253,17 +236,13 @@ void pool::deallocate(std::size_t value_size, std::size_t value_alignment, void*
     }
 }
 
-std::vector<block_config> calibrate(const std::vector<block_config>& config, std::uint8_t step_factor)
+std::vector<block_config> calibrate(const std::vector<block_config>& config)
 {
     std::vector<block_config> sorted(config);
     std::stable_sort(sorted.begin(), sorted.end());
     if (TURBO_LIKELY(!sorted.empty()))
     {
-	if (TURBO_UNLIKELY(step_factor < 2))
-	{
-	    step_factor = 2;
-	}
-	std::size_t desired_size = sorted.cbegin()->block_size;
+	std::size_t desired_size = std::llround(std::pow(2U, std::ceil(std::log2(sorted.cbegin()->block_size))));
 	std::vector<block_config> result;
 	auto current_step = sorted.cbegin();
 	do
@@ -287,7 +266,7 @@ std::vector<block_config> calibrate(const std::vector<block_config>& config, std
 		result.emplace_back(desired_size, total_capacity);
 		current_step = next_step;
 	    }
-	    desired_size *= step_factor;
+	    desired_size *= 2U;
 	}
 	while (current_step != sorted.cend());
 	return std::move(result);
