@@ -9,15 +9,19 @@ namespace turbo {
 namespace algorithm {
 namespace recovery {
 
+inline std::random_device& get_device()
+{
+    thread_local std::random_device device;
+    return device;
+}
+
 template <typename func_t>
 void retry_with_random_backoff(func_t func, uint64_t max_backoff)
 {
-    //std::random_device device;
-    std::mt19937 device(std::chrono::system_clock::now().time_since_epoch().count());
     uint64_t limit = 0U;
     while (func() == try_state::retry)
     {
-	limit = device() % max_backoff;
+	limit = get_device()() % max_backoff;
 	for (uint64_t iter = 0U; iter < limit; ++iter) { };
     }
 }
