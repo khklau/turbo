@@ -11,7 +11,7 @@ namespace memory {
 ///
 void* align(std::size_t alignment, std::size_t element_size, void*& buffer, std::size_t& available_space);
 
-std::size_t calc_total_aligned_size(std::size_t value_size, std::size_t value_alignment, std::size_t quantity);
+inline std::size_t calc_total_aligned_size(std::size_t value_size, std::size_t value_alignment, std::size_t quantity);
 
 } // namespace memory
 } // namespace turbo
