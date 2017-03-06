@@ -263,7 +263,10 @@ std::vector<block_config> calibrate(const std::vector<block_config>& config)
 		{
 		    total_capacity += config.initial_capacity;
 		});
-		result.emplace_back(desired_size, total_capacity);
+		result.emplace_back(
+			desired_size,
+			total_capacity,
+			std::llround(std::pow(2U, std::ceil(std::log2(current_step->growth_factor)))));
 		current_step = next_step;
 	    }
 	    desired_size *= 2U;
