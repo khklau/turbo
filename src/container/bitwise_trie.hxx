@@ -123,7 +123,7 @@ typename basic_forward<t, k, v, n>::value_type* basic_forward<t, k, v, n>::opera
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator++()
 {
-    // TODO
+    pointer_ = trie_.find_successor(*this).get_ptr();
     return *this;
 }
 
@@ -138,7 +138,7 @@ basic_forward<t, k, v, n> basic_forward<t, k, v, n>::operator++(int)
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator--()
 {
-    // TODO
+    pointer_ = trie_.find_predecessor(*this).get_ptr();
     return *this;
 }
 
@@ -179,6 +179,52 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
 	root_(),
 	index_(root_)
 { }
+
+template <class k, class v, class a>
+typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_successor(const_iterator iter) const
+{
+    trie_key key_wanted(iter.get_key());
+    trie_key key_found(iter.get_key());
+    return const_iterator(*this, least_search(
+	    &root_,
+	    key_wanted,
+	    key_found,
+	    key_wanted.begin(),
+	    [] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr& branch) -> bool
+    {
+	if (branch.get_tag() == child_type::leaf)
+	{
+	    return wanted.get_key() < found.get_key();
+	}
+	else
+	{
+	    return wanted.get_preceding_prefixes(iter) <= found.get_preceding_prefixes(iter);
+	}
+    }));
+}
+
+template <class k, class v, class a>
+typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_predecessor(const_iterator iter) const
+{
+    trie_key key_wanted(iter.get_key());
+    trie_key key_found(iter.get_key());
+    return const_iterator(*this, most_search(
+	    &root_,
+	    key_wanted,
+	    key_found,
+	    key_wanted.begin(),
+	    [] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr& branch) -> bool
+    {
+	if (branch.get_tag() == child_type::leaf)
+	{
+	    return found.get_key() < wanted.get_key();
+	}
+	else
+	{
+	    return found.get_preceding_prefixes(iter) <= wanted.get_preceding_prefixes(iter);
+	}
+    }));
+}
 
 template <class k, class v, class a>
 template <class... value_args_t>
@@ -292,42 +338,34 @@ void bitwise_trie<k, v, a>::leading_zero_index::insert(
 template <class k, class v, class a>
 template <typename compare_t>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::least_search(
-	typename bitwise_trie<k, v ,a>::key_type key,
+	const branch_ptr* branch,
+	trie_key key_wanted,
+	trie_key key_found,
+	typename trie_key::iterator iter,
 	compare_t compare_func) const
 {
-    const branch_ptr* current_branch = nullptr;
-    trie_key key_wanted(key);
-    trie_key key_found(key);
-    typename trie_key::iterator iter = key_wanted.begin();
-    std::tie(current_branch, iter) = index_.const_search(key_wanted);
-    for (; iter.is_valid(); ++iter)
+    if (!iter.is_valid() || branch == nullptr || branch->is_empty())
     {
-	if (current_branch == nullptr || current_branch->is_empty())
+	return nullptr;
+    }
+    for (std::size_t child_index = 0U; child_index < (*branch)->children.max_size(); ++child_index)
+    {
+	const branch_ptr& child_branch = (*branch)->children[child_index];
+	key_found.write(iter, child_index);
+	if (!child_branch.is_empty() && compare_func(iter, key_wanted, key_found, child_branch))
 	{
-	    return nullptr;
-	}
-	std::size_t child_index = 0U;
-	std::size_t index_max = (*current_branch)->children.max_size();
-	for (; child_index < index_max; ++child_index)
-	{
-	    const branch_ptr& child_branch = (*current_branch)->children[child_index];
-	    key_found.write(iter, child_index);
-	    if (!child_branch.is_empty() && compare_func(iter, key_wanted, key_found, child_branch))
+	    if (child_branch.get_tag() == child_type::leaf)
 	    {
-		if (child_branch.get_tag() == child_type::leaf)
+		return static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr()));
+	    }
+	    else if (child_branch.get_tag() == child_type::branch)
+	    {
+		leaf* child_result = least_search(&child_branch, key_wanted, key_found, iter + 1U, compare_func);
+		if (child_result != nullptr)
 		{
-		    return static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr()));
-		}
-		else if (child_branch.get_tag() == child_type::branch)
-		{
-		    current_branch = &child_branch;
-		    break;
+		    return child_result;
 		}
 	    }
-	}
-	if (child_index == index_max)
-	{
-	    return nullptr;
 	}
     }
     return nullptr;
@@ -336,41 +374,35 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::least_search(
 template <class k, class v, class a>
 template <typename compare_t>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::most_search(
-	typename bitwise_trie<k, v ,a>::key_type key,
+	const branch_ptr* branch,
+	trie_key key_wanted,
+	trie_key key_found,
+	typename trie_key::iterator iter,
 	compare_t compare_func) const
 {
-    const branch_ptr* current_branch = nullptr;
-    trie_key key_wanted(key);
-    trie_key key_found(key);
-    typename trie_key::iterator iter = key_wanted.begin();
-    std::tie(current_branch, iter) = index_.const_search(key_wanted);
-    for (; iter.is_valid(); ++iter)
+    if (!iter.is_valid() || branch == nullptr || branch->is_empty())
     {
-	if (current_branch == nullptr || current_branch->is_empty())
+	return nullptr;
+    }
+    std::int64_t child_index = (*branch)->children.max_size() - 1U;
+    for (; 0 <= child_index; --child_index)
+    {
+	const branch_ptr& child_branch = (*branch)->children[child_index];
+	key_found.write(iter, child_index);
+	if (!child_branch.is_empty() && compare_func(iter, key_wanted, key_found, child_branch))
 	{
-	    return nullptr;
-	}
-	std::int64_t child_index = (*current_branch)->children.max_size() - 1U;
-	for (; 0 <= child_index; --child_index)
-	{
-	    const branch_ptr& child_branch = (*current_branch)->children[child_index];
-	    key_found.write(iter, child_index);
-	    if (!child_branch.is_empty() && compare_func(iter, key_wanted, key_found, child_branch))
+	    if (child_branch.get_tag() == child_type::leaf)
 	    {
-		if (child_branch.get_tag() == child_type::leaf)
+		return static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr()));
+	    }
+	    else if (child_branch.get_tag() == child_type::branch)
+	    {
+		leaf* child_result = most_search(&child_branch, key_wanted, key_found, iter + 1U, compare_func);
+		if (child_result != nullptr)
 		{
-		    return static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr()));
-		}
-		else if (child_branch.get_tag() == child_type::branch)
-		{
-		    current_branch = &child_branch;
-		    break;
+		    return child_result;
 		}
 	    }
-	}
-	if (child_index < 0)
-	{
-	    return nullptr;
 	}
     }
     return nullptr;
@@ -379,7 +411,14 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::most_search(
 template <class k, class v, class a>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::min() const
 {
-    return least_search(std::numeric_limits<key_type>::min(),
+    trie_key key_wanted(std::numeric_limits<key_type>::min());
+    trie_key key_found(std::numeric_limits<key_type>::min());
+    auto result = index_.const_search(key_wanted);
+    return least_search(
+	    std::get<0>(result),
+	    key_wanted,
+	    key_found,
+	    std::get<1>(result),
 	    [] (const typename trie_key::iterator&, const trie_key&, const trie_key&, const branch_ptr&) -> bool
     {
 	return true;
@@ -389,7 +428,13 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::min() const
 template <class k, class v, class a>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::max() const
 {
-    return most_search(std::numeric_limits<key_type>::min(),
+    trie_key key_wanted(std::numeric_limits<key_type>::max());
+    trie_key key_found(std::numeric_limits<key_type>::max());
+    return most_search(
+	    &root_,
+	    key_wanted,
+	    key_found,
+	    key_wanted.begin(),
 	    [] (const typename trie_key::iterator&, const trie_key&, const trie_key&, const branch_ptr&) -> bool
     {
 	return true;

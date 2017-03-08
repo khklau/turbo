@@ -96,18 +96,18 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_EQ(32U, map1.cbegin().get_key()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(std::string("blah"), *map1.crbegin()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(128U, map1.crbegin().get_key()) << "Just emplaced key & value is not ordered";
-    //auto iter1 = map1.cbegin();
-    //EXPECT_EQ(std::string("foo"), iter1->value) << "Just emplaced key & value is not ordered";
-    //++iter1;
-    //EXPECT_EQ(std::string("bar"), iter1->value) << "Just emplaced key & value is not ordered";
-    //++iter1;
-    //EXPECT_EQ(std::string("blah"), iter1->value) << "Just emplaced key & value is not ordered";
-    //auto iter2 = map1.crbegin();
-    //EXPECT_EQ(std::string("blah"), iter2->value) << "Just emplaced key & value is not ordered";
-    //++iter2;
-    //EXPECT_EQ(std::string("bar"), iter2->value) << "Just emplaced key & value is not ordered";
-    //++iter2;
-    //EXPECT_EQ(std::string("foo"), iter2->value) << "Just emplaced key & value is not ordered";
+    auto iter1 = map1.cbegin();
+    EXPECT_EQ(std::string("foo"), *iter1) << "Just emplaced key & value is not ordered";
+    ++iter1;
+    EXPECT_EQ(std::string("bar"), *iter1) << "Just emplaced key & value is not ordered";
+    ++iter1;
+    EXPECT_EQ(std::string("blah"), *iter1) << "Just emplaced key & value is not ordered";
+    auto iter2 = map1.crbegin();
+    EXPECT_EQ(std::string("blah"), *iter2) << "Just emplaced key & value is not ordered";
+    ++iter2;
+    EXPECT_EQ(std::string("bar"), *iter2) << "Just emplaced key & value is not ordered";
+    ++iter2;
+    EXPECT_EQ(std::string("foo"), *iter2) << "Just emplaced key & value is not ordered";
 }
 
 class bitwise_trie_perf_test : public ::testing::Test
@@ -116,7 +116,7 @@ public:
     typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_map;
     bitwise_trie_perf_test()
 	:
-	    allocator1(8U, { {uint_map::node_sizes[0], (1U << 16U) - 1U + (1U << 15U), 4U} })
+	    allocator1(8U, { {uint_map::node_sizes[0], 1U << 15U}, {uint_map::node_sizes[1], (1U << 16U) - 1U} })
     { }
 protected:
     tme::pool allocator1;

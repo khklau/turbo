@@ -220,6 +220,8 @@ public:
     {
 	return const_reverse_iterator(*this);
     }
+    inline const_iterator find_successor(const_iterator iter) const;
+    inline const_iterator find_predecessor(const_iterator iter) const;
     template <class... value_args_t>
     std::tuple<iterator, bool> emplace(key_type key, value_args_t&&... value_args);
     friend class bitwise_trie_tester<key_type, value_type, allocator_type>;
@@ -255,12 +257,22 @@ private:
 	void insert(branch* branch, const typename trie_key::iterator& iter);
     private:
 	branch_ptr& root_;
-	std::array<branch_ptr, trie_key::max_prefix_capacity()> index_;
+	std::array<branch_ptr, trie_key::key_bit_size()> index_;
     };
     template <typename compare_t>
-    leaf* least_search(key_type key, compare_t compare_func) const;
+    leaf* least_search(
+	    const branch_ptr* branch,
+	    trie_key key_wanted,
+	    trie_key key_found,
+	    typename trie_key::iterator iter,
+	    compare_t compare_func) const;
     template <typename compare_t>
-    leaf* most_search(key_type key, compare_t compare_func) const;
+    leaf* most_search(
+	    const branch_ptr* branch,
+	    trie_key key_wanted,
+	    trie_key key_found,
+	    typename trie_key::iterator iter,
+	    compare_t compare_func) const;
     inline leaf* min() const;
     inline leaf* max() const;
     template <class... value_args_t>
