@@ -84,6 +84,10 @@ public:
 	{
 	    return !(*this == other);
 	}
+	inline iterator operator+(index_type quantity) const
+	{
+	    return iterator(index_ + quantity);
+	}
 	value_type& operator*() = delete;
 	value_type* operator->() = delete;
 	inline iterator& operator+=(index_type quantity)
