@@ -220,6 +220,7 @@ public:
     {
 	return const_reverse_iterator(*this);
     }
+    inline const_iterator find(key_type key) const;
     inline const_iterator find_successor(const_iterator iter) const;
     inline const_iterator find_predecessor(const_iterator iter) const;
     template <class... value_args_t>

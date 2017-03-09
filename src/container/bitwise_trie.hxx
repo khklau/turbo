@@ -3,6 +3,7 @@
 
 #include <turbo/container/bitwise_trie.hpp>
 #include <algorithm>
+#include <limits>
 #include <turbo/container/invalid_dereference_error.hpp>
 #include <turbo/toolset/intrinsic.hpp>
 
@@ -179,6 +180,37 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
 	root_(),
 	index_(root_)
 { }
+
+template <class k, class v, class a>
+typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find(key_type key) const
+{
+    trie_key key_wanted(key);
+    trie_key key_found(key);
+    if (key < (std::numeric_limits<key_type>::max() - key))
+    {
+	return const_iterator(*this, least_search(
+		&root_,
+		key_wanted,
+		key_found,
+		key_wanted.begin(),
+		[] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr&) -> bool
+	{
+	    return iter.is_valid() && (std::get<1>(wanted.read(iter)) == std::get<1>(found.read(iter)));
+	}));
+    }
+    else
+    {
+	return const_iterator(*this, most_search(
+		&root_,
+		key_wanted,
+		key_found,
+		key_wanted.begin(),
+		[] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr&) -> bool
+	{
+	    return iter.is_valid() && (std::get<1>(wanted.read(iter)) == std::get<1>(found.read(iter)));
+	}));
+    }
+}
 
 template <class k, class v, class a>
 typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_successor(const_iterator iter) const

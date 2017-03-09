@@ -68,8 +68,8 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_NE(map1.end(), std::get<0>(result1)) << "Emplace failed";
     EXPECT_EQ(std::string("bar"), *std::get<0>(result1)) << "Emplace failed";
     EXPECT_EQ(1U, map1.size()) << "Size of trie after 1 emplace is not 1";
-    //EXPECT_NE(map1.end(), map1.find(64U)) << "Could not find just emplaced key & value";
-    //EXPECT_EQ(std::string("bar"), *map1.find(64U)) << "Could not find just emplaced key & value";
+    EXPECT_NE(map1.cend(), map1.find(64U)) << "Could not find just emplaced key & value";
+    EXPECT_EQ(std::string("bar"), *map1.find(64U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("bar"), *map1.cbegin()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(64U, map1.cbegin().get_key()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(std::string("bar"), *map1.crbegin()) << "Just emplaced key & value is not ordered";
@@ -79,8 +79,8 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_NE(map1.end(), std::get<0>(result2)) << "Emplace failed";
     EXPECT_EQ(std::string("foo"), *std::get<0>(result2)) << "Emplace failed";
     EXPECT_EQ(2U, map1.size()) << "Size of trie after 2 emplace is not 2";
-    //EXPECT_NE(map1.end(), map1.find(32U)) << "Could not find just emplaced key & value";
-    //EXPECT_EQ(std::string("foo"), map1.find(32U)->value) << "Could not find just emplaced key & value";
+    EXPECT_NE(map1.cend(), map1.find(32U)) << "Could not find just emplaced key & value";
+    EXPECT_EQ(std::string("foo"), *map1.find(32U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("foo"), *map1.cbegin()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(32U, map1.cbegin().get_key()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(std::string("bar"), *map1.crbegin()) << "Just emplaced key & value is not ordered";
@@ -90,8 +90,8 @@ TEST(bitwise_trie_test, emplace_basic)
     EXPECT_NE(map1.end(), std::get<0>(result3)) << "Emplace failed";
     EXPECT_EQ(std::string("blah"), *std::get<0>(result3)) << "Emplace failed";
     EXPECT_EQ(3U, map1.size()) << "Size of trie after 3 emplace is not 3";
-    //EXPECT_NE(map1.end(), map1.find(128U)) << "Could not find just emplaced key & value";
-    //EXPECT_EQ(std::string("blah"), map1.find(128U)->value) << "Could not find just emplaced key & value";
+    EXPECT_NE(map1.cend(), map1.find(128U)) << "Could not find just emplaced key & value";
+    EXPECT_EQ(std::string("blah"), *map1.find(128U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("foo"), *map1.cbegin()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(32U, map1.cbegin().get_key()) << "Just emplaced key & value is not ordered";
     EXPECT_EQ(std::string("blah"), *map1.crbegin()) << "Just emplaced key & value is not ordered";
