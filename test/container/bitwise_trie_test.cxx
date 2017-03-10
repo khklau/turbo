@@ -56,6 +56,12 @@ TEST(bitwise_trie_test, empty_trie)
     EXPECT_EQ(0U, map1.size()) << "Size of an empty trie is not 0";
     EXPECT_EQ(map1.cend(), map1.cbegin()) << "The cbegin and cend iterators of an empty trie are not equal";
     EXPECT_EQ(map1.crend(), map1.crbegin()) << "The crbegin and crend iterators of an empty trie are not equal";
+    auto iter1 = map1.cbegin();
+    ++iter1;
+    EXPECT_EQ(map1.cend(), iter1) << "Finding the successor of the begin iterator from an empty trie succeeded";
+    auto iter2 = map1.crbegin();
+    ++iter2;
+    EXPECT_EQ(map1.crend(), iter2) << "Finding the successor of the begin iterator from an empty trie succeeded";
 }
 
 TEST(bitwise_trie_test, emplace_invalid)
@@ -149,7 +155,35 @@ TEST(bitwise_trie_test, begin_basic)
     EXPECT_EQ(std::string("foo"), *iter2b) << "Could not first value";
 }
 
-TEST(bitwise_trie_test, successor_basic)
+TEST(bitwise_trie_test, forward_successor_invalid)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(0U, "foo");
+    map1.emplace(128U, "bar");
+    map1.emplace(255U, "blah");
+    auto iter1 = map1.cbegin();
+    ++iter1;
+    ++iter1;
+    ++iter1;
+    EXPECT_EQ(map1.cend(), iter1) << "Successor of last vaue is not the end iterator";
+    ++iter1;
+    EXPECT_EQ(map1.cend(), iter1) << "Successor of last vaue is not the end iterator";
+    string_map map2(allocator1);
+    map2.emplace(126U, "foo");
+    map2.emplace(127U, "bar");
+    map2.emplace(128U, "blah");
+    auto iter2 = map2.cbegin();
+    ++iter2;
+    ++iter2;
+    ++iter2;
+    EXPECT_EQ(map2.cend(), iter2) << "Successor of last vaue is not the end iterator";
+    ++iter2;
+    EXPECT_EQ(map2.cend(), iter2) << "Successor of last vaue is not the end iterator";
+}
+
+TEST(bitwise_trie_test, forward_successor_basic)
 {
     typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
     tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
@@ -164,8 +198,6 @@ TEST(bitwise_trie_test, successor_basic)
     ++iter1;
     EXPECT_NE(map1.cend(), iter1) << "Could not find successor";
     EXPECT_EQ(std::string("blah"), *iter1) << "Could not find successor";
-    ++iter1;
-    EXPECT_EQ(map1.cend(), iter1) << "Successor of last vaue is not the end iterator";
     string_map map2(allocator1);
     map2.emplace(126U, "foo");
     map2.emplace(127U, "bar");
@@ -177,11 +209,103 @@ TEST(bitwise_trie_test, successor_basic)
     ++iter2;
     EXPECT_NE(map2.cend(), iter2) << "Could not find successor";
     EXPECT_EQ(std::string("blah"), *iter2) << "Could not find successor";
-    ++iter2;
-    EXPECT_EQ(map2.cend(), iter2) << "Successor of last vaue is not the end iterator";
 }
 
-TEST(bitwise_trie_test, predecessor_basic)
+TEST(bitwise_trie_test, forward_predecessor_invalid)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(0U, "foo");
+    map1.emplace(128U, "bar");
+    map1.emplace(255U, "blah");
+    auto iter1 = map1.cbegin();
+    ++iter1;
+    ++iter1;
+    --iter1;
+    --iter1;
+    --iter1;
+    EXPECT_EQ(map1.cend(), iter1) << "Predecessor of first vaue is not the end iterator";
+    --iter1;
+    EXPECT_EQ(map1.cend(), iter1) << "Predecessor of first vaue is not the end iterator";
+    string_map map2(allocator1);
+    map2.emplace(126U, "foo");
+    map2.emplace(127U, "bar");
+    map2.emplace(128U, "blah");
+    auto iter2 = map2.cbegin();
+    ++iter2;
+    ++iter2;
+    --iter2;
+    --iter2;
+    --iter2;
+    EXPECT_EQ(map2.cend(), iter2) << "Predecessor of first vaue is not the end iterator";
+    --iter2;
+    EXPECT_EQ(map2.cend(), iter2) << "Predecessor of first vaue is not the end iterator";
+}
+
+TEST(bitwise_trie_test, forward_predecessor_basic)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(0U, "foo");
+    map1.emplace(128U, "bar");
+    map1.emplace(255U, "blah");
+    auto iter1 = map1.cbegin();
+    ++iter1;
+    ++iter1;
+    EXPECT_EQ(std::string("blah"), *iter1) << "Could not find predecessor";
+    --iter1;
+    EXPECT_NE(map1.cend(), iter1) << "Could not find predecessor";
+    EXPECT_EQ(std::string("bar"), *iter1) << "Could not find predecessor";
+    --iter1;
+    EXPECT_NE(map1.cend(), iter1) << "Could not find predecessor";
+    EXPECT_EQ(std::string("foo"), *iter1) << "Could not find predecessor";
+    string_map map2(allocator1);
+    map2.emplace(126U, "foo");
+    map2.emplace(127U, "bar");
+    map2.emplace(128U, "blah");
+    auto iter2 = map2.cbegin();
+    ++iter2;
+    ++iter2;
+    EXPECT_EQ(std::string("blah"), *iter2) << "Could not find predecessor";
+    --iter2;
+    EXPECT_NE(map2.cend(), iter2) << "Could not find predecessor";
+    EXPECT_EQ(std::string("bar"), *iter2) << "Could not find predecessor";
+    --iter2;
+    EXPECT_NE(map2.cend(), iter2) << "Could not find predecessor";
+    EXPECT_EQ(std::string("foo"), *iter2) << "Could not find predecessor";
+}
+
+TEST(bitwise_trie_test, reverse_successor_invalid)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(0U, "foo");
+    map1.emplace(128U, "bar");
+    map1.emplace(255U, "blah");
+    auto iter1 = map1.crbegin();
+    ++iter1;
+    ++iter1;
+    ++iter1;
+    EXPECT_EQ(map1.crend(), iter1) << "Successor of first vaue is not the end iterator";
+    ++iter1;
+    EXPECT_EQ(map1.crend(), iter1) << "Successor of first vaue is not the end iterator";
+    string_map map2(allocator1);
+    map2.emplace(126U, "foo");
+    map2.emplace(127U, "bar");
+    map2.emplace(128U, "blah");
+    auto iter2 = map2.crbegin();
+    ++iter2;
+    ++iter2;
+    ++iter2;
+    EXPECT_EQ(map2.crend(), iter2) << "Successor of first vaue is not the end iterator";
+    ++iter2;
+    EXPECT_EQ(map2.crend(), iter2) << "Successor of first vaue is not the end iterator";
+}
+
+TEST(bitwise_trie_test, reverse_successor_basic)
 {
     typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
     tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
@@ -211,6 +335,72 @@ TEST(bitwise_trie_test, predecessor_basic)
     EXPECT_EQ(std::string("foo"), *iter2) << "Could not find successor";
     ++iter2;
     EXPECT_EQ(map2.crend(), iter2) << "Successor of last vaue is not the end iterator";
+}
+
+TEST(bitwise_trie_test, reverse_predecessor_invalid)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(0U, "foo");
+    map1.emplace(128U, "bar");
+    map1.emplace(255U, "blah");
+    auto iter1 = map1.crbegin();
+    ++iter1;
+    ++iter1;
+    --iter1;
+    --iter1;
+    --iter1;
+    EXPECT_EQ(map1.crend(), iter1) << "Predecessor of last vaue is not the end iterator";
+    --iter1;
+    EXPECT_EQ(map1.crend(), iter1) << "Predecessor of last vaue is not the end iterator";
+    string_map map2(allocator1);
+    map2.emplace(126U, "foo");
+    map2.emplace(127U, "bar");
+    map2.emplace(128U, "blah");
+    auto iter2 = map2.crbegin();
+    ++iter2;
+    ++iter2;
+    --iter2;
+    --iter2;
+    --iter2;
+    EXPECT_EQ(map2.crend(), iter2) << "Predecessor of last vaue is not the end iterator";
+    --iter2;
+    EXPECT_EQ(map2.crend(), iter2) << "Predecessor of last vaue is not the end iterator";
+}
+
+TEST(bitwise_trie_test, reverse_predecessor_basic)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(0U, "foo");
+    map1.emplace(128U, "bar");
+    map1.emplace(255U, "blah");
+    auto iter1 = map1.crbegin();
+    ++iter1;
+    ++iter1;
+    EXPECT_EQ(std::string("foo"), *iter1) << "Could not find predecessor";
+    --iter1;
+    EXPECT_NE(map1.crend(), iter1) << "Could not find predecessor";
+    EXPECT_EQ(std::string("bar"), *iter1) << "Could not find predecessor";
+    --iter1;
+    EXPECT_NE(map1.crend(), iter1) << "Could not find predecessor";
+    EXPECT_EQ(std::string("blah"), *iter1) << "Could not find predecessor";
+    string_map map2(allocator1);
+    map2.emplace(126U, "foo");
+    map2.emplace(127U, "bar");
+    map2.emplace(128U, "blah");
+    auto iter2 = map2.crbegin();
+    ++iter2;
+    ++iter2;
+    EXPECT_EQ(std::string("foo"), *iter2) << "Could not find predecessor";
+    --iter2;
+    EXPECT_NE(map2.crend(), iter2) << "Could not find predecessor";
+    EXPECT_EQ(std::string("bar"), *iter2) << "Could not find predecessor";
+    --iter2;
+    EXPECT_NE(map2.crend(), iter2) << "Could not find predecessor";
+    EXPECT_EQ(std::string("blah"), *iter2) << "Could not find predecessor";
 }
 
 class bitwise_trie_perf_test : public ::testing::Test

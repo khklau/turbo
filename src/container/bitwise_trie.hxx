@@ -98,7 +98,7 @@ bool basic_forward<t, k, v, n>::operator==(const basic_forward& other) const
 template <class t, class k, class v, class n>
 typename basic_forward<t, k, v, n>::value_type& basic_forward<t, k, v, n>::operator*()
 {
-    if (pointer_ != nullptr)
+    if (is_valid())
     {
 	return pointer_->value;
     }
@@ -111,7 +111,7 @@ typename basic_forward<t, k, v, n>::value_type& basic_forward<t, k, v, n>::opera
 template <class t, class k, class v, class n>
 typename basic_forward<t, k, v, n>::value_type* basic_forward<t, k, v, n>::operator->()
 {
-    if (pointer_ != nullptr)
+    if (is_valid())
     {
 	return &(pointer_->value);
     }
@@ -124,7 +124,10 @@ typename basic_forward<t, k, v, n>::value_type* basic_forward<t, k, v, n>::opera
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator++()
 {
-    pointer_ = trie_.find_successor(*this).get_ptr();
+    if (TURBO_LIKELY(is_valid()))
+    {
+	pointer_ = trie_.find_successor(*this).get_ptr();
+    }
     return *this;
 }
 
@@ -139,7 +142,10 @@ basic_forward<t, k, v, n> basic_forward<t, k, v, n>::operator++(int)
 template <class t, class k, class v, class n>
 basic_forward<t, k, v, n>& basic_forward<t, k, v, n>::operator--()
 {
-    pointer_ = trie_.find_predecessor(*this).get_ptr();
+    if (TURBO_LIKELY(is_valid()))
+    {
+	pointer_ = trie_.find_predecessor(*this).get_ptr();
+    }
     return *this;
 }
 
@@ -154,7 +160,7 @@ basic_forward<t, k, v, n> basic_forward<t, k, v, n>::operator--(int)
 template <class t, class k, class v, class n>
 typename basic_forward<t, k, v, n>::key_type basic_forward<t, k, v, n>::get_key() const
 {
-    if (pointer_ != nullptr)
+    if (is_valid())
     {
 	return pointer_->key;
     }
