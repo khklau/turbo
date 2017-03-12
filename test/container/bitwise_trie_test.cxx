@@ -457,25 +457,32 @@ protected:
     tme::pool allocator1;
 };
 
+TEST_F(bitwise_trie_emplace_perf_test, perf_test_emplace_overhead)
+{
+    EXPECT_TRUE(true);
+}
+
 TEST_F(bitwise_trie_emplace_perf_test, perf_test_trie_emplace)
 {
     uint_trie map1(allocator1);
+    auto end = map1.end();
     std::random_device device;
     for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
     {
 	std::uint64_t value = device() >> 16U;
-	map1.emplace(value, value);
+	EXPECT_NE(end, std::get<0>(map1.emplace(value, value)));
     }
 }
 
 TEST_F(bitwise_trie_emplace_perf_test, perf_test_map_emplace)
 {
     std::map<std::uint64_t, std::uint64_t> map1;
+    auto end = map1.end();
     std::random_device device;
     for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
     {
 	std::uint64_t value = device() >> 16U;
-	map1.emplace(value, value);
+	EXPECT_NE(end, map1.emplace(value, value).first);
     }
 }
 
@@ -507,18 +514,26 @@ protected:
     std::vector<std::uint64_t> values;
 };
 
+TEST_F(bitwise_trie_find_perf_test, perf_test_find_overhead)
+{
+    EXPECT_TRUE(true);
+}
+
 TEST_F(bitwise_trie_find_perf_test, perf_test_trie_find)
 {
+    auto cend = trie.cend();
     for (auto value: values)
     {
-	trie.find(value);
+	EXPECT_NE(cend, trie.find(value));
     }
 }
 
 TEST_F(bitwise_trie_find_perf_test, perf_test_map_find)
 {
+    auto cend = map.cend();
     for (auto value: values)
     {
-	map.find(value);
+	uint_map::const_iterator result = map.find(value);
+	EXPECT_NE(cend, result);
     }
 }
