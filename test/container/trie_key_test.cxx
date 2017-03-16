@@ -2,6 +2,34 @@
 #include <random>
 #include <gtest/gtest.h>
 
+namespace turbo {
+namespace container {
+
+template <class uint_t, std::size_t radix>
+class uint_trie_key_tester
+{
+public:
+    typedef uint_trie_key<uint_t, radix> key_type;
+    uint_trie_key_tester(key_type& key)
+	:
+	    key_(key)
+    { }
+    inline static typename key_type::uint_type align(typename key_type::uint_type prefix, typename key_type::iterator iter)
+    {
+	return key_type::align(prefix, iter);
+    }
+    inline static typename key_type::uint_type clear_prefix(typename key_type::uint_type key, typename key_type::iterator iter)
+    {
+	return key_type::clear_prefix(key, iter);
+    }
+private:
+    key_type& key_;
+};
+
+
+} // namespace container
+} // namespace turbo
+
 namespace tco = turbo::container;
 
 TEST(uint_trie_key_test, empty_key)
@@ -82,6 +110,56 @@ TEST(uint_trie_key_test, write_invalid)
     EXPECT_EQ(uint8_key::write_result::out_of_bounds, key3.write(key3.end(), 0U)) << "write succeeded with end iterator";
     EXPECT_FALSE(iter3.is_valid()) << "is_invalid returned false for invalid iterator";
     EXPECT_EQ(key3.end(), iter3) << "invalid and end iterators are not equal";
+}
+
+TEST(uint_trie_key_test, align_basic)
+{
+    typedef tco::uint_trie_key<std::uint8_t, 2U> uint8_key;
+    typedef tco::uint_trie_key_tester<std::uint8_t, 2U> uint8_tester;
+    EXPECT_EQ(8U, uint8_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint8_key key1;
+    auto iter1 = key1.begin();
+    EXPECT_EQ(128U, uint8_tester::align(1U, iter1)) << "align failed for 1st iterator position";
+    ++iter1;
+    EXPECT_EQ(64U, uint8_tester::align(1U, iter1)) << "align failed for 2nd iterator position";
+    ++iter1;
+    EXPECT_EQ(32U, uint8_tester::align(1U, iter1)) << "align failed for 3rd iterator position";
+    ++iter1;
+    EXPECT_EQ(16U, uint8_tester::align(1U, iter1)) << "align failed for 4th iterator position";
+    ++iter1;
+    EXPECT_EQ(8U, uint8_tester::align(1U, iter1)) << "align failed for 5th iterator position";
+    ++iter1;
+    EXPECT_EQ(4U, uint8_tester::align(1U, iter1)) << "align failed for 6th iterator position";
+    ++iter1;
+    EXPECT_EQ(2U, uint8_tester::align(1U, iter1)) << "align failed for 7th iterator position";
+    ++iter1;
+    EXPECT_EQ(1U, uint8_tester::align(1U, iter1)) << "align failed for 8th iterator position";
+}
+
+TEST(uint_trie_key_test, clear_prefix_basic)
+{
+    typedef tco::uint_trie_key<std::uint8_t, 2U> uint8_key;
+    typedef tco::uint_trie_key_tester<std::uint8_t, 2U> uint8_tester;
+    EXPECT_EQ(8U, uint8_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint8_key key1(255U);
+    auto iter1 = key1.begin();
+    EXPECT_EQ(255U - 128U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 1st iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 64U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 2nd iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 32U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 3rd iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 16U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 4th iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 8U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 5th iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 4U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 6th iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 2U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 7th iterator position";
+    ++iter1;
+    EXPECT_EQ(255U - 1U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 8th iterator position";
 }
 
 TEST(uint_trie_key_test, write_basic)

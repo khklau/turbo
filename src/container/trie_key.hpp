@@ -12,6 +12,8 @@
 namespace turbo {
 namespace container {
 
+template <class uint_t, std::size_t radix>
+class uint_trie_key_tester;
 
 template <class uint_t, std::size_t radix>
 class uint_trie_key
@@ -173,6 +175,7 @@ public:
 	uint_type prefix = (key_ & radix_mask(iter)) >> (key_bit_size() - radix_bit_size() - bit_position(iter));
 	return std::make_tuple(read_result::success, prefix);
     }
+    friend uint_trie_key_tester<uint_type, radix>;
 private:
     inline static std::size_t bit_position(iterator iter)
     {
