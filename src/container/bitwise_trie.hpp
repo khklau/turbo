@@ -226,6 +226,7 @@ public:
     inline const_iterator find_less_equal(key_type key) const;
     template <class... value_args_t>
     std::tuple<iterator, bool> emplace(key_type key, value_args_t&&... value_args);
+    std::size_t erase(key_type key);
     friend class bitwise_trie_tester<key_type, value_type, allocator_type>;
 private:
     enum class child_type
@@ -261,22 +262,23 @@ private:
 	branch_ptr& root_;
 	std::array<branch_ptr, trie_key::key_bit_size()> index_;
     };
-    template <typename compare_t>
-    leaf* least_search(
-	    const branch_ptr* branch,
-	    trie_key key_wanted,
-	    trie_key key_found,
-	    typename trie_key::iterator iter,
-	    compare_t compare_func) const;
-    template <typename compare_t>
-    leaf* most_search(
-	    const branch_ptr* branch,
-	    trie_key key_wanted,
-	    trie_key key_found,
-	    typename trie_key::iterator iter,
-	    compare_t compare_func) const;
     inline leaf* min() const;
     inline leaf* max() const;
+    template <typename compare_t>
+    leaf* least_first_search(
+	    const branch_ptr* branch,
+	    trie_key key_wanted,
+	    trie_key key_found,
+	    typename trie_key::iterator iter,
+	    compare_t compare_func) const;
+    template <typename compare_t>
+    leaf* most_first_search(
+	    const branch_ptr* branch,
+	    trie_key key_wanted,
+	    trie_key key_found,
+	    typename trie_key::iterator iter,
+	    compare_t compare_func) const;
+    std::tuple<std::size_t, std::size_t> erase_recursive(const branch_ptr* branch, const trie_key& key, typename trie_key::iterator iter);
     template <class... value_args_t>
     leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
     void destroy_leaf(leaf* pointer);

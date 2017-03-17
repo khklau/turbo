@@ -68,6 +68,7 @@ TEST(bitwise_trie_test, empty_trie)
     EXPECT_EQ(map1.cend(), map1.find(255U)) << "Find on empty trie succedded";
     EXPECT_EQ(map1.cend(), map1.find_less_equal(0U)) << "Find on empty trie succedded";
     EXPECT_EQ(map1.cend(), map1.find_less_equal(255U)) << "Find on empty trie succedded";
+    EXPECT_EQ(0U, map1.erase(64U)) << "erase on empty trie succeeded";
 }
 
 TEST(bitwise_trie_test, emplace_invalid)
