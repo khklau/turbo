@@ -223,6 +223,7 @@ public:
     inline const_iterator find(key_type key) const;
     inline const_iterator find_successor(const_iterator iter) const;
     inline const_iterator find_predecessor(const_iterator iter) const;
+    inline const_iterator find_less_equal(key_type key) const;
     template <class... value_args_t>
     std::tuple<iterator, bool> emplace(key_type key, value_args_t&&... value_args);
     friend class bitwise_trie_tester<key_type, value_type, allocator_type>;

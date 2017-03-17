@@ -191,14 +191,15 @@ template <class k, class v, class a>
 typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find(key_type key) const
 {
     trie_key key_wanted(key);
-    trie_key key_found(key);
+    trie_key key_found;
+    auto result = index_.const_search(key_wanted);
     if (key < (std::numeric_limits<key_type>::max() - key))
     {
 	return const_iterator(*this, least_search(
-		&root_,
+		std::get<0>(result),
 		key_wanted,
 		key_found,
-		key_wanted.begin(),
+		std::get<1>(result),
 		[] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr&) -> bool
 	{
 	    return iter.is_valid() && (std::get<1>(wanted.read(iter)) == std::get<1>(found.read(iter)));
@@ -207,10 +208,10 @@ typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find(key_t
     else
     {
 	return const_iterator(*this, most_search(
-		&root_,
+		std::get<0>(result),
 		key_wanted,
 		key_found,
-		key_wanted.begin(),
+		std::get<1>(result),
 		[] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr&) -> bool
 	{
 	    return iter.is_valid() && (std::get<1>(wanted.read(iter)) == std::get<1>(found.read(iter)));
@@ -221,22 +222,22 @@ typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find(key_t
 template <class k, class v, class a>
 typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_successor(const_iterator iter) const
 {
-    trie_key key_wanted(iter.get_key());
-    trie_key key_found(iter.get_key());
+    trie_key key_ref_point(iter.get_key());
+    trie_key key_found;
     return const_iterator(*this, least_search(
 	    &root_,
-	    key_wanted,
+	    key_ref_point,
 	    key_found,
-	    key_wanted.begin(),
-	    [] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr& branch) -> bool
+	    key_ref_point.begin(),
+	    [] (const typename trie_key::iterator& iter, const trie_key& ref_point, const trie_key& found, const branch_ptr& branch) -> bool
     {
 	if (branch.get_tag() == child_type::leaf)
 	{
-	    return wanted.get_key() < found.get_key();
+	    return ref_point.get_key() < found.get_key();
 	}
 	else
 	{
-	    return wanted.get_preceding_prefixes(iter) <= found.get_preceding_prefixes(iter);
+	    return ref_point.get_preceding_prefixes(iter) <= found.get_preceding_prefixes(iter);
 	}
     }));
 }
@@ -244,8 +245,31 @@ typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_succe
 template <class k, class v, class a>
 typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_predecessor(const_iterator iter) const
 {
-    trie_key key_wanted(iter.get_key());
-    trie_key key_found(iter.get_key());
+    trie_key key_ref_point(iter.get_key());
+    trie_key key_found;
+    return const_iterator(*this, most_search(
+	    &root_,
+	    key_ref_point,
+	    key_found,
+	    key_ref_point.begin(),
+	    [] (const typename trie_key::iterator& iter, const trie_key& ref_point, const trie_key& found, const branch_ptr& branch) -> bool
+    {
+	if (branch.get_tag() == child_type::leaf)
+	{
+	    return found.get_key() < ref_point.get_key();
+	}
+	else
+	{
+	    return found.get_preceding_prefixes(iter) <= ref_point.get_preceding_prefixes(iter);
+	}
+    }));
+}
+
+template <class k, class v, class a>
+typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_less_equal(key_type key) const
+{
+    trie_key key_wanted(key);
+    trie_key key_found;
     return const_iterator(*this, most_search(
 	    &root_,
 	    key_wanted,
@@ -255,11 +279,19 @@ typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find_prede
     {
 	if (branch.get_tag() == child_type::leaf)
 	{
-	    return found.get_key() < wanted.get_key();
+	    return found.get_key() <= wanted.get_key();
+	}
+	else if (!iter.is_valid())
+	{
+	    return false;
+	}
+	else if (iter == wanted.begin())
+	{
+	    return std::get<1>(found.read(iter)) <= std::get<1>(wanted.read(iter));
 	}
 	else
 	{
-	    return found.get_preceding_prefixes(iter) <= wanted.get_preceding_prefixes(iter);
+	    return std::get<1>(found.get_preceding_prefixes(iter)) <= std::get<1>(wanted.get_preceding_prefixes(iter));
 	}
     }));
 }
@@ -450,13 +482,12 @@ template <class k, class v, class a>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::min() const
 {
     trie_key key_wanted(std::numeric_limits<key_type>::min());
-    trie_key key_found(std::numeric_limits<key_type>::min());
-    auto result = index_.const_search(key_wanted);
+    trie_key key_found;
     return least_search(
-	    std::get<0>(result),
+	    &root_,
 	    key_wanted,
 	    key_found,
-	    std::get<1>(result),
+	    key_wanted.begin(),
 	    [] (const typename trie_key::iterator&, const trie_key&, const trie_key&, const branch_ptr&) -> bool
     {
 	return true;
@@ -467,7 +498,7 @@ template <class k, class v, class a>
 typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::max() const
 {
     trie_key key_wanted(std::numeric_limits<key_type>::max());
-    trie_key key_found(std::numeric_limits<key_type>::max());
+    trie_key key_found;
     return most_search(
 	    &root_,
 	    key_wanted,
