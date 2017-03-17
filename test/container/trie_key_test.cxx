@@ -14,6 +14,14 @@ public:
 	:
 	    key_(key)
     { }
+    inline static std::size_t bit_position(typename key_type::iterator iter)
+    {
+	return key_type::bit_position(iter);
+    }
+    inline static typename key_type::uint_type radix_mask(typename key_type::iterator iter)
+    {
+	return key_type::radix_mask(iter);
+    }
     inline static typename key_type::uint_type align(typename key_type::uint_type prefix, typename key_type::iterator iter)
     {
 	return key_type::align(prefix, iter);
@@ -88,28 +96,144 @@ TEST(uint_trie_key_test, predefined_key)
     EXPECT_EQ(128U + 64U + 32U + 16U + 8U + 4U + 2U + 1U, std::get<1>(key1.get_preceding_prefixes(iter1))) << "prefix does not match predefined key";
 }
 
-TEST(uint_trie_key_test, write_invalid)
+TEST(uint_trie_key_test, bit_position_basic)
 {
-    typedef tco::uint_trie_key<std::uint8_t, 256U> uint8_key;
+    typedef tco::uint_trie_key<std::uint8_t, 2U> uint8_key;
+    typedef tco::uint_trie_key_tester<std::uint8_t, 2U> uint8_tester;
     EXPECT_EQ(8U, uint8_key::key_bit_size()) << "key_bit_size calculation is wrong";
-    EXPECT_EQ(8U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
     uint8_key key1;
     auto iter1 = key1.begin();
-    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 255U)) << "write failed";
+    EXPECT_EQ(0U, uint8_tester::bit_position(iter1)) << "bit_position failed for 1st iterator position";
     ++iter1;
-    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key1.write(iter1, 255U)) << "write succeeded on full key";
-    uint8_key key2(255U);
+    EXPECT_EQ(1U, uint8_tester::bit_position(iter1)) << "bit_position failed for 2nd iterator position";
+    ++iter1;
+    EXPECT_EQ(2U, uint8_tester::bit_position(iter1)) << "bit_position failed for 3rd iterator position";
+    ++iter1;
+    EXPECT_EQ(3U, uint8_tester::bit_position(iter1)) << "bit_position failed for 4th iterator position";
+    ++iter1;
+    EXPECT_EQ(4U, uint8_tester::bit_position(iter1)) << "bit_position failed for 5th iterator position";
+    ++iter1;
+    EXPECT_EQ(5U, uint8_tester::bit_position(iter1)) << "bit_position failed for 6th iterator position";
+    ++iter1;
+    EXPECT_EQ(6U, uint8_tester::bit_position(iter1)) << "bit_position failed for 7th iterator position";
+    ++iter1;
+    EXPECT_EQ(7U, uint8_tester::bit_position(iter1)) << "bit_position failed for 8th iterator position";
+
+    typedef tco::uint_trie_key<std::uint64_t, 2U> uint64_key;
+    typedef tco::uint_trie_key_tester<std::uint64_t, 2U> uint64_tester;
+    EXPECT_EQ(64U, uint64_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint64_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint64_key key2;
     auto iter2 = key2.begin();
-    EXPECT_EQ(uint8_key::write_result::success, key2.write(iter2, 0U)) << "write failed";
+    EXPECT_EQ(0U, uint64_tester::bit_position(iter2)) << "bit_position failed for 1st iterator position";
     ++iter2;
-    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key2.write(iter2, 0U)) << "write succeeded on predefined key";
-    uint8_key key3(15U);
+    EXPECT_EQ(1U, uint64_tester::bit_position(iter2)) << "bit_position failed for 2nd iterator position";
+    ++iter2;
+    EXPECT_EQ(2U, uint64_tester::bit_position(iter2)) << "bit_position failed for 3rd iterator position";
+    ++iter2;
+    EXPECT_EQ(3U, uint64_tester::bit_position(iter2)) << "bit_position failed for 4th iterator position";
+    ++iter2;
+    EXPECT_EQ(4U, uint64_tester::bit_position(iter2)) << "bit_position failed for 5th iterator position";
+    ++iter2;
+    EXPECT_EQ(5U, uint64_tester::bit_position(iter2)) << "bit_position failed for 6th iterator position";
+    ++iter2;
+    EXPECT_EQ(6U, uint64_tester::bit_position(iter2)) << "bit_position failed for 7th iterator position";
+    ++iter2;
+    EXPECT_EQ(7U, uint64_tester::bit_position(iter2)) << "bit_position failed for 8th iterator position";
+    ++iter2;
+    EXPECT_EQ(8U, uint64_tester::bit_position(iter2)) << "bit_position failed for 9th iterator position";
+    ++iter2;
+    EXPECT_EQ(9U, uint64_tester::bit_position(iter2)) << "bit_position failed for 10th iterator position";
+    ++iter2;
+    EXPECT_EQ(10U, uint64_tester::bit_position(iter2)) << "bit_position failed for 11th iterator position";
+    ++iter2;
+    EXPECT_EQ(11U, uint64_tester::bit_position(iter2)) << "bit_position failed for 12th iterator position";
+    ++iter2;
+    EXPECT_EQ(12U, uint64_tester::bit_position(iter2)) << "bit_position failed for 13th iterator position";
+    ++iter2;
+    EXPECT_EQ(13U, uint64_tester::bit_position(iter2)) << "bit_position failed for 14th iterator position";
+    ++iter2;
+    EXPECT_EQ(14U, uint64_tester::bit_position(iter2)) << "bit_position failed for 15th iterator position";
+    ++iter2;
+    EXPECT_EQ(15U, uint64_tester::bit_position(iter2)) << "bit_position failed for 16th iterator position";
+
+    typedef tco::uint_trie_key<std::uint16_t, 16U> uint16_key;
+    typedef tco::uint_trie_key_tester<std::uint16_t, 16U> uint16_tester;
+    EXPECT_EQ(16U, uint16_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(4U, uint16_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint16_key key3;
     auto iter3 = key3.begin();
-    iter3 += 2;
-    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key3.write(iter3, 0U)) << "write succeeded with invalid iterator";
-    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key3.write(key3.end(), 0U)) << "write succeeded with end iterator";
-    EXPECT_FALSE(iter3.is_valid()) << "is_invalid returned false for invalid iterator";
-    EXPECT_EQ(key3.end(), iter3) << "invalid and end iterators are not equal";
+    EXPECT_EQ(0U, uint16_tester::bit_position(iter3)) << "bit_position failed for 1st iterator position";
+    ++iter3;
+    EXPECT_EQ(4U, uint16_tester::bit_position(iter3)) << "bit_position failed for 2nd iterator position";
+    ++iter3;
+    EXPECT_EQ(8U, uint16_tester::bit_position(iter3)) << "bit_position failed for 3rd iterator position";
+    ++iter3;
+    EXPECT_EQ(12U, uint16_tester::bit_position(iter3)) << "bit_position failed for 4th iterator position";
+}
+
+TEST(uint_trie_key_test, radix_mask_basic)
+{
+    typedef tco::uint_trie_key<std::uint8_t, 2U> uint8_key;
+    typedef tco::uint_trie_key_tester<std::uint8_t, 2U> uint8_tester;
+    EXPECT_EQ(8U, uint8_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint8_key key1;
+    auto iter1 = key1.begin();
+    EXPECT_EQ(128U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 1st iterator position";
+    ++iter1;
+    EXPECT_EQ(64U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 2nd iterator position";
+    ++iter1;
+    EXPECT_EQ(32U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 3rd iterator position";
+    ++iter1;
+    EXPECT_EQ(16U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 4th iterator position";
+    ++iter1;
+    EXPECT_EQ(8U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 5th iterator position";
+    ++iter1;
+    EXPECT_EQ(4U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 6th iterator position";
+    ++iter1;
+    EXPECT_EQ(2U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 7th iterator position";
+    ++iter1;
+    EXPECT_EQ(1U, uint8_tester::radix_mask(iter1)) << "radix_mask failed for 8th iterator position";
+
+    typedef tco::uint_trie_key<std::uint64_t, 2U> uint64_key;
+    typedef tco::uint_trie_key_tester<std::uint64_t, 2U> uint64_tester;
+    EXPECT_EQ(64U, uint64_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint64_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint64_key key2;
+    auto iter2 = key2.begin();
+    EXPECT_EQ(1ULL << 63U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 1st iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 62U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 2nd iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 61U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 3rd iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 60U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 4th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 59U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 5th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 58U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 6th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 57U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 7th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 56U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 8th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 55U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 9th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 54U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 10th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 53U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 11th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 52U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 12th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 51U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 13th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 50U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 14th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 49U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 15th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 48U, uint64_tester::radix_mask(iter2)) << "radix_mask failed for 16th iterator position";
 }
 
 TEST(uint_trie_key_test, align_basic)
@@ -135,6 +259,44 @@ TEST(uint_trie_key_test, align_basic)
     EXPECT_EQ(2U, uint8_tester::align(1U, iter1)) << "align failed for 7th iterator position";
     ++iter1;
     EXPECT_EQ(1U, uint8_tester::align(1U, iter1)) << "align failed for 8th iterator position";
+
+    typedef tco::uint_trie_key<std::uint64_t, 2U> uint64_key;
+    typedef tco::uint_trie_key_tester<std::uint64_t, 2U> uint64_tester;
+    EXPECT_EQ(64U, uint64_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint64_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint64_key key2;
+    auto iter2 = key2.begin();
+    EXPECT_EQ(1ULL << 63U, uint64_tester::align(1U, iter2)) << "align failed for 1st iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 62U, uint64_tester::align(1U, iter2)) << "align failed for 2nd iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 61U, uint64_tester::align(1U, iter2)) << "align failed for 3rd iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 60U, uint64_tester::align(1U, iter2)) << "align failed for 4th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 59U, uint64_tester::align(1U, iter2)) << "align failed for 5th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 58U, uint64_tester::align(1U, iter2)) << "align failed for 6th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 57U, uint64_tester::align(1U, iter2)) << "align failed for 7th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 56U, uint64_tester::align(1U, iter2)) << "align failed for 8th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 55U, uint64_tester::align(1U, iter2)) << "align failed for 9th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 54U, uint64_tester::align(1U, iter2)) << "align failed for 10th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 53U, uint64_tester::align(1U, iter2)) << "align failed for 11th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 52U, uint64_tester::align(1U, iter2)) << "align failed for 12th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 51U, uint64_tester::align(1U, iter2)) << "align failed for 13th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 50U, uint64_tester::align(1U, iter2)) << "align failed for 14th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 49U, uint64_tester::align(1U, iter2)) << "align failed for 15th iterator position";
+    ++iter2;
+    EXPECT_EQ(1ULL << 48U, uint64_tester::align(1U, iter2)) << "align failed for 16th iterator position";
 }
 
 TEST(uint_trie_key_test, clear_prefix_basic)
@@ -160,6 +322,55 @@ TEST(uint_trie_key_test, clear_prefix_basic)
     EXPECT_EQ(255U - 2U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 7th iterator position";
     ++iter1;
     EXPECT_EQ(255U - 1U, uint8_tester::clear_prefix(255U, iter1)) << "clear_prefix failed for 8th iterator position";
+    uint8_key key2;
+    auto iter2 = key2.begin();
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(128U, iter2)) << "clear_prefix failed for 1st iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(64U, iter2)) << "clear_prefix failed for 2nd iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(32U, iter2)) << "clear_prefix failed for 3rd iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(16U, iter2)) << "clear_prefix failed for 4th iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(8U, iter2)) << "clear_prefix failed for 5th iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(4U, iter2)) << "clear_prefix failed for 6th iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(2U, iter2)) << "clear_prefix failed for 7th iterator position";
+    ++iter2;
+    EXPECT_EQ(0U, uint8_tester::clear_prefix(1U, iter2)) << "clear_prefix failed for 8th iterator position";
+
+    typedef tco::uint_trie_key<std::uint64_t, 2U> uint64_key;
+    typedef tco::uint_trie_key_tester<std::uint64_t, 2U> uint64_tester;
+    EXPECT_EQ(64U, uint64_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint64_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint64_key key3;
+    auto iter3 = key3.begin();
+    EXPECT_EQ(0U, uint64_tester::clear_prefix(1ULL << 63U, iter3)) << "clear_prefix failed for 1st iterator position";
+}
+
+TEST(uint_trie_key_test, write_invalid)
+{
+    typedef tco::uint_trie_key<std::uint8_t, 256U> uint8_key;
+    EXPECT_EQ(8U, uint8_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(8U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint8_key key1;
+    auto iter1 = key1.begin();
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 255U)) << "write failed";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key1.write(iter1, 255U)) << "write succeeded on full key";
+    uint8_key key2(255U);
+    auto iter2 = key2.begin();
+    EXPECT_EQ(uint8_key::write_result::success, key2.write(iter2, 0U)) << "write failed";
+    ++iter2;
+    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key2.write(iter2, 0U)) << "write succeeded on predefined key";
+    uint8_key key3(15U);
+    auto iter3 = key3.begin();
+    iter3 += 2;
+    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key3.write(iter3, 0U)) << "write succeeded with invalid iterator";
+    EXPECT_EQ(uint8_key::write_result::out_of_bounds, key3.write(key3.end(), 0U)) << "write succeeded with end iterator";
+    EXPECT_FALSE(iter3.is_valid()) << "is_invalid returned false for invalid iterator";
+    EXPECT_EQ(key3.end(), iter3) << "invalid and end iterators are not equal";
 }
 
 TEST(uint_trie_key_test, write_basic)
@@ -211,6 +422,66 @@ TEST(uint_trie_key_test, write_basic)
     auto result8 = key2.get_preceding_prefixes(iter2);
     EXPECT_EQ(uint16_key::get_result::success, std::get<0>(result8)) << "get failed after write";
     EXPECT_EQ(4096U + 256U + 16U + 1U, std::get<1>(result8)) << "write failed";
+}
+
+TEST(uint_trie_key_test, write_revert)
+{
+    typedef tco::uint_trie_key<std::uint8_t, 2U> uint8_key;
+    typedef tco::uint_trie_key_tester<std::uint8_t, 2U> uint8_tester;
+    EXPECT_EQ(8U, uint8_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint8_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint8_key key1;
+    auto iter1 = key1.begin();
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(128U, key1.get_key()) << "write to set failed for 1st iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 1st iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(64U, key1.get_key()) << "write to set failed for 2nd iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 2nd iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(32U, key1.get_key()) << "write to set failed for 3rd iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 3rd iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(16U, key1.get_key()) << "write to set failed for 4th iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 4th iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(8U, key1.get_key()) << "write to set failed for 5th iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 5th iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(4U, key1.get_key()) << "write to set failed for 6th iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 6th iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(2U, key1.get_key()) << "write to set failed for 7th iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 7th iterator position";
+    ++iter1;
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 1U)) << "write to set failed";
+    EXPECT_EQ(1U, key1.get_key()) << "write to set failed for 8th iterator position";
+    EXPECT_EQ(uint8_key::write_result::success, key1.write(iter1, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key1.get_key()) << "write to revert failed for 8th iterator position";
+
+    typedef tco::uint_trie_key<std::uint64_t, 2U> uint64_key;
+    typedef tco::uint_trie_key_tester<std::uint64_t, 2U> uint64_tester;
+    EXPECT_EQ(64U, uint64_key::key_bit_size()) << "key_bit_size calculation is wrong";
+    EXPECT_EQ(1U, uint64_key::radix_bit_size()) << "radix_bit_size calculation is wrong";
+    uint64_key key2;
+    auto iter2 = key2.begin();
+    EXPECT_EQ(uint64_key::write_result::success, key2.write(iter2, 1U)) << "write to set failed";
+    EXPECT_NE(0U, key2.get_key()) << "write to set failed for 1st iterator position";
+    EXPECT_EQ(uint64_key::write_result::success, key2.write(iter2, 0U)) << "write to revert failed";
+    EXPECT_EQ(0U, key2.get_key()) << "write to revert failed for 1st iterator position";
 }
 
 TEST(uint_trie_key_test, write_jump)

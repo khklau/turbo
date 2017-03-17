@@ -99,7 +99,8 @@ public:
 	}
 	inline iterator& operator++()
 	{
-	    return (*this) += 1U;
+	    index_ += 1U;
+	    return *this;
 	}
 	inline iterator operator++(int)
 	{
@@ -180,7 +181,7 @@ private:
     inline static std::size_t bit_position(iterator iter)
     {
 	return iter.is_valid()
-		? iter.get_index() * radix_bit_size()
+		? static_cast<std::size_t>(iter.get_index()) * radix_bit_size()
 		: key_bit_size();
     }
     inline static uint_type predecessor_mask(iterator iter)
@@ -193,7 +194,7 @@ private:
     }
     inline static uint_type radix_mask(iterator iter)
     {
-	return ((1U << radix_bit_size()) - 1U) << (key_bit_size() - radix_bit_size() - bit_position(iter));
+	return ((1ULL << radix_bit_size()) - 1U) << (key_bit_size() - radix_bit_size() - bit_position(iter));
     }
     inline static uint_type align(uint_type prefix, iterator iter)
     {
