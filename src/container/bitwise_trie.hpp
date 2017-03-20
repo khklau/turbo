@@ -258,6 +258,7 @@ private:
 	inline std::tuple<branch_ptr*, typename trie_key::iterator> search(const trie_key& key);
 	inline std::tuple<const branch_ptr*, typename trie_key::iterator> const_search(const trie_key& key) const;
 	void insert(branch* branch, const typename trie_key::iterator& iter);
+	void remove(const typename trie_key::iterator& iter);
     private:
 	branch_ptr& root_;
 	std::array<branch_ptr, trie_key::key_bit_size()> index_;
@@ -278,7 +279,7 @@ private:
 	    trie_key key_found,
 	    typename trie_key::iterator iter,
 	    compare_t compare_func) const;
-    std::tuple<std::size_t, std::size_t> erase_recursive(const branch_ptr* branch, const trie_key& key, typename trie_key::iterator iter);
+    std::tuple<std::size_t, std::size_t> erase_recursive(branch_ptr* branch, const trie_key& key, typename trie_key::iterator iter);
     template <class... value_args_t>
     leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
     void destroy_leaf(leaf* pointer);

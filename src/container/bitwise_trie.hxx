@@ -117,7 +117,7 @@ typename basic_forward<t, k, v, n>::value_type* basic_forward<t, k, v, n>::opera
     }
     else
     {
-	throw invalid_dereference_error("cannot dereference bitwise_trie iterator");
+	throw invalid_dereference_error("cannot dereference invalid bitwise_trie iterator");
     }
 }
 
@@ -341,7 +341,16 @@ template <class k, class v, class a>
 std::size_t bitwise_trie<k, v ,a>::erase(key_type key)
 {
     trie_key tkey(key);
-    return std::get<0>(erase_recursive(&root_, tkey, tkey.begin()));
+    std::size_t leaf_erase_count = 0U;
+    std::size_t child_count = 0U;
+    std::tie(leaf_erase_count, child_count) = erase_recursive(&root_, tkey, tkey.begin());
+    if (child_count == 0U)
+    {
+	destroy_branch(root_.get_ptr());
+	root_.reset();
+	index_.remove(tkey.begin());
+    }
+    return leaf_erase_count;
 }
 
 template <class k, class v, class a>
@@ -410,6 +419,13 @@ void bitwise_trie<k, v, a>::leading_zero_index::insert(
 	const typename trie_key::iterator& iter)
 {
     index_[iter.get_index()].reset(branch, child_type::branch);
+}
+
+template <class k, class v, class a>
+void bitwise_trie<k, v, a>::leading_zero_index::remove(
+	const typename trie_key::iterator& iter)
+{
+    index_[iter.get_index()].reset();
 }
 
 template <class k, class v, class a>
@@ -519,7 +535,7 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::most_first_search(
 
 template <class k, class v, class a>
 std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
-	const branch_ptr* branch,
+	branch_ptr* branch,
 	const trie_key& key,
 	typename trie_key::iterator iter)
 {
@@ -528,10 +544,10 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 	return std::make_tuple(0U, 0U);
     }
     std::size_t child_count = 0U;
-    std::size_t leaf_destroy_count = 0U;
+    std::size_t leaf_erase_count = 0U;
     for (std::size_t child_index = 0U; child_index < (*branch)->children.max_size(); ++child_index)
     {
-	const branch_ptr& child_branch = (*branch)->children[child_index];
+	branch_ptr& child_branch = (*branch)->children[child_index];
 	if (!child_branch.is_empty())
 	{
 	    if (child_index == std::get<1>(key.read(iter)))
@@ -539,17 +555,24 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 		if (child_branch.get_tag() == child_type::leaf)
 		{
 		    destroy_leaf(static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr())));
-		    ++leaf_destroy_count;
+		    child_branch.reset();
+		    ++leaf_erase_count;
 		    --size_;
 		}
 		else
 		{
 		    std::size_t grand_child_count = 0U;
-		    std::tie(leaf_destroy_count, grand_child_count) = erase_recursive(&child_branch, key, iter + 1U);
+		    std::tie(leaf_erase_count, grand_child_count) = erase_recursive(&child_branch, key, iter + 1U);
 		    if (grand_child_count == 0U)
 		    {
 			// nothing left under this child branch so destroy it
 			destroy_branch(child_branch.get_ptr());
+			child_branch.reset();
+			auto result = key.get_preceding_prefixes(iter);
+			if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
+			{
+			    index_.remove(iter);
+			}
 		    }
 		    else
 		    {
@@ -565,7 +588,7 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 	    }
 	}
     }
-    return std::make_tuple(leaf_destroy_count, child_count);
+    return std::make_tuple(leaf_erase_count, child_count);
 }
 
 template <class k, class v, class a>

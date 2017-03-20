@@ -22,7 +22,7 @@ public:
 	:
 	    trie_(trie)
     { }
-    inline typename trie_type::branch* get_root()
+    inline const typename trie_type::branch_ptr& get_root()
     {
 	return trie_.root_;
     }
@@ -523,6 +523,106 @@ TEST(bitwise_trie_test, find_less_equal_basic)
     EXPECT_EQ(std::string("foo"), *map4.find_less_equal(1U)) << "Could not find just emplaced key & value";
     EXPECT_NE(map4.cend(), map4.find_less_equal(0U)) << "Could not find just emplaced key & value";
     EXPECT_EQ(std::string("foo"), *map4.find_less_equal(0U)) << "Could not find just emplaced key & value";
+}
+
+TEST(bitwise_trie_test, erase_invalid)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
+    typedef tco::bitwise_trie_tester<std::uint8_t, std::string, tme::pool> map_tester;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    string_map map1(allocator1);
+    map1.emplace(1U, "foo");
+    map1.emplace(32U, "bar");
+    EXPECT_EQ(0U, map1.erase(0U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map1.erase(2U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map1.erase(31U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map1.erase(33U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map1.erase(255U)) << "erase on non-existent key succeeded";
+    string_map map2(allocator1);
+    map2.emplace(128U, "foo");
+    map2.emplace(129U, "bar");
+    EXPECT_EQ(0U, map2.erase(0U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map2.erase(127U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map2.erase(130U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map2.erase(255U)) << "erase on non-existent key succeeded";
+    string_map map3(allocator1);
+    map3.emplace(255U, "bar");
+    EXPECT_EQ(0U, map3.erase(0U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map3.erase(127U)) << "erase on non-existent key succeeded";
+    EXPECT_EQ(0U, map3.erase(254U)) << "erase on non-existent key succeeded";
+    string_map map4(allocator1);
+    map_tester tester4(map4);
+    map4.emplace(0U, "foo");
+    map4.emplace(128U, "bar");
+    map4.emplace(255U, "blah");
+    EXPECT_EQ(3U, map4.size()) << "Size of trie after emplace is wrong";
+    EXPECT_FALSE(tester4.get_root().is_empty()) << "Root of trie after emplace is empty";
+    EXPECT_EQ(1U, map4.erase(128U)) << "erase on valid key failed";
+    EXPECT_EQ(2U, map4.size()) << "Size of trie after erase is wrong";
+    EXPECT_EQ(1U, map4.erase(255U)) << "erase on valid key failed";
+    EXPECT_EQ(1U, map4.size()) << "Size of trie after erase is wrong";
+    EXPECT_EQ(1U, map4.erase(0U)) << "erase on valid key failed";
+    EXPECT_EQ(0U, map4.size()) << "Size of trie after erase is wrong";
+    EXPECT_TRUE(tester4.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
+    EXPECT_EQ(0U, map4.erase(128U)) << "erase on already erased key succeeded";
+    EXPECT_EQ(0U, map4.size()) << "Size of trie changed after unsuccessful erase is wrong";
+    EXPECT_EQ(0U, map4.erase(255U)) << "erase on already erased key succeeded";
+    EXPECT_EQ(0U, map4.size()) << "Size of trie changed after unsuccessful erase is wrong";
+    EXPECT_EQ(0U, map4.erase(0U)) << "erase on already erased key succeeded";
+    EXPECT_EQ(0U, map4.size()) << "Size of trie changed after unsuccessful erase is wrong";
+    EXPECT_TRUE(tester4.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
+}
+
+TEST(bitwise_trie_test, erase_basic)
+{
+    typedef tco::bitwise_trie<std::uint64_t, std::string, tme::pool> string_map;
+    typedef tco::bitwise_trie_tester<std::uint64_t, std::string, tme::pool> map_tester;
+    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+
+    string_map map1(allocator1);
+    map_tester tester1(map1);
+    map1.emplace(128U, "foo");
+    EXPECT_EQ(1U, map1.size()) << "Size of trie after emplace is wrong";
+    EXPECT_FALSE(tester1.get_root().is_empty()) << "Root of trie after emplace is empty";
+    EXPECT_EQ(1U, map1.erase(128U)) << "erase on valid key failed";
+    EXPECT_EQ(map1.cend(), map1.find(128U)) << "value that was just erased can still be found";
+    EXPECT_EQ(0U, map1.size()) << "Size of trie after erase is wrong";
+    EXPECT_TRUE(tester1.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
+
+    string_map map2(allocator1);
+    map_tester tester2(map2);
+    map2.emplace(0U, "foo");
+    map2.emplace(1U, "bar");
+    EXPECT_EQ(2U, map2.size()) << "Size of trie after emplace is wrong";
+    EXPECT_FALSE(tester2.get_root().is_empty()) << "Root of trie after emplace is empty";
+    EXPECT_EQ(1U, map2.erase(0U)) << "erase on valid key failed";
+    EXPECT_EQ(map2.cend(), map2.find(0U)) << "value that was just erased can still be found";
+    EXPECT_EQ(1U, map2.size()) << "Size of trie after erase is wrong";
+    EXPECT_FALSE(tester2.get_root().is_empty()) << "Root of trie when some values still remain after erase is empty";
+    EXPECT_EQ(1U, map2.erase(1U)) << "erase on valid key failed";
+    EXPECT_EQ(map2.cend(), map2.find(1U)) << "value that was just erased can still be found";
+    EXPECT_EQ(0U, map2.size()) << "Size of trie after erase is wrong";
+    EXPECT_TRUE(tester2.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
+
+    string_map map3(allocator1);
+    map_tester tester3(map3);
+    map3.emplace(128U, "blah");
+    map3.emplace(126U, "foo");
+    map3.emplace(127U, "bar");
+    EXPECT_EQ(3U, map3.size()) << "Size of trie after emplace is wrong";
+    EXPECT_FALSE(tester3.get_root().is_empty()) << "Root of trie after emplace is empty";
+    EXPECT_EQ(1U, map3.erase(127U)) << "erase on valid key failed";
+    EXPECT_EQ(map3.cend(), map3.find(127U)) << "value that was just erased can still be found";
+    EXPECT_EQ(2U, map3.size()) << "Size of trie after erase is wrong";
+    EXPECT_FALSE(tester3.get_root().is_empty()) << "Root of trie when some values still remain after erase is empty";
+    EXPECT_EQ(1U, map3.erase(126U)) << "erase on valid key failed";
+    EXPECT_EQ(map3.cend(), map3.find(126U)) << "value that was just erased can still be found";
+    EXPECT_EQ(1U, map3.size()) << "Size of trie after erase is wrong";
+    EXPECT_FALSE(tester3.get_root().is_empty()) << "Root of trie when some values still remain after erase is empty";
+    EXPECT_EQ(1U, map3.erase(128U)) << "erase on valid key failed";
+    EXPECT_EQ(map3.cend(), map3.find(128U)) << "value that was just erased can still be found";
+    EXPECT_EQ(0U, map3.size()) << "Size of trie after erase is wrong";
+    EXPECT_TRUE(tester3.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
 }
 
 class bitwise_trie_emplace_perf_test : public ::testing::Test
