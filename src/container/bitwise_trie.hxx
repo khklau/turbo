@@ -190,33 +190,31 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
 template <class k, class v, class a>
 typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find(key_type key) const
 {
-    trie_key key_wanted(key);
-    trie_key key_found;
-    auto result = index_.const_search(key_wanted);
-    if (key < (std::numeric_limits<key_type>::max() - key))
+    const branch_ptr* current_branch = nullptr;
+    trie_key tkey(key);
+    typename trie_key::iterator iter = tkey.begin();
+    std::tie(current_branch, iter) = index_.const_search(tkey);
+    for (; iter.is_valid(); ++iter)
     {
-	return const_iterator(*this, least_first_search(
-		std::get<0>(result),
-		key_wanted,
-		key_found,
-		std::get<1>(result),
-		[] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr&) -> bool
+	if (current_branch == nullptr || current_branch->is_empty())
 	{
-	    return iter.is_valid() && (std::get<1>(wanted.read(iter)) == std::get<1>(found.read(iter)));
-	}));
-    }
-    else
-    {
-	return const_iterator(*this, most_first_search(
-		std::get<0>(result),
-		key_wanted,
-		key_found,
-		std::get<1>(result),
-		[] (const typename trie_key::iterator& iter, const trie_key& wanted, const trie_key& found, const branch_ptr&) -> bool
+	    return const_iterator(*this, nullptr);
+	}
+	const branch_ptr& child_branch = (*current_branch)->children[std::get<1>(tkey.read(iter))];
+	if (child_branch.is_empty())
 	{
-	    return iter.is_valid() && (std::get<1>(wanted.read(iter)) == std::get<1>(found.read(iter)));
-	}));
+	    return const_iterator(*this, nullptr);
+	}
+	else if (child_branch.get_tag() == child_type::leaf)
+	{
+	    return const_iterator(*this, static_cast<leaf*>(static_cast<void*>(child_branch.get_ptr())));
+	}
+	else
+	{
+	    current_branch = &child_branch;
+	}
     }
+    return const_iterator(*this, nullptr);
 }
 
 template <class k, class v, class a>
