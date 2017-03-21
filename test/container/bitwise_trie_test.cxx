@@ -625,6 +625,64 @@ TEST(bitwise_trie_test, erase_basic)
     EXPECT_TRUE(tester3.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
 }
 
+TEST(bitwise_trie_test, emplace_erase_reuse)
+{
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint64_map;
+    typedef tco::bitwise_trie_tester<std::uint64_t, std::uint64_t, tme::pool> map_tester;
+    tme::pool allocator1(8U, { {uint64_map::node_sizes[0], 8U}, {uint64_map::node_sizes[1], 15U} });
+
+    uint64_map map1(allocator1);
+    map_tester tester1(map1);
+    map1.emplace(1U, 1U);
+    map1.emplace(3U, 3U);
+    map1.emplace(5U, 5U);
+    map1.emplace(7U, 7U);
+    map1.emplace(11U, 11U);
+    map1.emplace(13U, 13U);
+    map1.emplace(17U, 17U);
+    map1.emplace(19U, 19U);
+    EXPECT_EQ(8U, map1.size()) << "Size of trie after emplace is wrong";
+    EXPECT_FALSE(tester1.get_root().is_empty()) << "Root of trie after emplace is empty";
+    map1.erase(1U);
+    map1.erase(3U);
+    map1.erase(5U);
+    map1.erase(7U);
+    map1.erase(11U);
+    map1.erase(13U);
+    map1.erase(17U);
+    map1.erase(19U);
+    EXPECT_EQ(0U, map1.size()) << "Size of trie after erase is wrong";
+    EXPECT_TRUE(tester1.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
+    map1.emplace(1U, 101U);
+    map1.emplace(3U, 103U);
+    map1.emplace(5U, 105U);
+    map1.emplace(7U, 107U);
+    map1.emplace(11U, 111U);
+    map1.emplace(13U, 113U);
+    map1.emplace(17U, 117U);
+    map1.emplace(19U, 119U);
+    EXPECT_EQ(8U, map1.size()) << "Size of trie after emplace is wrong";
+    EXPECT_FALSE(tester1.get_root().is_empty()) << "Root of trie after emplace is empty";
+    EXPECT_EQ(101U, *map1.find(1U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(103U, *map1.find(3U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(105U, *map1.find(5U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(107U, *map1.find(7U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(111U, *map1.find(11U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(113U, *map1.find(13U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(117U, *map1.find(17U)) << "replacement value that was just emplacex could not be found";
+    EXPECT_EQ(119U, *map1.find(19U)) << "replacement value that was just emplacex could not be found";
+    map1.erase(1U);
+    map1.erase(3U);
+    map1.erase(5U);
+    map1.erase(7U);
+    map1.erase(11U);
+    map1.erase(13U);
+    map1.erase(17U);
+    map1.erase(19U);
+    EXPECT_EQ(0U, map1.size()) << "Size of trie after erase is wrong";
+    EXPECT_TRUE(tester1.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
+}
+
 class bitwise_trie_emplace_perf_test : public ::testing::Test
 {
 public:

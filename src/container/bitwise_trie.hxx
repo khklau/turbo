@@ -568,10 +568,12 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 			// nothing left under this child branch so destroy it
 			destroy_branch(child_branch.get_ptr());
 			child_branch.reset();
-			auto result = key.get_preceding_prefixes(iter);
+			// Branches are created on their level, but are destroyed at their parent's level, so we can't use the parent's iterator
+			typename trie_key::iterator child_iter = iter + 1U;
+			auto result = key.get_preceding_prefixes(child_iter);
 			if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
 			{
-			    index_.remove(iter);
+			    index_.remove(child_iter);
 			}
 		    }
 		    else
