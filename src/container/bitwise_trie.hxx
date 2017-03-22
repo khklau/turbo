@@ -341,7 +341,14 @@ std::size_t bitwise_trie<k, v ,a>::erase(key_type key)
     trie_key tkey(key);
     std::size_t leaf_erase_count = 0U;
     std::size_t child_count = 0U;
-    std::tie(leaf_erase_count, child_count) = erase_recursive(&root_, tkey, tkey.begin());
+    std::tie(leaf_erase_count, child_count) = erase_recursive(
+	    &root_,
+	    tkey,
+	    tkey.begin(),
+	    [] (const typename trie_key::iterator&, key_type prefix_wanted, key_type prefix_found, const branch_ptr&) -> bool
+    {
+	return prefix_found == prefix_wanted;
+    });
     if (child_count == 0U)
     {
 	destroy_branch(root_.get_ptr());
@@ -532,10 +539,12 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::most_first_search(
 }
 
 template <class k, class v, class a>
+template <typename compare_t>
 std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 	branch_ptr* branch,
 	const trie_key& key,
-	typename trie_key::iterator iter)
+	typename trie_key::iterator iter,
+	compare_t compare_func)
 {
     if (!iter.is_valid() || branch == nullptr || branch->is_empty())
     {
@@ -548,7 +557,7 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 	branch_ptr& child_branch = (*branch)->children[child_index];
 	if (!child_branch.is_empty())
 	{
-	    if (child_index == std::get<1>(key.read(iter)))
+	    if (compare_func(iter, std::get<1>(key.read(iter)), child_index, child_branch))
 	    {
 		if (child_branch.get_tag() == child_type::leaf)
 		{
@@ -560,7 +569,9 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 		else
 		{
 		    std::size_t grand_child_count = 0U;
-		    std::tie(leaf_erase_count, grand_child_count) = erase_recursive(&child_branch, key, iter + 1U);
+		    std::size_t child_leaf_erase_count = 0U;
+		    std::tie(child_leaf_erase_count, grand_child_count) = erase_recursive(&child_branch, key, iter + 1U, compare_func);
+		    leaf_erase_count += child_leaf_erase_count;
 		    if (grand_child_count == 0U)
 		    {
 			// nothing left under this child branch so destroy it

@@ -279,7 +279,12 @@ private:
 	    trie_key key_found,
 	    typename trie_key::iterator iter,
 	    compare_t compare_func) const;
-    std::tuple<std::size_t, std::size_t> erase_recursive(branch_ptr* branch, const trie_key& key, typename trie_key::iterator iter);
+    template <typename compare_t>
+    std::tuple<std::size_t, std::size_t> erase_recursive(
+	    branch_ptr* branch,
+	    const trie_key& key,
+	    typename trie_key::iterator iter,
+	    compare_t compare_func);
     template <class... value_args_t>
     leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
     void destroy_leaf(leaf* pointer);
