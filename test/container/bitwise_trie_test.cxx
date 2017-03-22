@@ -843,3 +843,52 @@ TEST_F(bitwise_trie_find_less_equal_perf_test, perf_test_map_find_less_equal)
 	EXPECT_EQ(expected[iter], result->first) << "Failed upper_bound for key " << input[iter] << " @ " << iter;
     }
 }
+
+class bitwise_trie_erase_perf_test : public ::testing::Test
+{
+public:
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_trie;
+    typedef std::map<std::uint64_t, std::uint64_t> uint_map;
+    bitwise_trie_erase_perf_test()
+	:
+	    allocator(8U, { {uint_trie::node_sizes[0], 1U << 16U}, {uint_trie::node_sizes[1], (1U << 17U) - 1U} }),
+	    trie(allocator),
+	    map(),
+	    input(1U << 16U)
+    {
+	std::random_device device;
+	for (std::uint64_t counter = map.size(); map.size() <= std::numeric_limits<std::uint16_t>::max(); counter = map.size())
+	{
+	    std::uint64_t value = device();
+	    trie.emplace(value, value);
+	    map.emplace(value, value);
+	    input[counter] = value;
+    }
+    }
+protected:
+    tme::pool allocator;
+    uint_trie trie;
+    uint_map map;
+    std::vector<std::uint64_t> input;
+};
+
+TEST_F(bitwise_trie_erase_perf_test, perf_test_erase_overhead)
+{
+    EXPECT_TRUE(true);
+}
+
+TEST_F(bitwise_trie_erase_perf_test, perf_test_trie_erase)
+{
+    for (std::uint64_t key: input)
+    {
+	EXPECT_EQ(1U, trie.erase(key)) << "Failed erase for key " << key;
+    }
+}
+
+TEST_F(bitwise_trie_erase_perf_test, perf_test_map_erase)
+{
+    for (std::uint64_t key: input)
+    {
+	EXPECT_EQ(1U, map.erase(key)) << "Failed erase for key " << key;
+    }
+}
