@@ -687,12 +687,30 @@ class bitwise_trie_emplace_perf_test : public ::testing::Test
 {
 public:
     typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_trie;
+    typedef std::map<std::uint64_t, std::uint64_t> uint_map;
     bitwise_trie_emplace_perf_test()
 	:
-	    allocator1(8U, { {uint_trie::node_sizes[0], 1U << 16U}, {uint_trie::node_sizes[1], (1U << 17U) - 1U} })
-    { }
+	    allocator1(8U, { {uint_trie::node_sizes[0], 1ULL << 16U}, {uint_trie::node_sizes[1], (1ULL << 17U) - 1U} }),
+	    trie(allocator1),
+	    map(),
+	    values(1U << 16U)
+    {
+	std::random_device device;
+	uint_map accepted;
+	for (std::uint64_t counter = accepted.size(); counter <= std::numeric_limits<std::uint16_t>::max(); counter = accepted.size())
+	{
+	    std::uint64_t value = device();
+	    if (accepted.emplace(value, value).second)
+	    {
+		values[counter] = value;
+	    }
+	}
+    }
 protected:
     tme::pool allocator1;
+    uint_trie trie;
+    uint_map map;
+    std::vector<std::uint64_t> values;
 };
 
 TEST_F(bitwise_trie_emplace_perf_test, perf_test_emplace_overhead)
@@ -702,25 +720,26 @@ TEST_F(bitwise_trie_emplace_perf_test, perf_test_emplace_overhead)
 
 TEST_F(bitwise_trie_emplace_perf_test, perf_test_trie_emplace)
 {
-    uint_trie map1(allocator1);
-    auto end = map1.end();
-    std::random_device device;
-    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    auto end = trie.end();
+    for (auto value: values)
     {
-	std::uint64_t value = device() >> 16U;
-	EXPECT_NE(end, std::get<0>(map1.emplace(value, value)));
+	auto result = trie.emplace(value, value);
+	EXPECT_TRUE(std::get<1>(result)) << "Failed to emplace " << value;
+	EXPECT_NE(end, std::get<0>(result));
+	EXPECT_EQ(value, *(std::get<0>(result)));
     }
 }
 
 TEST_F(bitwise_trie_emplace_perf_test, perf_test_map_emplace)
 {
-    std::map<std::uint64_t, std::uint64_t> map1;
-    auto end = map1.end();
-    std::random_device device;
-    for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
+    auto end = map.end();
+    for (auto value: values)
     {
-	std::uint64_t value = device() >> 16U;
-	EXPECT_NE(end, map1.emplace(value, value).first);
+	trie.emplace(value, value);
+	auto result = map.emplace(value, value);
+	EXPECT_TRUE(result.second);
+	EXPECT_NE(end, result.first);
+	EXPECT_EQ(value, (result.first)->first);
     }
 }
 
@@ -734,15 +753,15 @@ public:
 	    allocator(8U, { {uint_trie::node_sizes[0], 1U << 16U}, {uint_trie::node_sizes[1], (1U << 17U) - 1U} }),
 	    trie(allocator),
 	    map(),
-	    values(1U << 15U)
+	    values(1U << 16U)
     {
 	std::random_device device;
-	while (values.size() < std::numeric_limits<std::uint16_t>::max())
+	for (std::uint64_t counter = map.size(); counter <= std::numeric_limits<std::uint16_t>::max(); counter = map.size())
 	{
-	    std::uint64_t value = device() >> 16U;
+	    std::uint64_t value = device();
 	    if (std::get<1>(trie.emplace(value, value)) && map.emplace(value, value).second)
 	    {
-		values.emplace_back(value);
+		values[counter] = value;
 	    }
 	}
     }
@@ -788,7 +807,7 @@ public:
 	    expected(1U << 16U)
     {
 	std::uint64_t previous = 0U;
-	for (std::uint64_t counter = 0U; counter < std::numeric_limits<std::uint16_t>::max(); ++counter)
+	for (std::uint64_t counter = 0U; counter <= std::numeric_limits<std::uint16_t>::max(); ++counter)
 	{
 	    if (counter == 0U)
 	    {
@@ -863,7 +882,7 @@ public:
 	    trie.emplace(value, value);
 	    map.emplace(value, value);
 	    input[counter] = value;
-    }
+	}
     }
 protected:
     tme::pool allocator;
