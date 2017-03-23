@@ -184,6 +184,7 @@ public:
 	alignof(branch)
     };
     bitwise_trie(allocator_type& allocator);
+    ~bitwise_trie();
     inline std::size_t size() const noexcept
     {
 	return size_;

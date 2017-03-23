@@ -188,6 +188,26 @@ bitwise_trie<k, v, a>::bitwise_trie(allocator_type& allocator)
 { }
 
 template <class k, class v, class a>
+bitwise_trie<k, v, a>::~bitwise_trie()
+{
+    trie_key tkey(0U);
+    erase_recursive(
+	    &root_,
+	    tkey,
+	    tkey.begin(),
+	    [] (const typename trie_key::iterator&, key_type, key_type, const branch_ptr&) -> bool
+    {
+	return true;
+    });
+    if (!root_.is_empty())
+    {
+	destroy_branch(root_.get_ptr());
+	root_.reset();
+	index_.remove(tkey.begin());
+    }
+}
+
+template <class k, class v, class a>
 typename bitwise_trie<k, v ,a>::const_iterator bitwise_trie<k, v ,a>::find(key_type key) const
 {
     const branch_ptr* current_branch = nullptr;
@@ -349,7 +369,7 @@ std::size_t bitwise_trie<k, v ,a>::erase(key_type key)
     {
 	return prefix_found == prefix_wanted;
     });
-    if (child_count == 0U)
+    if (child_count == 0U && !root_.is_empty())
     {
 	destroy_branch(root_.get_ptr());
 	root_.reset();
