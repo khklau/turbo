@@ -172,7 +172,7 @@ public:
     typedef bitwise_trie_iterator::basic_forward<self_type, key_type, value_type, leaf> iterator;
     typedef bitwise_trie_iterator::basic_reverse<const self_type, key_type, const value_type, leaf> const_reverse_iterator;
     typedef bitwise_trie_iterator::basic_reverse<self_type, key_type, value_type, leaf> reverse_iterator;
-    static const std::size_t radix = 2U;
+    static const std::size_t radix = 16U;
     static constexpr std::array<std::size_t, 2U> node_sizes
     {
 	sizeof(leaf),
