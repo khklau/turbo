@@ -76,8 +76,8 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, uint16
 	buffer_(capacity),
 	head_(0),
 	tail_(0),
-	producer_list(handle_limit, key(), *this),
-	consumer_list(handle_limit, key(), *this)
+	producer_list_(handle_limit, key(), *this),
+	consumer_list_(handle_limit, key(), *this)
 {
     // TODO: when a constexpr version of is_lock_free is available do this check as a static_assert
     if (!head_.is_lock_free() || !tail_.is_lock_free())
@@ -95,6 +95,16 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, uint16
 }
 
 template <class value_t, template <class type_t> class allocator_t>
+mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& other)
+    :
+	buffer_(other.buffer_),
+	head_(other.head_.load()),
+	tail_(other.tail_.load()),
+	producer_list_(other.producer_list_),
+	consumer_list_(other.consumer_list_)
+{ }
+
+template <class value_t, template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
 	uint16_t limit,
@@ -106,19 +116,28 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::h
 { }
 
 template <class value_t, template <class type_t> class allocator_t>
+template <class handle_t>
+mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
+	const handle_list& other)
+    :
+	counter(other.counter.load()),
+	list(other.list)
+{ }
+
+template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_ring_queue<value_t, allocator_t>::producer& mpmc_ring_queue<value_t, allocator_t>::get_producer()
 {
     uint16_t count = 0;
     do
     {
-	count = producer_list.counter.load(std::memory_order_acquire);
-	if (count >= producer_list.list.size())
+	count = producer_list_.counter.load(std::memory_order_acquire);
+	if (count >= producer_list_.list.size())
 	{
 	    throw std::range_error("No more producers are available");
 	}
     }
-    while (!producer_list.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
-    return producer_list.list[count];
+    while (!producer_list_.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
+    return producer_list_.list[count];
 }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -127,14 +146,14 @@ typename mpmc_ring_queue<value_t, allocator_t>::consumer& mpmc_ring_queue<value_
     uint16_t count = 0;
     do
     {
-	count = consumer_list.counter.load(std::memory_order_acquire);
-	if (count >= consumer_list.list.size())
+	count = consumer_list_.counter.load(std::memory_order_acquire);
+	if (count >= consumer_list_.list.size())
 	{
 	    throw std::range_error("No more consumers are available");
 	}
     }
-    while (!consumer_list.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
-    return consumer_list.list[count];
+    while (!consumer_list_.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
+    return consumer_list_.list[count];
 }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -281,8 +300,8 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, 
 	buffer_(capacity),
 	head_(0),
 	tail_(0),
-	producer_list(handle_limit, key(), *this),
-	consumer_list(handle_limit, key(), *this)
+	producer_list_(handle_limit, key(), *this),
+	consumer_list_(handle_limit, key(), *this)
 {
     // TODO: when a constexpr version of is_lock_free is available do this check as a static_assert
     if (!head_.is_lock_free() || !tail_.is_lock_free())
@@ -290,6 +309,16 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, 
 	throw std::invalid_argument("std::uint32_t is not atomic on this platform");
     }
 }
+
+template <template <class type_t> class allocator_t>
+mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& other)
+    :
+	buffer_(other.buffer_),
+	head_(other.head_.load()),
+	tail_(other.tail_.load()),
+	producer_list_(other.producer_list_),
+	consumer_list_(other.consumer_list_)
+{ }
 
 template <template <class type_t> class allocator_t>
 template <class handle_t>
@@ -303,19 +332,28 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 { }
 
 template <template <class type_t> class allocator_t>
+template <class handle_t>
+mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
+	const handle_list& other)
+    :
+	counter(other.counter.load()),
+	list(other.list)
+{ }
+
+template <template <class type_t> class allocator_t>
 typename mpmc_ring_queue<std::uint32_t, allocator_t>::producer& mpmc_ring_queue<std::uint32_t, allocator_t>::get_producer()
 {
     uint16_t count = 0;
     do
     {
-	count = producer_list.counter.load(std::memory_order_acquire);
-	if (count >= producer_list.list.size())
+	count = producer_list_.counter.load(std::memory_order_acquire);
+	if (count >= producer_list_.list.size())
 	{
 	    throw std::range_error("No more producers are available");
 	}
     }
-    while (!producer_list.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
-    return producer_list.list[count];
+    while (!producer_list_.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
+    return producer_list_.list[count];
 }
 
 template <template <class type_t> class allocator_t>
@@ -324,14 +362,14 @@ typename mpmc_ring_queue<std::uint32_t, allocator_t>::consumer& mpmc_ring_queue<
     uint16_t count = 0;
     do
     {
-	count = consumer_list.counter.load(std::memory_order_acquire);
-	if (count >= consumer_list.list.size())
+	count = consumer_list_.counter.load(std::memory_order_acquire);
+	if (count >= consumer_list_.list.size())
 	{
 	    throw std::range_error("No more consumers are available");
 	}
     }
-    while (!consumer_list.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
-    return consumer_list.list[count];
+    while (!consumer_list_.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
+    return consumer_list_.list[count];
 }
 
 template <template <class type_t> class allocator_t>
@@ -428,8 +466,8 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, 
 	buffer_(capacity),
 	head_(0),
 	tail_(0),
-	producer_list(handle_limit, key(), *this),
-	consumer_list(handle_limit, key(), *this)
+	producer_list_(handle_limit, key(), *this),
+	consumer_list_(handle_limit, key(), *this)
 {
     // TODO: when a constexpr version of is_lock_free is available do this check as a static_assert
     if (!head_.is_lock_free() || !tail_.is_lock_free())
@@ -437,6 +475,16 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(uint32_t capacity, 
 	throw std::invalid_argument("std::uint32_t is not atomic on this platform");
     }
 }
+
+template <template <class type_t> class allocator_t>
+mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& other)
+    :
+	buffer_(other.buffer_),
+	head_(other.head_.load()),
+	tail_(other.tail_.load()),
+	producer_list_(other.producer_list_),
+	consumer_list_(other.consumer_list_)
+{ }
 
 template <template <class type_t> class allocator_t>
 template <class handle_t>
@@ -450,19 +498,28 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 { }
 
 template <template <class type_t> class allocator_t>
+template <class handle_t>
+mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
+	const handle_list& other)
+    :
+	counter(other.counter.load()),
+	list(other.list)
+{ }
+
+template <template <class type_t> class allocator_t>
 typename mpmc_ring_queue<std::uint64_t, allocator_t>::producer& mpmc_ring_queue<std::uint64_t, allocator_t>::get_producer()
 {
     uint16_t count = 0;
     do
     {
-	count = producer_list.counter.load(std::memory_order_acquire);
-	if (count >= producer_list.list.size())
+	count = producer_list_.counter.load(std::memory_order_acquire);
+	if (count >= producer_list_.list.size())
 	{
 	    throw std::range_error("No more producers are available");
 	}
     }
-    while (!producer_list.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
-    return producer_list.list[count];
+    while (!producer_list_.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
+    return producer_list_.list[count];
 }
 
 template <template <class type_t> class allocator_t>
@@ -471,14 +528,14 @@ typename mpmc_ring_queue<std::uint64_t, allocator_t>::consumer& mpmc_ring_queue<
     uint16_t count = 0;
     do
     {
-	count = consumer_list.counter.load(std::memory_order_acquire);
-	if (count >= consumer_list.list.size())
+	count = consumer_list_.counter.load(std::memory_order_acquire);
+	if (count >= consumer_list_.list.size())
 	{
 	    throw std::range_error("No more consumers are available");
 	}
     }
-    while (!consumer_list.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
-    return consumer_list.list[count];
+    while (!consumer_list_.counter.compare_exchange_strong(count, count + 1, std::memory_order_release));
+    return consumer_list_.list[count];
 }
 
 template <template <class type_t> class allocator_t>

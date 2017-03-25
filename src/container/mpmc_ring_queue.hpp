@@ -48,11 +48,14 @@ public:
     };
     mpmc_producer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
     mpmc_producer(const mpmc_producer& other);
+    ~mpmc_producer() = default;
     result try_enqueue_copy(const value_t& input);
     result try_enqueue_move(value_t&& input);
 private:
     mpmc_producer() = delete;
-    mpmc_producer& operator=(const mpmc_producer& other) = delete;
+    mpmc_producer(mpmc_producer&&);
+    mpmc_producer& operator=(const mpmc_producer&) = delete;
+    mpmc_producer& operator=(mpmc_producer&&) = delete;
     mpmc_ring_queue<value_t, allocator_t>& queue_;
 };
 
@@ -71,11 +74,14 @@ public:
     };
     mpmc_consumer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
     mpmc_consumer(const mpmc_consumer& other);
+    ~mpmc_consumer() = default;
     result try_dequeue_copy(value_t& output);
     result try_dequeue_move(value_t& output);
 private:
     mpmc_consumer() = delete;
-    mpmc_consumer& operator=(const mpmc_consumer& other) = delete;
+    mpmc_consumer(mpmc_consumer&&) = delete;
+    mpmc_consumer& operator=(const mpmc_consumer&) = delete;
+    mpmc_consumer& operator=(mpmc_consumer&&) = delete;
     mpmc_ring_queue<value_t, allocator_t>& queue_;
 };
 
@@ -90,6 +96,8 @@ public:
     typedef mpmc_key<value_t, allocator_t> key;
     mpmc_ring_queue(uint32_t capacity);
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
+    mpmc_ring_queue(const mpmc_ring_queue& other);
+    ~mpmc_ring_queue() = default;
     producer& get_producer();
     consumer& get_consumer();
     typename producer::result try_enqueue_copy(const value_t& input);
@@ -102,14 +110,23 @@ private:
     struct handle_list
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<value_t, allocator_t>& queue);
+	handle_list(const handle_list& other);
+	handle_list(handle_list&& other) = delete;
+	~handle_list() = default;
+	handle_list& operator=(const handle_list&) = delete;
+	handle_list& operator=(handle_list&&) = delete;
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
+    mpmc_ring_queue() = delete;
+    mpmc_ring_queue(mpmc_ring_queue&&) = delete;
+    mpmc_ring_queue& operator=(const mpmc_ring_queue&) = delete;
+    mpmc_ring_queue& operator=(mpmc_ring_queue&&) = delete;
     std::vector<node_type, allocator_t<node_type>> buffer_;
     std::atomic<uint32_t> head_;
     std::atomic<uint32_t> tail_;
-    handle_list<mpmc_producer<value_t, allocator_t>> producer_list;
-    handle_list<mpmc_consumer<value_t, allocator_t>> consumer_list;
+    handle_list<mpmc_producer<value_t, allocator_t>> producer_list_;
+    handle_list<mpmc_consumer<value_t, allocator_t>> consumer_list_;
 };
 
 template <template <class type_t> class allocator_t>
@@ -123,6 +140,8 @@ public:
     typedef mpmc_key<std::uint32_t, allocator_t> key;
     mpmc_ring_queue(uint32_t capacity);
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
+    mpmc_ring_queue(const mpmc_ring_queue& other);
+    ~mpmc_ring_queue() = default;
     producer& get_producer();
     consumer& get_consumer();
     typename producer::result try_enqueue_copy(value_type input);
@@ -135,14 +154,19 @@ private:
     struct handle_list
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<std::uint32_t, allocator_t>& queue);
+	handle_list(const handle_list& other);
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
+    mpmc_ring_queue() = delete;
+    mpmc_ring_queue(mpmc_ring_queue&&) = delete;
+    mpmc_ring_queue& operator=(const mpmc_ring_queue&) = delete;
+    mpmc_ring_queue& operator=(mpmc_ring_queue&&) = delete;
     std::vector<node_type, allocator_t<node_type>> buffer_;
     std::atomic<uint32_t> head_;
     std::atomic<uint32_t> tail_;
-    handle_list<mpmc_producer<std::uint32_t, allocator_t>> producer_list;
-    handle_list<mpmc_consumer<std::uint32_t, allocator_t>> consumer_list;
+    handle_list<mpmc_producer<std::uint32_t, allocator_t>> producer_list_;
+    handle_list<mpmc_consumer<std::uint32_t, allocator_t>> consumer_list_;
 };
 
 template <template <class type_t> class allocator_t>
@@ -156,6 +180,8 @@ public:
     typedef mpmc_key<std::uint64_t, allocator_t> key;
     mpmc_ring_queue(uint32_t capacity);
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
+    mpmc_ring_queue(const mpmc_ring_queue& other);
+    ~mpmc_ring_queue() = default;
     producer& get_producer();
     consumer& get_consumer();
     typename producer::result try_enqueue_copy(value_type input);
@@ -168,14 +194,19 @@ private:
     struct handle_list
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<std::uint64_t, allocator_t>& queue);
+	handle_list(const handle_list& other);
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
+    mpmc_ring_queue() = delete;
+    mpmc_ring_queue(mpmc_ring_queue&&) = delete;
+    mpmc_ring_queue& operator=(const mpmc_ring_queue&) = delete;
+    mpmc_ring_queue& operator=(mpmc_ring_queue&&) = delete;
     std::vector<node_type, allocator_t<node_type>> buffer_;
     std::atomic<uint32_t> head_;
     std::atomic<uint32_t> tail_;
-    handle_list<mpmc_producer<std::uint64_t, allocator_t>> producer_list;
-    handle_list<mpmc_consumer<std::uint64_t, allocator_t>> consumer_list;
+    handle_list<mpmc_producer<std::uint64_t, allocator_t>> producer_list_;
+    handle_list<mpmc_consumer<std::uint64_t, allocator_t>> consumer_list_;
 };
 
 } // namespace container
