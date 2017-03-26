@@ -16,6 +16,45 @@ class mpmc_key
     friend class mpmc_ring_queue<value_t, allocator_t>;
 };
 
+template <class value_t>
+node<value_t>::node() noexcept
+    :
+	guard(status::unused)
+{ }
+
+template <class value_t>
+node<value_t>::node(const value_t& the_value)
+    :
+	guard(status::unused),
+	value(the_value)
+{ }
+
+template <class value_t>
+node<value_t>::node(const node& other)
+    :
+	guard(other.guard.load()),
+	value(other.value)
+{ }
+
+template <class value_t>
+bool node<value_t>::operator==(const node& other) const
+{
+    return this->guard.load() == other.guard.load()
+	&& this->value == other.value;
+}
+
+template <class value_t>
+atomic_node<value_t>::atomic_node(const atomic_node& other)
+    :
+	value(other.value.load())
+{ }
+
+template <class value_t>
+bool atomic_node<value_t>::operator==(const atomic_node& other) const
+{
+    return this->value.load() == other.value.load();
+}
+
 template <class value_t, template <class type_t> class allocator_t>
 mpmc_producer<value_t, allocator_t>::mpmc_producer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue)
     :
@@ -27,6 +66,12 @@ mpmc_producer<value_t, allocator_t>::mpmc_producer(const mpmc_producer& other)
     :
 	queue_(other.queue_)
 { }
+
+template <class value_t, template <class type_t> class allocator_t>
+bool mpmc_producer<value_t, allocator_t>::operator==(const mpmc_producer& other) const
+{
+    return &(this->queue_) == &(other.queue_);
+}
 
 template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_producer<value_t, allocator_t>::result mpmc_producer<value_t, allocator_t>::try_enqueue_copy(const value_t& input)
@@ -51,6 +96,12 @@ mpmc_consumer<value_t, allocator_t>::mpmc_consumer(const mpmc_consumer& other)
     :
 	queue_(other.queue_)
 { }
+
+template <class value_t, template <class type_t> class allocator_t>
+bool mpmc_consumer<value_t, allocator_t>::operator==(const mpmc_consumer& other) const
+{
+    return &(this->queue_) == &(other.queue_);
+}
 
 template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_consumer<value_t, allocator_t>::result mpmc_consumer<value_t, allocator_t>::try_dequeue_copy(value_t& output)
@@ -105,6 +156,16 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& ot
 { }
 
 template <class value_t, template <class type_t> class allocator_t>
+bool mpmc_ring_queue<value_t, allocator_t>::operator==(const mpmc_ring_queue& other) const
+{
+    return this->buffer_ == other.buffer_
+	&& this->head_.load() == other.head_.load()
+	&& this->tail_.load() == other.tail_.load()
+	&& this->producer_list_ == other.producer_list_
+	&& this->consumer_list_ == other.consumer_list_;
+}
+
+template <class value_t, template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
 	uint16_t limit,
@@ -123,6 +184,14 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::h
 	counter(other.counter.load()),
 	list(other.list)
 { }
+
+template <class value_t, template <class type_t> class allocator_t>
+template <class handle_t>
+bool mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
+	const handle_list& other) const
+{
+    return this->counter.load() == other.counter.load() && this->list == other.list;
+}
 
 template <class value_t, template <class type_t> class allocator_t>
 typename mpmc_ring_queue<value_t, allocator_t>::producer& mpmc_ring_queue<value_t, allocator_t>::get_producer()
@@ -321,6 +390,16 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 { }
 
 template <template <class type_t> class allocator_t>
+bool mpmc_ring_queue<std::uint32_t, allocator_t>::operator==(const mpmc_ring_queue& other) const
+{
+    return this->buffer_ == other.buffer_
+	&& this->head_.load() == other.head_.load()
+	&& this->tail_.load() == other.head_.load()
+	&& this->producer_list_ == other.producer_list_
+	&& this->consumer_list_ == other.consumer_list_;
+}
+
+template <template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
 	uint16_t limit,
@@ -339,6 +418,14 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 	counter(other.counter.load()),
 	list(other.list)
 { }
+
+template <template <class type_t> class allocator_t>
+template <class handle_t>
+bool mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
+	const handle_list& other) const
+{
+    return this->counter.load() == other.counter.load() && this->list == other.list;
+}
 
 template <template <class type_t> class allocator_t>
 typename mpmc_ring_queue<std::uint32_t, allocator_t>::producer& mpmc_ring_queue<std::uint32_t, allocator_t>::get_producer()
@@ -487,6 +574,16 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 { }
 
 template <template <class type_t> class allocator_t>
+bool mpmc_ring_queue<std::uint64_t, allocator_t>::operator==(const mpmc_ring_queue& other) const
+{
+    return this->buffer_ == other.buffer_
+	&& this->head_.load() == other.head_.load()
+	&& this->tail_.load() == other.head_.load()
+	&& this->producer_list_ == other.producer_list_
+	&& this->consumer_list_ == other.consumer_list_;
+}
+
+template <template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
 	uint16_t limit,
@@ -505,6 +602,14 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 	counter(other.counter.load()),
 	list(other.list)
 { }
+
+template <template <class type_t> class allocator_t>
+template <class handle_t>
+bool mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
+	const handle_list& other) const
+{
+    return this->counter.load() == other.counter.load() && this->list == other.list;
+}
 
 template <template <class type_t> class allocator_t>
 typename mpmc_ring_queue<std::uint64_t, allocator_t>::producer& mpmc_ring_queue<std::uint64_t, allocator_t>::get_producer()

@@ -165,6 +165,19 @@ TEST(mpmc_ring_queue_test, full_queue)
     EXPECT_EQ(producer1.try_enqueue_copy(expected1a), string_queue::producer::result::queue_full) << "Queue should be full";
 }
 
+TEST(mpmc_ring_queue_test, copy_construction)
+{
+    typedef tco::mpmc_ring_queue<std::string> string_queue;
+
+    string_queue queue1(8, 2);
+    EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("foo")) << "Failed to populate queue";
+    EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("bar")) << "Failed to populate queue";
+    EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("baz")) << "Failed to populate queue";
+    EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("woot")) << "Failed to populate queue";
+    string_queue queue2(queue1);
+    EXPECT_TRUE(queue1 == queue2) << "Copy constructed queue is not equal to original";
+}
+
 template <class value_t, std::size_t limit>
 class produce_task
 {

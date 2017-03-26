@@ -20,6 +20,14 @@ struct alignas(LEVEL1_DCACHE_LINESIZE) node
 	used,
 	unused
     };
+    inline node() noexcept;
+    inline node(const value_t& the_value);
+    inline node(const node& other);
+    node(node&&) = delete;
+    ~node() = default;
+    node& operator=(const node&) = delete;
+    node& operator=(node&&) = delete;
+    inline bool operator==(const node& other) const;
     std::atomic<status> guard;
     value_t value;
 };
@@ -27,6 +35,13 @@ struct alignas(LEVEL1_DCACHE_LINESIZE) node
 template <class value_t>
 struct alignas(LEVEL1_DCACHE_LINESIZE) atomic_node
 {
+    atomic_node() = default;
+    inline atomic_node(const atomic_node&);
+    atomic_node(atomic_node&&) = delete;
+    ~atomic_node() = default;
+    atomic_node& operator=(const atomic_node&) = delete;
+    atomic_node& operator=(atomic_node&&) = delete;
+    inline bool operator==(const atomic_node& other) const;
     std::atomic<value_t> value;
 };
 
@@ -49,6 +64,7 @@ public:
     mpmc_producer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
     mpmc_producer(const mpmc_producer& other);
     ~mpmc_producer() = default;
+    bool operator==(const mpmc_producer& other) const;
     result try_enqueue_copy(const value_t& input);
     result try_enqueue_move(value_t&& input);
 private:
@@ -75,6 +91,7 @@ public:
     mpmc_consumer(const key&, mpmc_ring_queue<value_t, allocator_t>& queue);
     mpmc_consumer(const mpmc_consumer& other);
     ~mpmc_consumer() = default;
+    bool operator==(const mpmc_consumer& other) const;
     result try_dequeue_copy(value_t& output);
     result try_dequeue_move(value_t& output);
 private:
@@ -97,6 +114,7 @@ public:
     mpmc_ring_queue(uint32_t capacity);
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     mpmc_ring_queue(const mpmc_ring_queue& other);
+    bool operator==(const mpmc_ring_queue& other) const;
     ~mpmc_ring_queue() = default;
     producer& get_producer();
     consumer& get_consumer();
@@ -113,6 +131,7 @@ private:
 	handle_list(const handle_list& other);
 	handle_list(handle_list&& other) = delete;
 	~handle_list() = default;
+	bool operator==(const handle_list& other) const;
 	handle_list& operator=(const handle_list&) = delete;
 	handle_list& operator=(handle_list&&) = delete;
 	std::atomic<uint16_t> counter;
@@ -142,6 +161,7 @@ public:
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     mpmc_ring_queue(const mpmc_ring_queue& other);
     ~mpmc_ring_queue() = default;
+    bool operator==(const mpmc_ring_queue& other) const;
     producer& get_producer();
     consumer& get_consumer();
     typename producer::result try_enqueue_copy(value_type input);
@@ -155,6 +175,10 @@ private:
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<std::uint32_t, allocator_t>& queue);
 	handle_list(const handle_list& other);
+	~handle_list() = default;
+	bool operator==(const handle_list& other) const;
+	handle_list& operator=(const handle_list&) = delete;
+	handle_list& operator=(handle_list&&) = delete;
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
@@ -182,6 +206,7 @@ public:
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     mpmc_ring_queue(const mpmc_ring_queue& other);
     ~mpmc_ring_queue() = default;
+    bool operator==(const mpmc_ring_queue& other) const;
     producer& get_producer();
     consumer& get_consumer();
     typename producer::result try_enqueue_copy(value_type input);
@@ -195,6 +220,10 @@ private:
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<std::uint64_t, allocator_t>& queue);
 	handle_list(const handle_list& other);
+	~handle_list() = default;
+	bool operator==(const handle_list& other) const;
+	handle_list& operator=(const handle_list&) = delete;
+	handle_list& operator=(handle_list&&) = delete;
 	std::atomic<uint16_t> counter;
 	std::vector<handle_t, allocator_t<handle_t>> list;
     };
