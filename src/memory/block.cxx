@@ -1,4 +1,5 @@
 #include "block.hpp"
+#include <cstring>
 #include <algorithm>
 #include <turbo/algorithm/recovery.hpp>
 #include <turbo/algorithm/recovery.hxx>
@@ -95,6 +96,30 @@ block::block(std::size_t value_size, capacity_type capacity, std::size_t alignme
 	    free_list_.try_enqueue_copy(index);
 	}
     }
+}
+
+block::block(const block& other)
+    :
+	value_size_(other.value_size_),
+	capacity_(other.capacity_),
+	usable_size_(other.usable_size_),
+	storage_(capacity_ == 0U ? nullptr : new std::uint8_t[usable_size_]),
+	base_(capacity_ == 0U ? nullptr : &(storage_[0])),
+	free_list_(other.free_list_)
+{
+    if (storage_ != nullptr)
+    {
+	std::copy_n(&(other.storage_[0]), usable_size_, &(this->storage_[0]));
+    }
+}
+
+bool block::operator==(const block& other) const
+{
+    return this->value_size_ == other.value_size_
+	&& this->capacity_ == other.capacity_
+	&& this->usable_size_ == other.usable_size_
+	&& std::memcmp(this->storage_.get(), other.storage_.get(), usable_size_) == 0
+	&& this->free_list_ == other.free_list_;
 }
 
 void* block::allocate()

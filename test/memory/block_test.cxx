@@ -104,6 +104,16 @@ TEST(block_test, recycle_basic)
     EXPECT_EQ(nullptr, block1.allocate()) << "Full block still allocated";
 }
 
+TEST(block_test, copy_construction)
+{
+    tme::block block1(sizeof(std::uint64_t), 4U, alignof(std::uint64_t));
+    EXPECT_NE(nullptr, block1.allocate()) << "Allocation failed";
+    EXPECT_NE(nullptr, block1.allocate()) << "Allocation failed";
+    EXPECT_NE(nullptr, block1.allocate()) << "Allocation failed";
+    tme::block block2(block1);
+    EXPECT_TRUE(block1 == block2) << "Copy constructed block is not equal to the original";
+}
+
 struct record
 {
     record();
