@@ -394,7 +394,7 @@ bool mpmc_ring_queue<std::uint32_t, allocator_t>::operator==(const mpmc_ring_que
 {
     return this->buffer_ == other.buffer_
 	&& this->head_.load() == other.head_.load()
-	&& this->tail_.load() == other.head_.load()
+	&& this->tail_.load() == other.tail_.load()
 	&& this->producer_list_ == other.producer_list_
 	&& this->consumer_list_ == other.consumer_list_;
 }
@@ -578,7 +578,7 @@ bool mpmc_ring_queue<std::uint64_t, allocator_t>::operator==(const mpmc_ring_que
 {
     return this->buffer_ == other.buffer_
 	&& this->head_.load() == other.head_.load()
-	&& this->tail_.load() == other.head_.load()
+	&& this->tail_.load() == other.tail_.load()
 	&& this->producer_list_ == other.producer_list_
 	&& this->consumer_list_ == other.consumer_list_;
 }
