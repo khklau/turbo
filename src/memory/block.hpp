@@ -47,6 +47,7 @@ public:
     block(const block& other);
     ~block() = default;
     bool operator==(const block& other) const;
+    inline std::size_t get_value_size() const { return value_size_; }
     inline std::size_t get_capacity() const { return capacity_; }
     inline std::size_t get_usable_size() const { return usable_size_; }
     inline const void* get_base_address() const { return base_; }
