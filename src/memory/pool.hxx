@@ -12,6 +12,66 @@
 namespace turbo {
 namespace memory {
 
+template <class b, class n>
+block_list::basic_iterator<b, n>::basic_iterator()
+    :
+	pointer_(nullptr)
+{ }
+
+template <class b, class n>
+block_list::basic_iterator<b, n>::basic_iterator(typename block_list::basic_iterator<b, n>::node_type* pointer)
+    :
+	pointer_(pointer)
+{ }
+
+template <class b, class n>
+block_list::basic_iterator<b, n>::basic_iterator(const basic_iterator& other)
+    :
+	pointer_(other.pointer_)
+{ }
+
+template <class b, class n>
+block_list::basic_iterator<b, n>& block_list::basic_iterator<b, n>::operator=(const basic_iterator& other)
+{
+    if (TURBO_LIKELY(this != &other))
+    {
+	pointer_ = other.pointer_;
+    }
+    return *this;
+}
+
+template <class b, class n>
+bool block_list::basic_iterator<b, n>::operator==(const basic_iterator& other) const
+{
+    return pointer_ == other.pointer_;
+}
+
+template <class b, class n>
+block_list::basic_iterator<b, n>& block_list::basic_iterator<b, n>::operator++()
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	node* next = pointer_->get_next().load(std::memory_order_acquire);
+	pointer_ = next;
+    }
+    return *this;
+}
+
+template <class b, class n>
+typename block_list::basic_iterator<b, n> block_list::basic_iterator<b, n>::operator++(int)
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	basic_iterator<b, n> tmp = *this;
+	++(*this);
+	return tmp;
+    }
+    else
+    {
+	return *this;
+    }
+}
+
 inline std::size_t pool::find_block_bucket(std::size_t allocation_size) const
 {
     std::size_t allocation_exponent = std::llround(std::ceil(std::log2(allocation_size)));

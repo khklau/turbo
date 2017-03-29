@@ -57,46 +57,84 @@ public:
 	explicit inline invalid_dereference(const std::string& what) : out_of_range(what) { }
 	explicit inline invalid_dereference(const char* what) : out_of_range(what) { }
     };
-    class iterator : public std::forward_iterator_tag
+    template <class block_t, class node_t>
+    class basic_iterator : public std::forward_iterator_tag
     {
     public:
+	typedef block_t block_type;
+	typedef node_t node_type;
+	basic_iterator();
+	basic_iterator(node_type* pointer);
+	basic_iterator(const basic_iterator& other);
+	~basic_iterator() = default;
+	basic_iterator& operator=(const basic_iterator& other);
+	bool operator==(const basic_iterator& other) const;
+	inline bool operator!=(const basic_iterator& other) const { return !(*this == other); }
+	basic_iterator& operator++();
+	basic_iterator operator++(int);
+	inline bool is_valid() const { return pointer_ != nullptr; }
+	inline bool is_last() const { return is_valid() && pointer_->is_last(); }
+	inline node_type& get_node() const { return *pointer_; }
+    protected:
+	node_type* pointer_;
+    };
+    class iterator : public basic_iterator<block, node>
+    {
+    public:
+	typedef basic_iterator<block, node> base_iterator;
 	iterator();
 	iterator(node* pointer);
 	iterator(const iterator& other);
-	iterator& operator=(const iterator& other);
 	~iterator() = default;
+	iterator& operator=(const iterator& other);
 	bool operator==(const iterator& other) const;
 	inline bool operator!=(const iterator& other) const { return !(*this == other); }
-	block& operator*();
-	block* operator->();
-	iterator& operator++();
-	iterator operator++(int);
-	inline bool is_valid() const { return pointer_ != nullptr; }
-	inline bool is_last() const { return is_valid() && pointer_->is_last(); }
+	block_type& operator*();
+	block_type* operator->();
 	append_result try_append(std::unique_ptr<node> successor);
-    private:
-	node* pointer_;
+    };
+    class const_iterator : public basic_iterator<const block, const node>
+    {
+    public:
+	typedef basic_iterator<const block, const node> base_iterator;
+	const_iterator();
+	const_iterator(const node* pointer);
+	const_iterator(const const_iterator& other);
+	~const_iterator() = default;
+	const_iterator& operator=(const const_iterator& other);
+	bool operator==(const const_iterator& other) const;
+	inline bool operator!=(const const_iterator& other) const { return !(*this == other); }
+	block_type& operator*() const;
+	block_type* operator->() const;
     };
     block_list(std::size_t value_size, block::capacity_type capacity);
     block_list(std::size_t value_size, block::capacity_type capacity, std::size_t growth_factor);
     block_list(const block_config& config); // allow implicit conversion
+    block_list(const block_list& other);
+    bool operator==(const block_list& other) const;
     inline std::size_t get_value_size() const { return value_size_; }
     inline std::size_t get_growth_factor() const { return growth_factor_; }
     inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
-    std::unique_ptr<node> create_node(block::capacity_type capacity);
+    inline const_iterator cbegin() const noexcept { return const_iterator(&first_); }
+    inline const_iterator cend() const noexcept { return const_iterator(); }
+    std::unique_ptr<node> create_node(block::capacity_type capacity) const;
+    std::unique_ptr<node> clone_node(const node& other) const;
 private:
     class node
     {
     public:
 	node(std::size_t value_size, block::capacity_type capacity);
+	node(const node& other);
 	~node() noexcept;
-	inline block& get_block() { return block_; }
-	inline std::atomic<node*>& get_next() { return next_; }
+	bool operator==(const node& other) const;
+	inline const block& get_block() const { return block_; }
+	inline block& mutate_block() { return block_; }
+	inline const std::atomic<node*>& get_next() const { return next_; }
+	inline std::atomic<node*>& mutate_next() { return next_; }
 	inline bool is_last() const { return next_.load(std::memory_order_acquire) == nullptr; }
     private:
 	node() = delete;
-	node(const node&) = delete;
 	node(node&&) = delete;
 	node& operator=(const node&) = delete;
 	node& operator=(node&&) = delete;
@@ -104,7 +142,6 @@ private:
 	std::atomic<node*> next_;
     };
     block_list() = delete;
-    block_list(const block_list&) = delete;
     block_list(block_list&&) = delete;
     block_list& operator=(const block_list&) = delete;
     block_list& operator=(block_list&&) = delete;

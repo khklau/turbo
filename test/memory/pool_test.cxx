@@ -170,6 +170,20 @@ TEST(pool_test, list_sequential_append)
     EXPECT_TRUE(4U <= iter2->get_capacity()) << "Capacity of first block in block list is less than requested";
 }
 
+TEST(pool_test, list_copy_construction)
+{
+    tme::block_list list1(sizeof(std::uint64_t), 4U);
+    auto iter1 = list1.begin();
+    std::uint64_t* allocation1a = static_cast<std::uint64_t*>(iter1->allocate());
+    *allocation1a = 17U;
+    std::uint64_t* allocation1b = static_cast<std::uint64_t*>(iter1->allocate());
+    *allocation1b = 432U;
+    std::uint64_t* allocation1c = static_cast<std::uint64_t*>(iter1->allocate());
+    *allocation1c = 1097U;
+    tme::block_list list2(list1);
+    EXPECT_TRUE(list1 == list2) << "Copy constructed block list is not equal to the original";
+}
+
 template <class value_t, std::size_t limit>
 class list_producer_task
 {

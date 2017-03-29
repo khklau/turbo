@@ -40,78 +40,51 @@ bool block_config::operator==(const block_config& other) const
 
 block_list::iterator::iterator()
     :
-	pointer_(nullptr)
+	base_iterator()
 { }
 
 block_list::iterator::iterator(block_list::node* pointer)
     :
-	pointer_(pointer)
+	base_iterator(pointer)
 { }
 
 block_list::iterator::iterator(const iterator& other)
     :
-	pointer_(other.pointer_)
+	base_iterator(static_cast<const base_iterator&>(other))
 { }
 
 block_list::iterator& block_list::iterator::operator=(const iterator& other)
 {
-    if (TURBO_LIKELY(this != &other))
-    {
-	pointer_ = other.pointer_;
-    }
+    static_cast<base_iterator&>(*this) = static_cast<const base_iterator&>(other);
     return *this;
 }
 
 bool block_list::iterator::operator==(const iterator& other) const
 {
-    return pointer_ == other.pointer_;
+    return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other);
 }
 
-block& block_list::iterator::operator*()
+typename block_list::iterator::block_type& block_list::iterator::operator*()
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	return pointer_->get_block();
+	return pointer_->mutate_block();
     }
     else
     {
-	throw block_list::invalid_dereference("cannot dereference invalid block_list::iterator");
+	throw block_list::invalid_dereference("cannot dereference invalid block_list::basic_iterator");
     }
 }
 
-block* block_list::iterator::operator->()
+typename block_list::iterator::block_type* block_list::iterator::operator->()
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	return &(pointer_->get_block());
+	return &(pointer_->mutate_block());
     }
     else
     {
-	throw block_list::invalid_dereference("cannot dereference invalid block_list::iterator");
-    }
-}
-
-block_list::iterator& block_list::iterator::operator++()
-{
-    if (TURBO_LIKELY(is_valid()))
-    {
-	block_list::node* next = pointer_->get_next().load(std::memory_order_acquire);
-	pointer_ = next;
-    }
-    return *this;
-}
-
-block_list::iterator block_list::iterator::operator++(int)
-{
-    if (TURBO_LIKELY(is_valid()))
-    {
-	iterator tmp = *this;
-	++(*this);
-	return tmp;
-    }
-    else
-    {
-	return *this;
+	throw block_list::invalid_dereference("cannot dereference invalid block_list::basic_iterator");
     }
 }
 
@@ -119,11 +92,11 @@ block_list::append_result block_list::iterator::try_append(std::unique_ptr<block
 {
     if (TURBO_LIKELY(is_valid()))
     {
-	successor->get_next().store(nullptr, std::memory_order_release);
+	successor->mutate_next().store(nullptr, std::memory_order_release);
 	node* next = pointer_->get_next().load(std::memory_order_acquire);
 	if (next == nullptr)
 	{
-	    if (pointer_->get_next().compare_exchange_strong(next, successor.get(), std::memory_order_release))
+	    if (pointer_->mutate_next().compare_exchange_strong(next, successor.get(), std::memory_order_release))
 	    {
 		successor.release();
 		return block_list::append_result::success;
@@ -137,9 +110,65 @@ block_list::append_result block_list::iterator::try_append(std::unique_ptr<block
     }
 }
 
+block_list::const_iterator::const_iterator()
+    :
+	base_iterator()
+{ }
+
+block_list::const_iterator::const_iterator(const block_list::node* pointer)
+    :
+	base_iterator(pointer)
+{ }
+
+block_list::const_iterator::const_iterator(const const_iterator& other)
+    :
+	base_iterator(static_cast<const base_iterator&>(other))
+{ }
+
+block_list::const_iterator& block_list::const_iterator::operator=(const const_iterator& other)
+{
+    static_cast<base_iterator&>(*this) = static_cast<const base_iterator&>(other);
+    return *this;
+}
+
+bool block_list::const_iterator::operator==(const const_iterator& other) const
+{
+    return static_cast<const base_iterator&>(*this) == static_cast<const base_iterator&>(other);
+}
+
+typename block_list::const_iterator::block_type& block_list::const_iterator::operator*() const
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	return pointer_->get_block();
+    }
+    else
+    {
+	throw block_list::invalid_dereference("cannot dereference invalid block_list::basic_const_iterator");
+    }
+}
+
+typename block_list::const_iterator::block_type* block_list::const_iterator::operator->() const
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	return &(pointer_->get_block());
+    }
+    else
+    {
+	throw block_list::invalid_dereference("cannot dereference invalid block_list::basic_const_iterator");
+    }
+}
+
 block_list::node::node(std::size_t value_size, block::capacity_type capacity)
     :
 	block_(value_size, capacity, value_size),
+	next_(nullptr)
+{ }
+
+block_list::node::node(const node& other)
+    :
+	block_(other.block_),
 	next_(nullptr)
 { }
 
@@ -157,6 +186,14 @@ block_list::node::~node() noexcept
     {
 	// Do nothing
     }
+}
+
+bool block_list::node::operator==(const node& other) const
+{
+    node* this_next = this->next_.load(std::memory_order_acquire);
+    node* other_next = other.next_.load(std::memory_order_acquire);
+    return this->block_ == other.block_
+	&& ((this_next == nullptr && other_next == nullptr) || (this_next != nullptr && other_next != nullptr));
 }
 
 block_list::block_list(std::size_t value_size, block::capacity_type capacity)
@@ -178,9 +215,54 @@ block_list::block_list(const block_config& config)
 	first_(config.block_size, config.initial_capacity)
 { }
 
-std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type capacity)
+block_list::block_list(const block_list& other)
+    :
+	value_size_(other.value_size_),
+	growth_factor_(other.growth_factor_),
+	first_(other.first_)
+{
+    auto this_iter = this->begin();
+    auto other_iter = other.cbegin();
+    // first_ has already been copied, so skip it
+    ++this_iter;
+    ++other_iter;
+    for (; other_iter != other.cend() && this_iter != this->end(); ++other_iter)
+    {
+	if (other_iter.is_valid())
+	{
+	    this_iter.try_append(clone_node(other_iter.get_node()));
+	    ++this_iter;
+	}
+    }
+}
+
+bool block_list::operator==(const block_list& other) const
+{
+    bool is_list_matching = true;
+    bool is_length_matching = true;
+    auto this_iter = this->cbegin();
+    for (auto other_iter = other.cbegin(); other_iter != other.cend() && this_iter != this->cend();)
+    {
+	is_list_matching = is_list_matching && (*this_iter == *other_iter);
+	++this_iter;
+	++other_iter;
+	is_length_matching = is_length_matching
+		&& ((other_iter != other.cend() && this_iter != this->cend()) || (other_iter == other.cend() && this_iter == this->cend()));
+    }
+    return this->value_size_ == other.value_size_
+	&& this->growth_factor_ == other.growth_factor_
+	&& is_list_matching
+	&& is_length_matching;
+}
+
+std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type capacity) const
 {
     return std::move(std::unique_ptr<block_list::node>(new block_list::node(value_size_, capacity)));
+}
+
+std::unique_ptr<block_list::node> block_list::clone_node(const node& other) const
+{
+    return std::move(std::unique_ptr<block_list::node>(new block_list::node(other)));
 }
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
