@@ -1628,6 +1628,38 @@ TEST(pool_test, pool_parallel_use_octshort)
     }
 }
 
+TEST(pool_test, pool_copy_construction)
+{
+    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
+    auto result1a = pool1.make_unique<std::string>("abc123");
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("abc123"), *result1a.second) << "String in memory pool didn't initialise";
+    auto result1b = pool1.make_unique<std::string>("xyz789");
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("xyz789"), *result1b.second) << "String in memory pool didn't initialise";
+    tme::pool pool2(pool1);
+    EXPECT_TRUE(pool1 == pool2) << "Copy constructed pool is not equal to the original";
+
+    tme::pool pool3(2U, { {sizeof(std::string), 2U} });
+    auto result3a = pool3.make_unique<std::string>("abc321");
+    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("abc321"), *result3a.second) << "String in memory pool didn't initialise";
+    auto result3b = pool3.make_unique<std::string>("xyz987");
+    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("xyz987"), *result3b.second) << "String in memory pool didn't initialise";
+    auto result3c = pool3.make_unique<std::string>("lmn654");
+    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("lmn654"), *result3c.second) << "String in memory pool didn't initialise";
+    auto result3d = pool3.make_unique<std::string>("!@#000");
+    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("!@#000"), *result3d.second) << "String in memory pool didn't initialise";
+    auto result3e = pool3.make_unique<std::string>("   ");
+    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique pool string failed";
+    EXPECT_EQ(std::string("   "), *result3e.second) << "String in memory pool didn't initialise";
+    tme::pool pool4(pool3);
+    EXPECT_TRUE(pool3 == pool4) << "Copy constructed pool is not equal to the original";
+}
+
 TEST(pool_test, pool_make_unique_basic)
 {
     tme::pool pool1(3U, { {sizeof(std::string), 3U} });

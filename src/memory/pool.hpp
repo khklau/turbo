@@ -154,6 +154,9 @@ class TURBO_SYMBOL_DECL pool
 {
 public:
     pool(block::capacity_type default_capacity, const std::vector<block_config>& config);
+    pool(const pool& other);
+    ~pool() = default;
+    bool operator==(const pool& other) const;
     inline std::size_t find_block_bucket(std::size_t allocation_size) const;
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
@@ -190,7 +193,11 @@ public:
 	deallocate(pointer, 1U);
     }
 private:
+    pool() = delete;
     pool(const std::vector<block_config>& config, block::capacity_type default_capacity);
+    pool(pool&&) = delete;
+    pool& operator=(const pool&) = delete;
+    pool& operator=(pool&&) = delete;
     void* allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void* hint);
     void deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity);
     template <class value_t>

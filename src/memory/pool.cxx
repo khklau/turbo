@@ -224,9 +224,8 @@ block_list::block_list(const block_list& other)
     auto this_iter = this->begin();
     auto other_iter = other.cbegin();
     // first_ has already been copied, so skip it
-    ++this_iter;
     ++other_iter;
-    for (; other_iter != other.cend() && this_iter != this->end(); ++other_iter)
+    for (; other_iter != other.cend(); ++other_iter)
     {
 	if (other_iter.is_valid())
 	{
@@ -276,6 +275,20 @@ pool::pool(const std::vector<block_config>& config, capacity_type default_capaci
 	smallest_block_exponent_(std::llround(std::log2(config.cbegin()->block_size))),
 	block_map_(config.cbegin(), config.cend())
 { }
+
+pool::pool(const pool& other)
+    :
+	default_capacity_(other.default_capacity_),
+	smallest_block_exponent_(other.smallest_block_exponent_),
+	block_map_(other.block_map_)
+{ }
+
+bool pool::operator==(const pool& other) const
+{
+    return this->default_capacity_ == other.default_capacity_
+	&& this->smallest_block_exponent_ == other.smallest_block_exponent_
+	&& this->block_map_ == other.block_map_;
+}
 
 void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
 {
