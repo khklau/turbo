@@ -184,7 +184,9 @@ public:
 	alignof(branch)
     };
     bitwise_trie(allocator_type& allocator);
+    bitwise_trie(const bitwise_trie& other, allocator_type* allocator = nullptr);
     ~bitwise_trie();
+    bool operator==(const bitwise_trie& other) const;
     inline std::size_t size() const noexcept
     {
 	return size_;
@@ -239,14 +241,26 @@ private:
     typedef uint_trie_key<key_type, radix> trie_key;
     struct leaf
     {
+	leaf() = delete;
 	template <class... value_args_t>
 	leaf(key_type key, value_args_t&&... value_args);
+	leaf(const leaf& other);
+	leaf(leaf&&) = delete;
+	~leaf() = default;
+	leaf& operator=(const leaf&) = delete;
+	leaf& operator=(leaf&&) = delete;
+	bool operator==(const leaf& other) const;
 	const key_type key;
 	value_type value;
     };
     struct branch
     {
 	branch();
+	branch(const branch& other);
+	branch(branch&&) = delete;
+	~branch() = default;
+	branch& operator=(const branch&) = delete;
+	branch& operator=(branch&&) = delete;
 	std::array<branch_ptr, radix> children;
     };
     class leading_zero_index
@@ -264,6 +278,13 @@ private:
 	branch_ptr& root_;
 	std::array<branch_ptr, trie_key::key_bit_size()> index_;
     };
+    static bool is_equal(
+	    const branch_ptr* this_branch,
+	    const branch_ptr* other_branch,
+	    const leading_zero_index& this_index,
+	    const leading_zero_index& other_index,
+	    trie_key key,
+	    typename trie_key::iterator iter);
     inline leaf* min() const;
     inline leaf* max() const;
     template <typename compare_t>
@@ -288,8 +309,10 @@ private:
 	    compare_t compare_func);
     template <class... value_args_t>
     leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
+    leaf* clone_leaf(const leaf& other);
     void destroy_leaf(leaf* pointer);
     branch* create_branch();
+    branch* clone_branch(const branch& other);
     void destroy_branch(branch* pointer);
     allocator_type& allocator_;
     std::size_t size_;
