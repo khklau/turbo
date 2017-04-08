@@ -2,6 +2,7 @@
 #define TURBO_CONTAINER_BITWISE_TRIE_HXX
 
 #include <turbo/container/bitwise_trie.hpp>
+#include <cmath>
 #include <algorithm>
 #include <limits>
 #include <turbo/container/invalid_dereference_error.hpp>
@@ -205,7 +206,8 @@ bitwise_trie<k, v, a>::bitwise_trie(const bitwise_trie& other, allocator_type* a
 	}
 	else
 	{
-	    index_.insert(current_branch->get_ptr(), iter);
+	    tkey.write(iter, 0U);
+	    index_.insert(current_branch->get_ptr(), tkey, iter);
 	    current_branch = &((*current_branch)->children[0U]);
 	}
     }
@@ -365,7 +367,7 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	    auto result = tkey.get_preceding_prefixes(iter);
 	    if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
 	    {
-		index_.insert(new_branch, iter);
+		index_.insert(new_branch, tkey, iter);
 	    }
 	}
 	current_branch = &((*current_branch)->children[std::get<1>(tkey.read(iter))]);
@@ -473,7 +475,7 @@ template <class k, class v, class a>
 std::tuple<typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k, v, a>::trie_key::iterator> bitwise_trie<k, v, a>::leading_zero_index::search(
 	const trie_key& key)
 {
-    std::size_t zero_count = turbo::toolset::count_leading_zero(key.get_key());
+    key_type zero_count = turbo::toolset::count_leading_zero(key.get_key());
     branch_ptr& shortcut = index_[zero_count];
     typename trie_key::iterator iter = key.begin();
     if (shortcut.is_empty() || zero_count == trie_key::key_bit_size())
@@ -482,7 +484,15 @@ std::tuple<typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k,
     }
     else
     {
-	iter += zero_count;
+	constexpr std::size_t radix_bit_div_size = std::lround(std::log2(trie_key::radix_bit_size()));
+	iter += zero_count >> radix_bit_div_size;
+	constexpr std::size_t shift_qty = trie_key::key_bit_size() - radix_bit_div_size;
+	key_type remainder = static_cast<key_type>(zero_count << shift_qty) >> shift_qty;
+	if (remainder != 0U)
+	{
+	    // zero counts that aren't divisible by the radix size need rounding up
+	    iter += 1U;
+	}
 	return std::make_tuple(&shortcut, iter);
     }
 }
@@ -491,7 +501,7 @@ template <class k, class v, class a>
 std::tuple<const typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k, v, a>::trie_key::iterator> bitwise_trie<k, v, a>::leading_zero_index::const_search(
 	const trie_key& key) const
 {
-    std::size_t zero_count = turbo::toolset::count_leading_zero(key.get_key());
+    key_type zero_count = turbo::toolset::count_leading_zero(key.get_key());
     const branch_ptr& shortcut = index_[zero_count];
     typename trie_key::iterator iter = key.begin();
     if (shortcut.is_empty() || zero_count == trie_key::key_bit_size())
@@ -500,7 +510,15 @@ std::tuple<const typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_t
     }
     else
     {
-	iter += zero_count;
+	constexpr std::size_t radix_bit_div_size = std::lround(std::log2(trie_key::radix_bit_size()));
+	iter += zero_count >> radix_bit_div_size;
+	constexpr std::size_t shift_qty = trie_key::key_bit_size() - radix_bit_div_size;
+	key_type remainder = static_cast<key_type>(zero_count << shift_qty) >> shift_qty;
+	if (remainder != 0U)
+	{
+	    // zero counts that aren't divisible by the radix size need rounding up
+	    iter += 1U;
+	}
 	return std::make_tuple(&shortcut, iter);
     }
 }
@@ -508,9 +526,16 @@ std::tuple<const typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_t
 template <class k, class v, class a>
 void bitwise_trie<k, v, a>::leading_zero_index::insert(
 	branch* branch,
+	const trie_key& key,
 	const typename trie_key::iterator& iter)
 {
-    index_[iter.get_index()].reset(branch, child_type::branch);
+    trie_key tmp(std::numeric_limits<key_type>::max());
+    tmp.copy(key, key.begin(), iter);
+    std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
+    if (zero_count < index_.max_size())
+    {
+	index_[zero_count].reset(branch, child_type::branch);
+    }
 }
 
 template <class k, class v, class a>

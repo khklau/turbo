@@ -272,7 +272,7 @@ private:
 	leading_zero_index& operator=(const leading_zero_index&) = delete;
 	inline std::tuple<branch_ptr*, typename trie_key::iterator> search(const trie_key& key);
 	inline std::tuple<const branch_ptr*, typename trie_key::iterator> const_search(const trie_key& key) const;
-	void insert(branch* branch, const typename trie_key::iterator& iter);
+	void insert(branch* branch, const trie_key& key, const typename trie_key::iterator& iter);
 	void remove(const typename trie_key::iterator& iter);
     private:
 	branch_ptr& root_;

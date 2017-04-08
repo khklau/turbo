@@ -18,13 +18,24 @@ public:
     typedef bitwise_trie<key_t, value_t, allocator_t> trie_type;
     typedef typename trie_type::leaf leaf;
     typedef typename trie_type::branch branch;
+    typedef typename trie_type::branch_ptr branch_ptr;
+    typedef typename trie_type::trie_key trie_key;
+    typedef typename trie_type::leading_zero_index leading_zero_index;
     bitwise_trie_tester(trie_type& trie)
 	:
 	    trie_(trie)
     { }
-    inline const typename trie_type::branch_ptr& get_root()
+    inline const typename trie_type::branch_ptr& get_root() const
     {
 	return trie_.root_;
+    }
+    inline const typename trie_type::leading_zero_index& get_index() const
+    {
+	return trie_.index_;
+    }
+    inline typename trie_type::leading_zero_index& mutate_index()
+    {
+	return trie_.index_;
     }
     inline typename trie_type::branch* min()
     {
@@ -48,6 +59,146 @@ private:
 
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
+
+TEST(leading_zero_index_test, empty_index)
+{
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    trie_tester::branch_ptr root1;
+    trie_tester::leading_zero_index index1(root1);
+    trie_tester::trie_key key1(32768U);
+    auto result1 = index1.search(key1);
+    EXPECT_EQ(&root1, std::get<0>(result1)) << "Search on empty index did not return the root";
+    EXPECT_EQ(key1.begin(), std::get<1>(result1)) << "Search on empty index did not return the root";
+    trie_tester::trie_key key2(2048U);
+    auto result2 = index1.search(key2);
+    EXPECT_EQ(&root1, std::get<0>(result2)) << "Search on empty index did not return the root";
+    EXPECT_EQ(key2.begin(), std::get<1>(result2)) << "Search on empty index did not return the root";
+    trie_tester::trie_key key3(128U);
+    auto result3 = index1.search(key3);
+    EXPECT_EQ(&root1, std::get<0>(result3)) << "Search on empty index did not return the root";
+    EXPECT_EQ(key3.begin(), std::get<1>(result3)) << "Search on empty index did not return the root";
+    trie_tester::trie_key key4(8U);
+    auto result4 = index1.search(key4);
+    EXPECT_EQ(&root1, std::get<0>(result4)) << "Search on empty index did not return the root";
+    EXPECT_EQ(key4.begin(), std::get<1>(result4)) << "Search on empty index did not return the root";
+}
+
+TEST(leading_zero_index_test, insert_invalid)
+{
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    trie_tester::branch root1;
+    trie_tester::branch_ptr root_ptr1(&root1);
+    trie_tester::leading_zero_index index1(root_ptr1);
+    trie_tester::trie_key key1(0U);
+    trie_tester::trie_key::iterator input_iter1 = key1.begin();
+    ++input_iter1;
+    ++input_iter1;
+    ++input_iter1;
+    ++input_iter1;
+    trie_tester::branch branch1;
+    index1.insert(&branch1, key1, input_iter1);
+    auto result1 = index1.const_search(key1);
+    EXPECT_EQ(&root1, std::get<0>(result1)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 16 leading zeroes";
+    EXPECT_EQ(key1.begin(), std::get<1>(result1)) << "The leading_zero_index returned wrong iterator for a key with 16 leading zeroes";
+}
+
+TEST(leading_zero_index_test, insert_basic)
+{
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    trie_tester::branch root1;
+    trie_tester::branch_ptr root_ptr1(&root1);
+    trie_tester::leading_zero_index index1(root_ptr1);
+    trie_tester::branch branch101;
+    trie_tester::branch branch102;
+    trie_tester::branch branch103;
+    trie_tester::branch branch104;
+    trie_tester::branch branch105;
+    trie_tester::branch branch106;
+    trie_tester::branch branch107;
+    trie_tester::branch branch108;
+    trie_tester::branch branch109;
+    trie_tester::branch branch110;
+    trie_tester::branch branch111;
+    trie_tester::branch branch112;
+    trie_tester::branch branch113;
+    trie_tester::branch branch114;
+    trie_tester::branch branch115;
+    trie_tester::trie_key key1(0U);
+    trie_tester::trie_key::iterator input_iter1 = key1.begin();
+    index1.insert(&root1, key1, input_iter1);
+    ++input_iter1;
+    index1.insert(&branch101, trie_tester::trie_key(1U << 14U), input_iter1);
+    index1.insert(&branch102, trie_tester::trie_key(1U << 13U), input_iter1);
+    index1.insert(&branch103, trie_tester::trie_key(1U << 12U), input_iter1);
+    index1.insert(&branch104, trie_tester::trie_key(1U << 11U), input_iter1);
+    ++input_iter1;
+    index1.insert(&branch105, trie_tester::trie_key(1U << 10U), input_iter1);
+    index1.insert(&branch106, trie_tester::trie_key(1U << 9U), input_iter1);
+    index1.insert(&branch107, trie_tester::trie_key(1U << 8U), input_iter1);
+    index1.insert(&branch108, trie_tester::trie_key(1U << 7U), input_iter1);
+    ++input_iter1;
+    index1.insert(&branch109, trie_tester::trie_key(1U << 6U), input_iter1);
+    index1.insert(&branch110, trie_tester::trie_key(1U << 5U), input_iter1);
+    index1.insert(&branch111, trie_tester::trie_key(1U << 4U), input_iter1);
+    index1.insert(&branch112, trie_tester::trie_key(1U << 3U), input_iter1);
+    ++input_iter1;
+    index1.insert(&branch113, trie_tester::trie_key(1U << 2U), input_iter1);
+    index1.insert(&branch114, trie_tester::trie_key(1U << 1U), input_iter1);
+    index1.insert(&branch115, trie_tester::trie_key(1U << 0U), input_iter1);
+    trie_tester::trie_key::iterator expected_iter1 = key1.begin();
+    auto result100 = index1.const_search(trie_tester::trie_key(1U << 15U));
+    EXPECT_EQ(&root1, std::get<0>(result100)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 0 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result100)) << "The leading_zero_index returned wrong iterator for a key with 0 leading zeroes";
+    ++expected_iter1;
+    auto result101 = index1.const_search(trie_tester::trie_key(1U << 14U));
+    EXPECT_EQ(&branch101, std::get<0>(result101)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 1 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result101)) << "The leading_zero_index returned wrong iterator for a key with 1 leading zeroes";
+    auto result102 = index1.const_search(trie_tester::trie_key(1U << 13U));
+    EXPECT_EQ(&branch102, std::get<0>(result102)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 2 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result102)) << "The leading_zero_index returned wrong iterator for a key with 2 leading zeroes";
+    auto result103 = index1.const_search(trie_tester::trie_key(1U << 12U));
+    EXPECT_EQ(&branch103, std::get<0>(result103)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 3 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result103)) << "The leading_zero_index returned wrong iterator for a key with 3 leading zeroes";
+    auto result104 = index1.const_search(trie_tester::trie_key(1U << 11U));
+    EXPECT_EQ(&branch104, std::get<0>(result104)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 4 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result104)) << "The leading_zero_index returned wrong iterator for a key with 4 leading zeroes";
+    ++expected_iter1;
+    auto result105 = index1.const_search(trie_tester::trie_key(1U << 10U));
+    EXPECT_EQ(&branch105, std::get<0>(result105)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 5 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result105)) << "The leading_zero_index returned wrong iterator for a key with 5 leading zeroes";
+    auto result106 = index1.const_search(trie_tester::trie_key(1U << 9U));
+    EXPECT_EQ(&branch106, std::get<0>(result106)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 6 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result106)) << "The leading_zero_index returned wrong iterator for a key with 6 leading zeroes";
+    auto result107 = index1.const_search(trie_tester::trie_key(1U << 8U));
+    EXPECT_EQ(&branch107, std::get<0>(result107)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 7 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result107)) << "The leading_zero_index returned wrong iterator for a key with 7 leading zeroes";
+    auto result108 = index1.const_search(trie_tester::trie_key(1U << 7U));
+    EXPECT_EQ(&branch108, std::get<0>(result108)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 8 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result108)) << "The leading_zero_index returned wrong iterator for a key with 8 leading zeroes";
+    ++expected_iter1;
+    auto result109 = index1.const_search(trie_tester::trie_key(1U << 6U));
+    EXPECT_EQ(&branch109, std::get<0>(result109)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 9 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result109)) << "The leading_zero_index returned wrong iterator for a key with 9 leading zeroes";
+    auto result110 = index1.const_search(trie_tester::trie_key(1U << 5U));
+    EXPECT_EQ(&branch110, std::get<0>(result110)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 10 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result110)) << "The leading_zero_index returned wrong iterator for a key with 10 leading zeroes";
+    auto result111 = index1.const_search(trie_tester::trie_key(1U << 4U));
+    EXPECT_EQ(&branch111, std::get<0>(result111)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 11 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result111)) << "The leading_zero_index returned wrong iterator for a key with 11 leading zeroes";
+    auto result112 = index1.const_search(trie_tester::trie_key(1U << 3U));
+    EXPECT_EQ(&branch112, std::get<0>(result112)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 12 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result112)) << "The leading_zero_index returned wrong iterator for a key with 12 leading zeroes";
+    ++expected_iter1;
+    auto result113 = index1.const_search(trie_tester::trie_key(1U << 2U));
+    EXPECT_EQ(&branch113, std::get<0>(result113)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 13 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result113)) << "The leading_zero_index returned wrong iterator for a key with 13 leading zeroes";
+    auto result114 = index1.const_search(trie_tester::trie_key(1U << 1U));
+    EXPECT_EQ(&branch114, std::get<0>(result114)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 14 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result114)) << "The leading_zero_index returned wrong iterator for a key with 14 leading zeroes";
+    auto result115 = index1.const_search(trie_tester::trie_key(1U << 0U));
+    EXPECT_EQ(&branch115, std::get<0>(result115)->get_ptr()) << "The leading_zero_index returned wrong branch for a key with 15 leading zeroes";
+    EXPECT_EQ(expected_iter1, std::get<1>(result115)) << "The leading_zero_index returned wrong iterator for a key with 15 leading zeroes";
+}
 
 TEST(bitwise_trie_test, empty_trie)
 {
