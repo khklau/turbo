@@ -138,6 +138,17 @@ public:
     inline uint_trie_key(const uint_trie_key& other) = default;
     ~uint_trie_key() = default;
     uint_trie_key& operator=(const uint_trie_key& other) = default;
+    inline uint_trie_key& copy(const uint_trie_key& other, const iterator& from, const iterator& to)
+    {
+	for (iterator iter = from; iter != to; ++iter)
+	{
+	    if (iter.is_valid())
+	    {
+		this->write(iter, std::get<1>(other.read(iter)));
+	    }
+	}
+	return *this;
+    }
     inline iterator begin() const
     {
 	return iterator(0U);
