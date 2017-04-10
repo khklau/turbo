@@ -229,7 +229,7 @@ bitwise_trie<k, v, a>::~bitwise_trie()
     {
 	destroy_branch(root_.get_ptr());
 	root_.reset();
-	index_.remove(tkey.begin());
+	index_.remove(tkey, tkey.begin());
     }
 }
 
@@ -407,7 +407,7 @@ std::size_t bitwise_trie<k, v ,a>::erase(key_type key)
     {
 	destroy_branch(root_.get_ptr());
 	root_.reset();
-	index_.remove(tkey.begin());
+	index_.remove(tkey, tkey.begin());
     }
     return leaf_erase_count;
 }
@@ -469,6 +469,22 @@ bitwise_trie<k, v, a>::leading_zero_index::leading_zero_index(branch_ptr& root)
 {
     branch_ptr empty(child_type::branch);
     std::fill_n(index_.begin(), index_.max_size(), empty);
+}
+
+template <class k, class v, class a>
+bool bitwise_trie<k, v, a>::leading_zero_index::is_defined(
+	const trie_key& key,
+	const typename trie_key::iterator& iter) const
+{
+    trie_key tmp(std::numeric_limits<key_type>::max());
+    tmp.copy(key, key.begin(), iter);
+    std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
+    bool result = false;
+    if (zero_count < index_.max_size())
+    {
+	result = !(index_[zero_count].is_empty());
+    }
+    return result;
 }
 
 template <class k, class v, class a>
@@ -540,9 +556,16 @@ void bitwise_trie<k, v, a>::leading_zero_index::insert(
 
 template <class k, class v, class a>
 void bitwise_trie<k, v, a>::leading_zero_index::remove(
+	const trie_key& key,
 	const typename trie_key::iterator& iter)
 {
-    index_[iter.get_index()].reset();
+    trie_key tmp(std::numeric_limits<key_type>::max());
+    tmp.copy(key, key.begin(), iter);
+    std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
+    if (zero_count < index_.max_size())
+    {
+	index_[zero_count].reset();
+    }
 }
 
 template <class k, class v, class a>
@@ -749,7 +772,7 @@ std::tuple<std::size_t, std::size_t> bitwise_trie<k, v, a>::erase_recursive(
 			auto result = key.get_preceding_prefixes(child_iter);
 			if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
 			{
-			    index_.remove(child_iter);
+			    index_.remove(key, child_iter);
 			}
 		    }
 		    else

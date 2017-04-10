@@ -200,6 +200,89 @@ TEST(leading_zero_index_test, insert_basic)
     EXPECT_EQ(expected_iter1, std::get<1>(result115)) << "The leading_zero_index returned wrong iterator for a key with 15 leading zeroes";
 }
 
+TEST(leading_zero_index_test, remove_invalid)
+{
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    trie_tester::branch root1;
+    trie_tester::branch_ptr root_ptr1(&root1);
+    trie_tester::leading_zero_index index1(root_ptr1);
+    trie_tester::trie_key key1(0U);
+    trie_tester::trie_key::iterator iter1 = key1.begin();
+    EXPECT_FALSE(index1.is_defined(key1, iter1));
+    index1.remove(key1, iter1);
+    EXPECT_FALSE(index1.is_defined(key1, iter1));
+    ++iter1;
+    EXPECT_FALSE(index1.is_defined(key1, iter1));
+    index1.remove(key1, iter1);
+    EXPECT_FALSE(index1.is_defined(key1, iter1));
+}
+
+TEST(leading_zero_index_test, remove_basic)
+{
+    typedef tco::bitwise_trie_tester<std::uint8_t, std::string, tme::pool> trie_tester;
+    trie_tester::branch root1;
+    trie_tester::branch_ptr root_ptr1(&root1);
+    trie_tester::leading_zero_index index1(root_ptr1);
+    trie_tester::branch branch11;
+    trie_tester::branch branch12;
+    trie_tester::branch branch13;
+    trie_tester::branch branch14;
+    trie_tester::branch branch15;
+    trie_tester::branch branch16;
+    trie_tester::branch branch17;
+    trie_tester::trie_key key10(1U << 7U);
+    trie_tester::trie_key key11(1U << 6U);
+    trie_tester::trie_key key12(1U << 5U);
+    trie_tester::trie_key key13(1U << 4U);
+    trie_tester::trie_key key14(1U << 3U);
+    trie_tester::trie_key key15(1U << 2U);
+    trie_tester::trie_key key16(1U << 1U);
+    trie_tester::trie_key key17(1U << 0U);
+    trie_tester::trie_key::iterator iter0 = key10.begin();
+    trie_tester::trie_key::iterator iter1 = iter0 + 1U;
+    trie_tester::trie_key::iterator iter2 = iter0 + 2U;
+    EXPECT_FALSE(index1.is_defined(key10, iter0));
+    index1.insert(&root1, key10, iter0);
+    EXPECT_TRUE(index1.is_defined(key10, iter0));
+    EXPECT_FALSE(index1.is_defined(key11, iter1));
+    index1.insert(&branch11, key11, iter1);
+    EXPECT_TRUE(index1.is_defined(key11, iter1));
+    EXPECT_FALSE(index1.is_defined(key12, iter1));
+    index1.insert(&branch12, key12, iter1);
+    EXPECT_TRUE(index1.is_defined(key12, iter1));
+    EXPECT_FALSE(index1.is_defined(key13, iter1));
+    index1.insert(&branch13, key13, iter1);
+    EXPECT_TRUE(index1.is_defined(key13, iter1));
+    EXPECT_FALSE(index1.is_defined(key14, iter1));
+    index1.insert(&branch14, key14, iter1);
+    EXPECT_TRUE(index1.is_defined(key14, iter1));
+    EXPECT_FALSE(index1.is_defined(key15, iter2));
+    index1.insert(&branch15, key15, iter2);
+    EXPECT_TRUE(index1.is_defined(key15, iter2));
+    EXPECT_FALSE(index1.is_defined(key16, iter2));
+    index1.insert(&branch16, key16, iter2);
+    EXPECT_TRUE(index1.is_defined(key16, iter2));
+    EXPECT_FALSE(index1.is_defined(key17, iter2));
+    index1.insert(&branch17, key17, iter2);
+    EXPECT_TRUE(index1.is_defined(key17, iter2));
+    index1.remove(key10, iter0);
+    EXPECT_FALSE(index1.is_defined(key10, iter0)) << "Failed to remove index entry for key with 0 leading zeros";
+    index1.remove(key11, iter1);
+    EXPECT_FALSE(index1.is_defined(key11, iter1)) << "Failed to remove index entry for key with 1 leading zeros";
+    index1.remove(key12, iter1);
+    EXPECT_FALSE(index1.is_defined(key12, iter1)) << "Failed to remove index entry for key with 2 leading zeros";
+    index1.remove(key13, iter1);
+    EXPECT_FALSE(index1.is_defined(key13, iter1)) << "Failed to remove index entry for key with 3 leading zeros";
+    index1.remove(key14, iter1);
+    EXPECT_FALSE(index1.is_defined(key14, iter1)) << "Failed to remove index entry for key with 4 leading zeros";
+    index1.remove(key15, iter2);
+    EXPECT_FALSE(index1.is_defined(key15, iter2)) << "Failed to remove index entry for key with 5 leading zeros";
+    index1.remove(key16, iter2);
+    EXPECT_FALSE(index1.is_defined(key16, iter2)) << "Failed to remove index entry for key with 6 leading zeros";
+    index1.remove(key17, iter2);
+    EXPECT_FALSE(index1.is_defined(key17, iter2)) << "Failed to remove index entry for key with 7 leading zeros";
+}
+
 TEST(bitwise_trie_test, empty_trie)
 {
     typedef tco::bitwise_trie<std::uint32_t, std::string, tme::pool> string_map;
