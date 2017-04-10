@@ -610,6 +610,10 @@ bool bitwise_trie<k, v, a>::is_equal(
 		    }
 		}
 	    }
+	    else if (this_child.is_empty() && other_child.is_empty())
+	    {
+		continue;
+	    }
 	    else
 	    {
 		return false;

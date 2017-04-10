@@ -917,6 +917,21 @@ TEST(bitwise_trie_test, emplace_erase_reuse)
     EXPECT_TRUE(tester1.get_root().is_empty()) << "Root of trie after erase of all values is not empty";
 }
 
+TEST(bitwise_trie_test, copy_construct)
+{
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_trie;
+    tme::pool allocator1(8U, { {string_trie::node_sizes[0], 8U}, {string_trie::node_sizes[1], 8U} });
+    tme::pool allocator2(8U, { {string_trie::node_sizes[0], 8U}, {string_trie::node_sizes[1], 8U} });
+    string_trie map1(allocator1);
+    map1.emplace(64U, "bar");
+    map1.emplace(32U, "foo");
+    map1.emplace(128U, "blah");
+    EXPECT_EQ(3U, map1.size()) << "Size of trie after 3 emplace is not 3";
+    string_trie map2(map1, &allocator2);
+    EXPECT_FALSE(allocator1 == allocator2) << "Memory pools should not be equal because they contain points to different values";
+    EXPECT_TRUE(map1 == map2) << "Copy constructed bitwise trie is not equal to the original";
+}
+
 class bitwise_trie_emplace_perf_test : public ::testing::Test
 {
 public:
