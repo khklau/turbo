@@ -193,7 +193,7 @@ bitwise_trie<k, v, a>::bitwise_trie(const bitwise_trie& other, allocator_type* a
     :
 	allocator_(allocator != nullptr ? *allocator : other.allocator_),
 	size_(other.size_),
-	root_(other.root_),
+	root_(clone_branch(*(other.root_.get_ptr())), child_type::branch),
 	index_(root_)
 {
     branch_ptr* current_branch = &root_;
@@ -206,9 +206,9 @@ bitwise_trie<k, v, a>::bitwise_trie(const bitwise_trie& other, allocator_type* a
 	}
 	else
 	{
-	    tkey.write(iter, 0U);
 	    index_.insert(current_branch->get_ptr(), tkey, iter);
 	    current_branch = &((*current_branch)->children[0U]);
+	    tkey.write(iter, 0U);
 	}
     }
 }
@@ -236,7 +236,7 @@ bitwise_trie<k, v, a>::~bitwise_trie()
 template <class k, class v, class a>
 bool bitwise_trie<k, v ,a>::operator==(const bitwise_trie& other) const
 {
-    trie_key key;
+    trie_key key(std::numeric_limits<key_type>::max());
     return this->size_ == other.size_
 	&& is_equal(&(this->root_), &(other.root_), this->index_, other.index_, key, key.begin());
 }
@@ -441,28 +441,6 @@ bitwise_trie<k, v, a>::branch::branch()
 }
 
 template <class k, class v, class a>
-bitwise_trie<k, v, a>::branch::branch(const branch& other)
-{
-    auto this_iter = this->children.begin();
-    auto other_iter = other.chidren.cbegin();
-    for (; this_iter != this->children.end() && other_iter != other.children.cend(); ++this_iter, ++other_iter)
-    {
-	if (!other_iter->is_empty())
-	{
-	    continue;
-	}
-	else if (other_iter->get_tag() == child_type::leaf)
-	{
-	    this_iter->reset(clone_leaf(*(static_cast<leaf*>(static_cast<void*>(other_iter->get_ptr())))), child_type::leaf);
-	}
-	else
-	{
-	    this_iter->reset(clone_branch(*(other_iter->get_ptr())), child_type::branch);
-	}
-    }
-}
-
-template <class k, class v, class a>
 bitwise_trie<k, v, a>::leading_zero_index::leading_zero_index(branch_ptr& root)
     :
 	root_(root)
@@ -586,40 +564,49 @@ bool bitwise_trie<k, v, a>::is_equal(
     }
     else if (both_not_empty)
     {
-	bool branch_result = true;
-	for (std::size_t child_index = 0U; child_index < (*this_branch)->children.max_size(); ++child_index)
+	if (this_branch->get_tag() == child_type::leaf && other_branch->get_tag() == child_type::leaf)
 	{
-	    const branch_ptr& this_child = (*this_branch)->children[child_index];
-	    const branch_ptr& other_child = (*other_branch)->children[child_index];
-	    key.write(iter, child_index);
-	    if (!this_child.is_empty() && !other_child.is_empty())
-	    {
-		if (this_child.get_tag() == child_type::leaf && other_child.get_tag() == child_type::leaf)
-		{
-		    return *(static_cast<leaf*>(static_cast<void*>(this_child.get_ptr())))
-			== *(static_cast<leaf*>(static_cast<void*>(other_child.get_ptr())));
-		}
-		else if (this_child.get_tag() == child_type::branch)
-		{
-		    // TODO compare leading zero index on these branches
-		    bool child_result = is_equal(&this_child, &other_child, this_index, other_index, key, iter + 1U);
-		    branch_result = branch_result && child_result;
-		    if (!child_result)
-		    {
-			return branch_result;
-		    }
-		}
-	    }
-	    else if (this_child.is_empty() && other_child.is_empty())
-	    {
-		continue;
-	    }
-	    else
-	    {
-		return false;
-	    }
+	    return *(static_cast<leaf*>(static_cast<void*>(this_branch->get_ptr())))
+		== *(static_cast<leaf*>(static_cast<void*>(other_branch->get_ptr())));
 	}
-	return branch_result;
+	else if (this_branch->get_tag() == child_type::branch && other_branch->get_tag() == child_type::branch)
+	{
+	    bool branch_result = true;
+	    auto preceeding = key.get_preceding_prefixes(iter);
+	    if (std::get<0>(preceeding) == trie_key::get_result::unavailable || std::get<1>(preceeding) == 0U)
+	    {
+		auto this_search = this_index.const_search(key);
+		auto other_search = other_index.const_search(key);
+		bool index_result = std::get<0>(this_search)->get_ptr() == this_branch->get_ptr()
+			&& std::get<0>(other_search)->get_ptr() == other_branch->get_ptr()
+			&& std::get<1>(this_search) == std::get<1>(other_search);
+		branch_result = branch_result && index_result;
+		if (!index_result)
+		{
+		    return branch_result;
+		}
+	    }
+	    for (std::size_t child_index = 0U; child_index < (*this_branch)->children.max_size(); ++child_index)
+	    {
+		key.write(iter, child_index);
+		bool child_result = is_equal(
+			&((*this_branch)->children[child_index]),
+			&((*other_branch)->children[child_index]),
+			this_index,
+			other_index,
+			key, iter + 1U);
+		branch_result = branch_result && child_result;
+		if (!child_result)
+		{
+		    return branch_result;
+		}
+	    }
+	    return branch_result;
+	}
+	else
+	{
+	    return false;
+	}
     }
     else
     {
@@ -815,13 +802,13 @@ typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::create_leaf(
 }
 
 template <class k, class v, class a>
-typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::clone_leaf(const leaf& other)
+typename bitwise_trie<k, v, a>::leaf* bitwise_trie<k, v, a>::clone_leaf(const leaf& original)
 {
-    leaf* tmp = allocator_.template allocate<leaf>();
-    if (tmp != nullptr)
+    leaf* clone = allocator_.template allocate<leaf>();
+    if (clone != nullptr)
     {
-	new (tmp) leaf(other);
-	return tmp;
+	new (clone) leaf(original);
+	return clone;
     }
     else
     {
@@ -852,13 +839,31 @@ typename bitwise_trie<k, v, a>::branch* bitwise_trie<k, v, a>::create_branch()
 }
 
 template <class k, class v, class a>
-typename bitwise_trie<k, v, a>::branch* bitwise_trie<k, v, a>::clone_branch(const branch& other)
+typename bitwise_trie<k, v, a>::branch* bitwise_trie<k, v, a>::clone_branch(const branch& original)
 {
-    branch* tmp = allocator_.template allocate<branch>();
-    if (tmp != nullptr)
+    branch* clone = allocator_.template allocate<branch>();
+    if (clone != nullptr)
     {
-	new (tmp) branch(other);
-	return tmp;
+	new (clone) branch();
+	auto clone_iter = clone->children.begin();
+	auto original_iter = original.children.cbegin();
+	for (; clone_iter != clone->children.end() && original_iter != original.children.cend(); ++clone_iter, ++original_iter)
+	{
+	    if (original_iter->is_empty())
+	    {
+		continue;
+	    }
+	    else if (original_iter->get_tag() == child_type::leaf)
+	    {
+		leaf* new_leaf = clone_leaf(*(static_cast<const leaf*>(static_cast<void*>(original_iter->get_ptr()))));
+		clone_iter->reset(static_cast<branch*>(static_cast<void*>(new_leaf)), child_type::leaf);
+	    }
+	    else
+	    {
+		clone_iter->reset(clone_branch(*(original_iter->get_ptr())), child_type::branch);
+	    }
+	}
+	return clone;
     }
     else
     {

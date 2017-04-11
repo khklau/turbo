@@ -256,7 +256,6 @@ private:
     struct branch
     {
 	branch();
-	branch(const branch& other);
 	branch(branch&&) = delete;
 	~branch() = default;
 	branch& operator=(const branch&) = delete;
@@ -310,10 +309,10 @@ private:
 	    compare_t compare_func);
     template <class... value_args_t>
     leaf* create_leaf(key_type key_arg, value_args_t&&... value_args);
-    leaf* clone_leaf(const leaf& other);
+    leaf* clone_leaf(const leaf& original);
     void destroy_leaf(leaf* pointer);
     branch* create_branch();
-    branch* clone_branch(const branch& other);
+    branch* clone_branch(const branch& original);
     void destroy_branch(branch* pointer);
     allocator_type& allocator_;
     std::size_t size_;
