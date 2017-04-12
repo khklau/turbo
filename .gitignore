@@ -40,5 +40,9 @@
 /lib
 /include
 
-# Ctags
-tags
+# GNU Global
+GPATH
+GRTAGS
+GSYMS
+GTAGS
+stl
