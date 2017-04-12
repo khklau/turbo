@@ -128,7 +128,7 @@ private:
     struct handle_list
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<value_t, allocator_t>& queue);
-	handle_list(const handle_list& other);
+	handle_list(const handle_list& other, mpmc_ring_queue<value_t, allocator_t>* queue = nullptr);
 	handle_list(handle_list&& other) = delete;
 	~handle_list() = default;
 	bool operator==(const handle_list& other) const;
@@ -174,7 +174,7 @@ private:
     struct handle_list
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<std::uint32_t, allocator_t>& queue);
-	handle_list(const handle_list& other);
+	handle_list(const handle_list& other, mpmc_ring_queue<std::uint32_t, allocator_t>* queue = nullptr);
 	~handle_list() = default;
 	bool operator==(const handle_list& other) const;
 	handle_list& operator=(const handle_list&) = delete;
@@ -219,7 +219,7 @@ private:
     struct handle_list
     {
 	handle_list(uint16_t limit, const key& the_key, mpmc_ring_queue<std::uint64_t, allocator_t>& queue);
-	handle_list(const handle_list& other);
+	handle_list(const handle_list& other, mpmc_ring_queue<std::uint64_t, allocator_t>* queue = nullptr);
 	~handle_list() = default;
 	bool operator==(const handle_list& other) const;
 	handle_list& operator=(const handle_list&) = delete;

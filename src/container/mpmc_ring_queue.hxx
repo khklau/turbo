@@ -151,8 +151,8 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& ot
 	buffer_(other.buffer_),
 	head_(other.head_.load()),
 	tail_(other.tail_.load()),
-	producer_list_(other.producer_list_),
-	consumer_list_(other.consumer_list_)
+	producer_list_(other.producer_list_, this),
+	consumer_list_(other.consumer_list_, this)
 { }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -179,10 +179,11 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::h
 template <class value_t, template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
-	const handle_list& other)
+	const handle_list& other,
+	mpmc_ring_queue<value_t, allocator_t>* queue)
     :
 	counter(other.counter.load()),
-	list(other.list)
+	list(other.list.size(), queue != nullptr ? static_cast<const handle_t&>(handle_t(key(), *queue)) : *(other.list.cbegin()))
 { }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -190,7 +191,7 @@ template <class handle_t>
 bool mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
 	const handle_list& other) const
 {
-    return this->counter.load() == other.counter.load() && this->list == other.list;
+    return this->counter.load() == other.counter.load() && this->list.size() == other.list.size();
 }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -385,8 +386,8 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 	buffer_(other.buffer_),
 	head_(other.head_.load()),
 	tail_(other.tail_.load()),
-	producer_list_(other.producer_list_),
-	consumer_list_(other.consumer_list_)
+	producer_list_(other.producer_list_, this),
+	consumer_list_(other.consumer_list_, this)
 { }
 
 template <template <class type_t> class allocator_t>
@@ -413,10 +414,11 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 template <template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
-	const handle_list& other)
+	const handle_list& other,
+	mpmc_ring_queue<std::uint32_t, allocator_t>* queue)
     :
 	counter(other.counter.load()),
-	list(other.list)
+	list(other.list.size(), queue != nullptr ? static_cast<const handle_t&>(handle_t(key(), *queue)) : *(other.list.cbegin()))
 { }
 
 template <template <class type_t> class allocator_t>
@@ -424,7 +426,7 @@ template <class handle_t>
 bool mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
 	const handle_list& other) const
 {
-    return this->counter.load() == other.counter.load() && this->list == other.list;
+    return this->counter.load() == other.counter.load() && this->list.size() == other.list.size();
 }
 
 template <template <class type_t> class allocator_t>
@@ -569,8 +571,8 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 	buffer_(other.buffer_),
 	head_(other.head_.load()),
 	tail_(other.tail_.load()),
-	producer_list_(other.producer_list_),
-	consumer_list_(other.consumer_list_)
+	producer_list_(other.producer_list_, this),
+	consumer_list_(other.consumer_list_, this)
 { }
 
 template <template <class type_t> class allocator_t>
@@ -597,10 +599,11 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 template <template <class type_t> class allocator_t>
 template <class handle_t>
 mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::handle_list(
-	const handle_list& other)
+	const handle_list& other,
+	mpmc_ring_queue<std::uint64_t, allocator_t>* queue)
     :
 	counter(other.counter.load()),
-	list(other.list)
+	list(other.list.size(), queue != nullptr ? static_cast<const handle_t&>(handle_t(key(), *queue)) : *(other.list.cbegin()))
 { }
 
 template <template <class type_t> class allocator_t>
@@ -608,7 +611,7 @@ template <class handle_t>
 bool mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
 	const handle_list& other) const
 {
-    return this->counter.load() == other.counter.load() && this->list == other.list;
+    return this->counter.load() == other.counter.load() && this->list.size() == other.list.size();
 }
 
 template <template <class type_t> class allocator_t>
