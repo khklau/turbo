@@ -25,7 +25,7 @@ struct alignas(LEVEL1_DCACHE_LINESIZE) node
     inline node(const node& other);
     node(node&&) = delete;
     ~node() = default;
-    node& operator=(const node&) = delete;
+    node& operator=(const node& other);
     node& operator=(node&&) = delete;
     inline bool operator==(const node& other) const;
     std::atomic<status> guard;
@@ -39,7 +39,7 @@ struct alignas(LEVEL1_DCACHE_LINESIZE) atomic_node
     inline atomic_node(const atomic_node&);
     atomic_node(atomic_node&&) = delete;
     ~atomic_node() = default;
-    atomic_node& operator=(const atomic_node&) = delete;
+    atomic_node& operator=(const atomic_node& other) = default;
     atomic_node& operator=(atomic_node&&) = delete;
     inline bool operator==(const atomic_node& other) const;
     std::atomic<value_t> value;
@@ -114,8 +114,9 @@ public:
     mpmc_ring_queue(uint32_t capacity);
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     mpmc_ring_queue(const mpmc_ring_queue& other);
-    bool operator==(const mpmc_ring_queue& other) const;
     ~mpmc_ring_queue() = default;
+    mpmc_ring_queue& operator=(const mpmc_ring_queue& other);
+    bool operator==(const mpmc_ring_queue& other) const;
     producer& get_producer();
     consumer& get_consumer();
     typename producer::result try_enqueue_copy(const value_t& input);
@@ -139,7 +140,6 @@ private:
     };
     mpmc_ring_queue() = delete;
     mpmc_ring_queue(mpmc_ring_queue&&) = delete;
-    mpmc_ring_queue& operator=(const mpmc_ring_queue&) = delete;
     mpmc_ring_queue& operator=(mpmc_ring_queue&&) = delete;
     std::vector<node_type, allocator_t<node_type>> buffer_;
     std::atomic<uint32_t> head_;
@@ -161,6 +161,7 @@ public:
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     mpmc_ring_queue(const mpmc_ring_queue& other);
     ~mpmc_ring_queue() = default;
+    mpmc_ring_queue& operator=(const mpmc_ring_queue& other);
     bool operator==(const mpmc_ring_queue& other) const;
     producer& get_producer();
     consumer& get_consumer();
@@ -184,7 +185,6 @@ private:
     };
     mpmc_ring_queue() = delete;
     mpmc_ring_queue(mpmc_ring_queue&&) = delete;
-    mpmc_ring_queue& operator=(const mpmc_ring_queue&) = delete;
     mpmc_ring_queue& operator=(mpmc_ring_queue&&) = delete;
     std::vector<node_type, allocator_t<node_type>> buffer_;
     std::atomic<uint32_t> head_;
@@ -206,6 +206,7 @@ public:
     mpmc_ring_queue(uint32_t capacity, uint16_t handle_limit);
     mpmc_ring_queue(const mpmc_ring_queue& other);
     ~mpmc_ring_queue() = default;
+    mpmc_ring_queue& operator=(const mpmc_ring_queue& other);
     bool operator==(const mpmc_ring_queue& other) const;
     producer& get_producer();
     consumer& get_consumer();
@@ -229,7 +230,6 @@ private:
     };
     mpmc_ring_queue() = delete;
     mpmc_ring_queue(mpmc_ring_queue&&) = delete;
-    mpmc_ring_queue& operator=(const mpmc_ring_queue&) = delete;
     mpmc_ring_queue& operator=(mpmc_ring_queue&&) = delete;
     std::vector<node_type, allocator_t<node_type>> buffer_;
     std::atomic<uint32_t> head_;

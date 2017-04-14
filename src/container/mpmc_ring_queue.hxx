@@ -2,6 +2,7 @@
 #define TURBO_CONTAINER_MPMC_RING_QUEUE_HXX
 
 #include <turbo/container/mpmc_ring_queue.hpp>
+#include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <turbo/algorithm/recovery.hxx>
@@ -35,6 +36,17 @@ node<value_t>::node(const node& other)
 	guard(other.guard.load()),
 	value(other.value)
 { }
+
+template <class value_t>
+node<value_t>& node<value_t>::operator=(const node& other)
+{
+    if (this != &other)
+    {
+	guard.store(other.guard.load(std::memory_order_acquire), std::memory_order_release);
+	value = other.value;
+    }
+    return *this;
+}
 
 template <class value_t>
 bool node<value_t>::operator==(const node& other) const
@@ -156,6 +168,18 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& ot
 { }
 
 template <class value_t, template <class type_t> class allocator_t>
+mpmc_ring_queue<value_t, allocator_t>& mpmc_ring_queue<value_t, allocator_t>::operator=(const mpmc_ring_queue& other)
+{
+    if (this != &other)
+    {
+	std::copy(other.buffer_.cbegin(), other.buffer_.cend(), this->buffer_.begin());
+	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
+	this->tail_.store(other.tail_.load(std::memory_order_acquire), std::memory_order_release);
+    }
+    return *this;
+}
+
+template <class value_t, template <class type_t> class allocator_t>
 bool mpmc_ring_queue<value_t, allocator_t>::operator==(const mpmc_ring_queue& other) const
 {
     return this->buffer_ == other.buffer_
@@ -182,7 +206,7 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::h
 	const handle_list& other,
 	mpmc_ring_queue<value_t, allocator_t>* queue)
     :
-	counter(other.counter.load()),
+	counter(0),
 	list(other.list.size(), queue != nullptr ? static_cast<const handle_t&>(handle_t(key(), *queue)) : *(other.list.cbegin()))
 { }
 
@@ -191,7 +215,7 @@ template <class handle_t>
 bool mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
 	const handle_list& other) const
 {
-    return this->counter.load() == other.counter.load() && this->list.size() == other.list.size();
+    return this->list.size() == other.list.size();
 }
 
 template <class value_t, template <class type_t> class allocator_t>
@@ -391,6 +415,18 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 { }
 
 template <template <class type_t> class allocator_t>
+mpmc_ring_queue<std::uint32_t, allocator_t>& mpmc_ring_queue<std::uint32_t, allocator_t>::operator=(const mpmc_ring_queue& other)
+{
+    if (this != &other)
+    {
+	std::copy(other.cbegin(), other.cend(), this->begin());
+	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
+	this->tail_.store(other.tail_.load(std::memory_order_acquire), std::memory_order_release);
+    }
+    return *this;
+}
+
+template <template <class type_t> class allocator_t>
 bool mpmc_ring_queue<std::uint32_t, allocator_t>::operator==(const mpmc_ring_queue& other) const
 {
     return this->buffer_ == other.buffer_
@@ -417,7 +453,7 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 	const handle_list& other,
 	mpmc_ring_queue<std::uint32_t, allocator_t>* queue)
     :
-	counter(other.counter.load()),
+	counter(0),
 	list(other.list.size(), queue != nullptr ? static_cast<const handle_t&>(handle_t(key(), *queue)) : *(other.list.cbegin()))
 { }
 
@@ -426,7 +462,7 @@ template <class handle_t>
 bool mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
 	const handle_list& other) const
 {
-    return this->counter.load() == other.counter.load() && this->list.size() == other.list.size();
+    return this->list.size() == other.list.size();
 }
 
 template <template <class type_t> class allocator_t>
@@ -576,6 +612,18 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 { }
 
 template <template <class type_t> class allocator_t>
+mpmc_ring_queue<std::uint64_t, allocator_t>& mpmc_ring_queue<std::uint64_t, allocator_t>::operator=(const mpmc_ring_queue& other)
+{
+    if (this != &other)
+    {
+	std::copy(other.cbegin(), other.cend(), this->begin());
+	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
+	this->tail_.store(other.tail_.load(std::memory_order_acquire), std::memory_order_release);
+    }
+    return *this;
+}
+
+template <template <class type_t> class allocator_t>
 bool mpmc_ring_queue<std::uint64_t, allocator_t>::operator==(const mpmc_ring_queue& other) const
 {
     return this->buffer_ == other.buffer_
@@ -602,7 +650,7 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle
 	const handle_list& other,
 	mpmc_ring_queue<std::uint64_t, allocator_t>* queue)
     :
-	counter(other.counter.load()),
+	counter(0),
 	list(other.list.size(), queue != nullptr ? static_cast<const handle_t&>(handle_t(key(), *queue)) : *(other.list.cbegin()))
 { }
 
@@ -611,7 +659,7 @@ template <class handle_t>
 bool mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue::handle_list<handle_t>::operator==(
 	const handle_list& other) const
 {
-    return this->counter.load() == other.counter.load() && this->list.size() == other.list.size();
+    return this->list.size() == other.list.size();
 }
 
 template <template <class type_t> class allocator_t>

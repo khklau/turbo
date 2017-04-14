@@ -168,14 +168,60 @@ TEST(mpmc_ring_queue_test, full_queue)
 TEST(mpmc_ring_queue_test, copy_construction)
 {
     typedef tco::mpmc_ring_queue<std::string> string_queue;
+    std::string actual1a;
+    std::string actual1b;
+    std::string actual1c;
+    std::string actual1d;
+    std::string actual1e;
 
-    string_queue queue1(8, 2);
+    string_queue queue1(8, 1);
+    queue1.get_producer();
+    queue1.get_consumer();
     EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("foo")) << "Failed to populate queue";
     EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("bar")) << "Failed to populate queue";
     EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("baz")) << "Failed to populate queue";
     EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("woot")) << "Failed to populate queue";
     string_queue queue2(queue1);
     EXPECT_TRUE(queue1 == queue2) << "Copy constructed queue is not equal to original";
+    string_queue::producer& producer2 = queue2.get_producer();
+    string_queue::consumer& consumer2 = queue2.get_consumer();
+    EXPECT_EQ(string_queue::producer::result::success, producer2.try_enqueue_move("blah")) << "Failed to populate queue";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1a), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("foo", actual1a) << "The 1st value enqueued is not the 1st value dequeued";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1b), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("bar", actual1b) << "The 2nd value enqueued is not the 2nd value dequeued";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1c), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("baz", actual1c) << "The 3rd value enqueued is not the 3rd value dequeued";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1d), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("woot", actual1d) << "The 4th value enqueued is not the 4th value dequeued";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1e), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("blah", actual1e) << "The 5th value enqueued is not the 5th value dequeued";
+}
+
+TEST(mpmc_ring_queue_test, copy_assignment)
+{
+    typedef tco::mpmc_ring_queue<std::string> string_queue;
+    std::string actual1a;
+    std::string actual1b;
+    std::string actual1c;
+
+    string_queue queue1(8, 1);
+    EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("foo")) << "Failed to populate queue";
+    EXPECT_EQ(string_queue::producer::result::success, queue1.try_enqueue_move("bar")) << "Failed to populate queue";
+    string_queue queue2(8, 1);
+    string_queue::producer& producer2 = queue2.get_producer();
+    string_queue::consumer& consumer2 = queue2.get_consumer();
+    EXPECT_EQ(string_queue::producer::result::success, producer2.try_enqueue_move("baz")) << "Failed to populate queue";
+    EXPECT_EQ(string_queue::producer::result::success, producer2.try_enqueue_move("woot")) << "Failed to populate queue";
+    queue2 = queue1;
+    EXPECT_TRUE(queue1 == queue2) << "Copy assigned queue is not equal to original";
+    EXPECT_EQ(string_queue::producer::result::success, producer2.try_enqueue_move("blah")) << "Failed to populate queue";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1a), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("foo", actual1a) << "The 1st value enqueued is not the 1st value dequeued";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1b), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("bar", actual1b) << "The 2nd value enqueued is not the 2nd value dequeued";
+    ASSERT_NE(consumer2.try_dequeue_copy(actual1c), string_queue::consumer::result::queue_empty) << "Queue should not be empty";
+    EXPECT_EQ("blah", actual1c) << "The 3rd value enqueued is not the 3rd value dequeued";
 }
 
 template <class value_t, std::size_t limit>
