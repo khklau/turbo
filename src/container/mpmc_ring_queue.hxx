@@ -170,7 +170,7 @@ mpmc_ring_queue<value_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_queue& ot
 template <class value_t, template <class type_t> class allocator_t>
 mpmc_ring_queue<value_t, allocator_t>& mpmc_ring_queue<value_t, allocator_t>::operator=(const mpmc_ring_queue& other)
 {
-    if (this != &other)
+    if (this != &other && this->buffer_.size() == other.buffer_.size())
     {
 	std::copy(other.buffer_.cbegin(), other.buffer_.cend(), this->buffer_.begin());
 	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
