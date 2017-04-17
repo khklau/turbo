@@ -172,7 +172,7 @@ mpmc_ring_queue<value_t, allocator_t>& mpmc_ring_queue<value_t, allocator_t>::op
 {
     if (this != &other && this->buffer_.size() == other.buffer_.size())
     {
-	std::copy(other.buffer_.cbegin(), other.buffer_.cend(), this->buffer_.begin());
+	std::copy_n(other.buffer_.cbegin(), this->buffer_.size(), this->buffer_.begin());
 	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
 	this->tail_.store(other.tail_.load(std::memory_order_acquire), std::memory_order_release);
     }
@@ -417,9 +417,9 @@ mpmc_ring_queue<std::uint32_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 template <template <class type_t> class allocator_t>
 mpmc_ring_queue<std::uint32_t, allocator_t>& mpmc_ring_queue<std::uint32_t, allocator_t>::operator=(const mpmc_ring_queue& other)
 {
-    if (this != &other)
+    if (this != &other && this->buffer_.size() == other.buffer_.size())
     {
-	std::copy(other.cbegin(), other.cend(), this->begin());
+	std::copy_n(other.buffer_.cbegin(), this->buffer_.size(), this->buffer_.begin());
 	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
 	this->tail_.store(other.tail_.load(std::memory_order_acquire), std::memory_order_release);
     }
@@ -614,9 +614,9 @@ mpmc_ring_queue<std::uint64_t, allocator_t>::mpmc_ring_queue(const mpmc_ring_que
 template <template <class type_t> class allocator_t>
 mpmc_ring_queue<std::uint64_t, allocator_t>& mpmc_ring_queue<std::uint64_t, allocator_t>::operator=(const mpmc_ring_queue& other)
 {
-    if (this != &other)
+    if (this != &other && this->buffer_.size() == other.buffer_.size())
     {
-	std::copy(other.cbegin(), other.cend(), this->begin());
+	std::copy_n(other.buffer_.cbegin(), this->buffer_.size(), this->buffer_.begin());
 	this->head_.store(other.head_.load(std::memory_order_acquire), std::memory_order_release);
 	this->tail_.store(other.tail_.load(std::memory_order_acquire), std::memory_order_release);
     }
