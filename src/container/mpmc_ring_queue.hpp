@@ -21,7 +21,7 @@ struct alignas(LEVEL1_DCACHE_LINESIZE) node
 	unused
     };
     inline node() noexcept;
-    inline node(const value_t& the_value);
+    inline explicit node(const value_t& the_value);
     inline node(const node& other);
     node(node&&) = delete;
     ~node() = default;
@@ -36,10 +36,11 @@ template <class value_t>
 struct alignas(LEVEL1_DCACHE_LINESIZE) atomic_node
 {
     atomic_node() = default;
-    inline atomic_node(const atomic_node&);
+    inline explicit atomic_node(const value_t& the_value);
+    inline atomic_node(const atomic_node& other);
     atomic_node(atomic_node&&) = delete;
     ~atomic_node() = default;
-    atomic_node& operator=(const atomic_node& other) = default;
+    atomic_node& operator=(const atomic_node& other);
     atomic_node& operator=(atomic_node&&) = delete;
     inline bool operator==(const atomic_node& other) const;
     std::atomic<value_t> value;

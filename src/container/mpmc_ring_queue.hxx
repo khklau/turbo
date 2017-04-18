@@ -56,10 +56,26 @@ bool node<value_t>::operator==(const node& other) const
 }
 
 template <class value_t>
+atomic_node<value_t>::atomic_node(const value_t& the_value)
+    :
+	value(the_value)
+{ }
+
+template <class value_t>
 atomic_node<value_t>::atomic_node(const atomic_node& other)
     :
 	value(other.value.load())
 { }
+
+template <class value_t>
+atomic_node<value_t>& atomic_node<value_t>::operator=(const atomic_node& other)
+{
+    if (this != &other)
+    {
+	value.store(other.value.load(std::memory_order_acquire), std::memory_order_release);
+    }
+    return *this;
+}
 
 template <class value_t>
 bool atomic_node<value_t>::operator==(const atomic_node& other) const
