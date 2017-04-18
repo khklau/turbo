@@ -107,10 +107,26 @@ block::block(const block& other)
 	base_(capacity_ == 0U ? nullptr : &(storage_[0])),
 	free_list_(other.free_list_)
 {
-    if (storage_ != nullptr)
+    if (storage_.get() != nullptr)
     {
 	std::copy_n(&(other.storage_[0]), usable_size_, &(this->storage_[0]));
     }
+}
+
+block& block::operator=(const block& other)
+{
+    if (this != &other
+	    && this->value_size_ == other.value_size_
+	    && this->capacity_ == other.capacity_
+	    && this->usable_size_ == other.usable_size_)
+    {
+	if (this->storage_.get() != nullptr && other.storage_.get() != nullptr)
+	{
+	    std::copy_n(&(other.storage_[0]), this->usable_size_, &(this->storage_[0]));
+	}
+	this->free_list_ = other.free_list_;
+    }
+    return *this;
 }
 
 bool block::operator==(const block& other) const

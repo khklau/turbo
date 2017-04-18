@@ -107,11 +107,46 @@ TEST(block_test, recycle_basic)
 TEST(block_test, copy_construction)
 {
     tme::block block1(sizeof(std::uint64_t), 4U, alignof(std::uint64_t));
-    EXPECT_NE(nullptr, block1.allocate()) << "Allocation failed";
-    EXPECT_NE(nullptr, block1.allocate()) << "Allocation failed";
-    EXPECT_NE(nullptr, block1.allocate()) << "Allocation failed";
+    std::uint64_t* ptr1a = static_cast<std::uint64_t*>(block1.allocate());
+    EXPECT_NE(nullptr, ptr1a) << "Allocation failed";
+    *ptr1a = 67U;
+    std::uint64_t* ptr1b = static_cast<std::uint64_t*>(block1.allocate());
+    EXPECT_NE(nullptr, ptr1b) << "Allocation failed";
+    *ptr1b = 927U;
+    std::uint64_t* ptr1c = static_cast<std::uint64_t*>(block1.allocate());
+    EXPECT_NE(nullptr, ptr1c) << "Allocation failed";
+    *ptr1c = 2871U;
     tme::block block2(block1);
     EXPECT_TRUE(block1 == block2) << "Copy constructed block is not equal to the original";
+    EXPECT_NE(nullptr, block2.allocate()) << "Allocation failed";
+    EXPECT_EQ(nullptr, block2.allocate()) << "Allocation on full block succeeded";
+}
+
+TEST(block_test, copy_assignment)
+{
+    tme::block block1(sizeof(std::uint64_t), 4U, alignof(std::uint64_t));
+    std::uint64_t* ptr1a = static_cast<std::uint64_t*>(block1.allocate());
+    EXPECT_NE(nullptr, ptr1a) << "Allocation failed";
+    *ptr1a = 67U;
+    std::uint64_t* ptr1b = static_cast<std::uint64_t*>(block1.allocate());
+    EXPECT_NE(nullptr, ptr1b) << "Allocation failed";
+    *ptr1b = 927U;
+    std::uint64_t* ptr1c = static_cast<std::uint64_t*>(block1.allocate());
+    EXPECT_NE(nullptr, ptr1c) << "Allocation failed";
+    *ptr1c = 2871U;
+    tme::block block2(sizeof(std::uint64_t), 4U, alignof(std::uint64_t));
+    std::uint64_t* ptr2a = static_cast<std::uint64_t*>(block2.allocate());
+    EXPECT_NE(nullptr, ptr2a) << "Allocation failed";
+    *ptr2a = 704U;
+    std::uint64_t* ptr2b = static_cast<std::uint64_t*>(block2.allocate());
+    EXPECT_NE(nullptr, ptr2b) << "Allocation failed";
+    *ptr2b = 30872U;
+    block2 = block1;
+    EXPECT_TRUE(block1 == block2) << "Copy constructed block is not equal to the original";
+    EXPECT_NE(nullptr, block2.allocate()) << "Allocation failed";
+    EXPECT_EQ(nullptr, block2.allocate()) << "Allocation on full block succeeded";
+    EXPECT_EQ(*ptr1a, *ptr2a) << "Block contents was not changed after assignment";
+    EXPECT_EQ(*ptr1b, *ptr2b) << "Block contents was not changed after assignment";
 }
 
 struct record

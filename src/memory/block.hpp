@@ -46,6 +46,7 @@ public:
     block(std::size_t value_size, capacity_type capacity, std::size_t alignment);
     block(const block& other);
     ~block() = default;
+    block& operator=(const block& other);
     bool operator==(const block& other) const;
     inline std::size_t get_value_size() const { return value_size_; }
     inline std::size_t get_capacity() const { return capacity_; }
@@ -69,7 +70,6 @@ private:
     typedef turbo::container::mpmc_ring_queue<capacity_type> free_list_type;
     block() = delete;
     block(block&&) = delete;
-    block& operator=(const block&) = delete;
     block& operator=(block&&) = delete;
     std::size_t value_size_;
     std::size_t capacity_;
