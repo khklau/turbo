@@ -51,6 +51,11 @@ public:
 	success,
 	beaten
     };
+    enum class truncate_result
+    {
+	success,
+	beaten
+    };
     class invalid_dereference : public std::out_of_range
     {
     public:
@@ -92,6 +97,7 @@ public:
 	block_type& operator*();
 	block_type* operator->();
 	append_result try_append(std::unique_ptr<node> successor);
+	truncate_result try_truncate();
     };
     class const_iterator : public basic_iterator<const block, const node>
     {
@@ -111,6 +117,8 @@ public:
     block_list(std::size_t value_size, block::capacity_type capacity, std::size_t growth_factor);
     block_list(const block_config& config); // allow implicit conversion
     block_list(const block_list& other);
+    ~block_list() noexcept = default;
+    block_list& operator=(const block_list& other);
     bool operator==(const block_list& other) const;
     inline std::size_t get_value_size() const { return value_size_; }
     inline std::size_t get_growth_factor() const { return growth_factor_; }
@@ -127,6 +135,7 @@ private:
 	node(std::size_t value_size, block::capacity_type capacity);
 	node(const node& other);
 	~node() noexcept;
+	node& operator=(const node& other);
 	bool operator==(const node& other) const;
 	inline const block& get_block() const { return block_; }
 	inline block& mutate_block() { return block_; }
@@ -136,14 +145,12 @@ private:
     private:
 	node() = delete;
 	node(node&&) = delete;
-	node& operator=(const node&) = delete;
 	node& operator=(node&&) = delete;
 	block block_;
 	std::atomic<node*> next_;
     };
     block_list() = delete;
     block_list(block_list&&) = delete;
-    block_list& operator=(const block_list&) = delete;
     block_list& operator=(block_list&&) = delete;
     std::size_t value_size_;
     std::size_t growth_factor_;

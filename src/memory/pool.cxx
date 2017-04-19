@@ -110,6 +110,35 @@ block_list::append_result block_list::iterator::try_append(std::unique_ptr<block
     }
 }
 
+block_list::truncate_result block_list::iterator::try_truncate()
+{
+    if (TURBO_LIKELY(is_valid()))
+    {
+	node* next = pointer_->get_next().load(std::memory_order_acquire);
+	if (next != nullptr)
+	{
+	    if (pointer_->mutate_next().compare_exchange_strong(next, nullptr, std::memory_order_release))
+	    {
+		delete next;
+		return block_list::truncate_result::success;
+	    }
+	    else
+	    {
+		return block_list::truncate_result::beaten;
+	    }
+	}
+	else
+	{
+	    // already truncated, nothing to do
+	    return block_list::truncate_result::success;
+	}
+    }
+    else
+    {
+	throw block_list::invalid_dereference("cannot truncate an invalid block_list::iterator");
+    }
+}
+
 block_list::const_iterator::const_iterator()
     :
 	base_iterator()
@@ -188,6 +217,15 @@ block_list::node::~node() noexcept
     }
 }
 
+block_list::node& block_list::node::operator=(const node& other)
+{
+    if (this != &other)
+    {
+	this->block_ = other.block_;
+    }
+    return *this;
+}
+
 bool block_list::node::operator==(const node& other) const
 {
     node* this_next = this->next_.load(std::memory_order_acquire);
@@ -233,6 +271,28 @@ block_list::block_list(const block_list& other)
 	    ++this_iter;
 	}
     }
+}
+
+block_list& block_list::operator=(const block_list& other)
+{
+    if (this != &other && this->value_size_ == other.value_size_ && this->growth_factor_ && other.growth_factor_)
+    {
+	auto this_iter = this->begin();
+	auto other_iter = other.cbegin();
+	for (; other_iter != other.cend(); ++this_iter, ++other_iter)
+	{
+	    this_iter.get_node() = other_iter.get_node();
+	    if (!other_iter.is_last() && this_iter.is_last())
+	    {
+		this_iter.try_append(create_node(other_iter->get_capacity() * other.get_growth_factor()));
+	    }
+	    else if (other_iter.is_last() && !this_iter.is_last())
+	    {
+		this_iter.try_truncate();
+	    }
+	}
+    }
+    return *this;
 }
 
 bool block_list::operator==(const block_list& other) const

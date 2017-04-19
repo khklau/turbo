@@ -182,6 +182,34 @@ TEST(pool_test, list_copy_construction)
     *allocation1c = 1097U;
     tme::block_list list2(list1);
     EXPECT_TRUE(list1 == list2) << "Copy constructed block list is not equal to the original";
+    auto iter2 = list2.begin();
+    EXPECT_NE(nullptr, iter2->allocate()) << "Allocation from non-full block failed";
+    EXPECT_EQ(nullptr, iter2->allocate()) << "Allocation from full block succeeded";
+}
+
+TEST(pool_test, list_copy_assignment_basic)
+{
+    tme::block_list list1(sizeof(std::uint64_t), 4U);
+    auto iter1 = list1.begin();
+    std::uint64_t* allocation1a = static_cast<std::uint64_t*>(iter1->allocate());
+    *allocation1a = 17U;
+    std::uint64_t* allocation1b = static_cast<std::uint64_t*>(iter1->allocate());
+    *allocation1b = 432U;
+    std::uint64_t* allocation1c = static_cast<std::uint64_t*>(iter1->allocate());
+    *allocation1c = 1097U;
+    tme::block_list list2(sizeof(std::uint64_t), 4U);
+    auto iter2 = list2.begin();
+    std::uint64_t* allocation2a = static_cast<std::uint64_t*>(iter2->allocate());
+    *allocation2a = 803U;
+    std::uint64_t* allocation2b = static_cast<std::uint64_t*>(iter2->allocate());
+    *allocation2b = 6U;
+    list2 = list1;
+    EXPECT_TRUE(list1 == list2) << "Copy assigned block list is not equal to the original";
+    EXPECT_NE(nullptr, iter2->allocate()) << "Allocation from non-full block failed";
+    EXPECT_NE(nullptr, iter2->allocate()) << "Allocation from non-full block failed";
+    EXPECT_EQ(nullptr, iter2->allocate()) << "Allocation from full block succeeded";
+    EXPECT_EQ(17U, *allocation2a) << "Copy assignment did not copy block contents";
+    EXPECT_EQ(432U, *allocation2b) << "Copy assignment did not copy block contents";
 }
 
 template <class value_t, std::size_t limit>
