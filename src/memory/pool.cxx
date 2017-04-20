@@ -343,6 +343,18 @@ pool::pool(const pool& other)
 	block_map_(other.block_map_)
 { }
 
+pool& pool::operator=(const pool& other)
+{
+    if (this != &other
+	    && this->default_capacity_ == other.default_capacity_
+	    && this->smallest_block_exponent_ == other.smallest_block_exponent_
+	    && this->block_map_.size() == other.block_map_.size())
+    {
+	std::copy_n(other.block_map_.cbegin(), this->block_map_.size(), this->block_map_.begin());
+    }
+    return *this;
+}
+
 bool pool::operator==(const pool& other) const
 {
     return this->default_capacity_ == other.default_capacity_

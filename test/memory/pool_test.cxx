@@ -206,7 +206,6 @@ TEST(pool_test, list_copy_assignment_basic)
     list2 = list1;
     EXPECT_TRUE(list1 == list2) << "Copy assigned block list is not equal to the original";
     EXPECT_NE(nullptr, iter2->allocate()) << "Allocation from non-full block failed";
-    EXPECT_NE(nullptr, iter2->allocate()) << "Allocation from non-full block failed";
     EXPECT_EQ(nullptr, iter2->allocate()) << "Allocation from full block succeeded";
     EXPECT_EQ(17U, *allocation2a) << "Copy assignment did not copy block contents";
     EXPECT_EQ(432U, *allocation2b) << "Copy assignment did not copy block contents";
@@ -1686,6 +1685,132 @@ TEST(pool_test, pool_copy_construction)
     EXPECT_EQ(std::string("   "), *result3e.second) << "String in memory pool didn't initialise";
     tme::pool pool4(pool3);
     EXPECT_TRUE(pool3 == pool4) << "Copy constructed pool is not equal to the original";
+}
+
+TEST(pool_test, pool_copy_assignment_basic)
+{
+    tme::pool pool1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result1a = pool1.make_unique<std::uint64_t>(123U);
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
+    EXPECT_EQ(123U, *result1a.second) << "String in memory pool didn't initialise";
+    auto result1b = pool1.make_unique<std::uint64_t>(789U);
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
+    EXPECT_EQ(789U, *result1b.second) << "String in memory pool didn't initialise";
+    auto result1c = pool1.make_unique<std::uint16_t>(123U);
+    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique pool string failed";
+    EXPECT_EQ(123U, *result1c.second) << "String in memory pool didn't initialise";
+    auto result1d = pool1.make_unique<std::uint16_t>(789U);
+    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique pool string failed";
+    EXPECT_EQ(789U, *result1d.second) << "String in memory pool didn't initialise";
+    tme::pool pool2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result2a = pool2.make_unique<std::uint64_t>(456U);
+    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique pool string failed";
+    EXPECT_EQ(456U, *result2a.second) << "String in memory pool didn't initialise";
+    auto result2b = pool2.make_unique<std::uint64_t>(0U);
+    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique pool string failed";
+    EXPECT_EQ(0U, *result2b.second) << "String in memory pool didn't initialise";
+    auto result2c = pool2.make_unique<std::uint16_t>(456U);
+    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique pool string failed";
+    EXPECT_EQ(456U, *result2c.second) << "String in memory pool didn't initialise";
+    auto result2d = pool2.make_unique<std::uint16_t>(0U);
+    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique pool string failed";
+    EXPECT_EQ(0U, *result2d.second) << "String in memory pool didn't initialise";
+    pool2 = pool1;
+    EXPECT_TRUE(pool1 == pool2) << "Copy constructed pool is not equal to the original";
+    EXPECT_EQ(123U, *result2a.second) << "Memory blocks in pool weren't copied during assignment";
+    EXPECT_EQ(789U, *result2b.second) << "String in memory pool didn't initialise";
+    EXPECT_EQ(123U, *result2c.second) << "String in memory pool didn't initialise";
+    EXPECT_EQ(789U, *result2d.second) << "String in memory pool didn't initialise";
+
+    tme::pool pool3(2U, { {sizeof(std::uint64_t), 2U} });
+    auto result3a = pool3.make_unique<std::uint64_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique pool string failed";
+    EXPECT_EQ(321U, *result3a.second) << "String in memory pool didn't initialise";
+    auto result3b = pool3.make_unique<std::uint64_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique pool string failed";
+    EXPECT_EQ(987U, *result3b.second) << "String in memory pool didn't initialise";
+    auto result3c = pool3.make_unique<std::uint64_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique pool string failed";
+    EXPECT_EQ(654U, *result3c.second) << "String in memory pool didn't initialise";
+    auto result3d = pool3.make_unique<std::uint64_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique pool string failed";
+    EXPECT_EQ(999U, *result3d.second) << "String in memory pool didn't initialise";
+    auto result3e = pool3.make_unique<std::uint64_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique pool string failed";
+    EXPECT_EQ(111U, *result3e.second) << "String in memory pool didn't initialise";
+    tme::pool pool4(2U, { {sizeof(std::uint64_t), 2U} });
+    auto result4a = pool4.make_unique<std::uint64_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result4a.first) << "Make unique pool string failed";
+    EXPECT_EQ(1991U, *result4a.second) << "String in memory pool didn't initialise";
+    auto result4b = pool4.make_unique<std::uint64_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result4b.first) << "Make unique pool string failed";
+    EXPECT_EQ(5665U, *result4b.second) << "String in memory pool didn't initialise";
+    auto result4c = pool4.make_unique<std::uint64_t>(2882U);
+    EXPECT_EQ(tme::make_result::success, result4c.first) << "Make unique pool string failed";
+    EXPECT_EQ(2882U, *result4c.second) << "String in memory pool didn't initialise";
+    auto result4d = pool4.make_unique<std::uint64_t>(3773U);
+    EXPECT_EQ(tme::make_result::success, result4d.first) << "Make unique pool string failed";
+    EXPECT_EQ(3773U, *result4d.second) << "String in memory pool didn't initialise";
+    pool4 = pool3;
+    EXPECT_TRUE(pool3 == pool4) << "Copy constructed pool is not equal to the original";
+    EXPECT_EQ(321U, *result4a.second) << "Memory blocks in pool weren't copied during assignment";
+    EXPECT_EQ(987U, *result4b.second) << "String in memory pool didn't initialise";
+    EXPECT_EQ(654U, *result4c.second) << "String in memory pool didn't initialise";
+    EXPECT_EQ(999U, *result4d.second) << "String in memory pool didn't initialise";
+}
+
+TEST(pool_test, pool_copy_assignment_expand)
+{
+    tme::pool pool1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result1a = pool1.make_unique<std::uint64_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
+    EXPECT_EQ(321U, *result1a.second) << "String in memory pool didn't initialise";
+    auto result1b = pool1.make_unique<std::uint64_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
+    EXPECT_EQ(987U, *result1b.second) << "String in memory pool didn't initialise";
+    auto result1c = pool1.make_unique<std::uint64_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique pool string failed";
+    EXPECT_EQ(654U, *result1c.second) << "String in memory pool didn't initialise";
+    auto result1d = pool1.make_unique<std::uint64_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique pool string failed";
+    EXPECT_EQ(999U, *result1d.second) << "String in memory pool didn't initialise";
+    auto result1e = pool1.make_unique<std::uint64_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result1e.first) << "Make unique pool string failed";
+    EXPECT_EQ(111U, *result1e.second) << "String in memory pool didn't initialise";
+    auto result1f = pool1.make_unique<std::uint16_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result1f.first) << "Make unique pool string failed";
+    EXPECT_EQ(321U, *result1f.second) << "String in memory pool didn't initialise";
+    auto result1g = pool1.make_unique<std::uint16_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result1g.first) << "Make unique pool string failed";
+    EXPECT_EQ(987U, *result1g.second) << "String in memory pool didn't initialise";
+    auto result1h = pool1.make_unique<std::uint16_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result1h.first) << "Make unique pool string failed";
+    EXPECT_EQ(654U, *result1h.second) << "String in memory pool didn't initialise";
+    auto result1i = pool1.make_unique<std::uint16_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result1i.first) << "Make unique pool string failed";
+    EXPECT_EQ(999U, *result1i.second) << "String in memory pool didn't initialise";
+    auto result1j = pool1.make_unique<std::uint16_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result1j.first) << "Make unique pool string failed";
+    EXPECT_EQ(111U, *result1j.second) << "String in memory pool didn't initialise";
+    tme::pool pool2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result2a = pool2.make_unique<std::uint64_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique pool string failed";
+    EXPECT_EQ(1991U, *result2a.second) << "String in memory pool didn't initialise";
+    auto result2b = pool2.make_unique<std::uint64_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique pool string failed";
+    EXPECT_EQ(5665U, *result2b.second) << "String in memory pool didn't initialise";
+    auto result2c = pool2.make_unique<std::uint16_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique pool string failed";
+    EXPECT_EQ(1991U, *result2c.second) << "String in memory pool didn't initialise";
+    auto result2d = pool2.make_unique<std::uint16_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique pool string failed";
+    EXPECT_EQ(5665U, *result2d.second) << "String in memory pool didn't initialise";
+    pool2 = pool1;
+    EXPECT_TRUE(pool1 == pool2) << "Copy constructed pool is not equal to the original";
+    EXPECT_EQ(321U, *result2a.second) << "Memory blocks in pool weren't copied during assignment";
+    EXPECT_EQ(987U, *result2b.second) << "String in memory pool didn't initialise";
+    EXPECT_EQ(987U, *result2b.second) << "String in memory pool didn't initialise";
+    EXPECT_EQ(987U, *result2b.second) << "String in memory pool didn't initialise";
 }
 
 TEST(pool_test, pool_make_unique_basic)
