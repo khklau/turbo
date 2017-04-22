@@ -364,11 +364,7 @@ std::tuple<typename bitwise_trie<k, v ,a>::iterator, bool> bitwise_trie<k, v ,a>
 	{
 	    branch* new_branch = create_branch();
 	    current_branch->reset(new_branch, child_type::branch);
-	    auto result = tkey.get_preceding_prefixes(iter);
-	    if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
-	    {
-		index_.insert(new_branch, tkey, iter);
-	    }
+	    index_.insert(new_branch, tkey, iter);
 	}
 	current_branch = &((*current_branch)->children[std::get<1>(tkey.read(iter))]);
     }
@@ -480,13 +476,6 @@ std::tuple<typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_trie<k,
     {
 	constexpr std::size_t radix_bit_div_size = std::lround(std::log2(trie_key::radix_bit_size()));
 	iter += zero_count >> radix_bit_div_size;
-	constexpr std::size_t shift_qty = trie_key::key_bit_size() - radix_bit_div_size;
-	key_type remainder = static_cast<key_type>(zero_count << shift_qty) >> shift_qty;
-	if (remainder != 0U)
-	{
-	    // zero counts that aren't divisible by the radix size need rounding up
-	    iter += 1U;
-	}
 	return std::make_tuple(&shortcut, iter);
     }
 }
@@ -506,13 +495,6 @@ std::tuple<const typename bitwise_trie<k, v, a>::branch_ptr*, typename bitwise_t
     {
 	constexpr std::size_t radix_bit_div_size = std::lround(std::log2(trie_key::radix_bit_size()));
 	iter += zero_count >> radix_bit_div_size;
-	constexpr std::size_t shift_qty = trie_key::key_bit_size() - radix_bit_div_size;
-	key_type remainder = static_cast<key_type>(zero_count << shift_qty) >> shift_qty;
-	if (remainder != 0U)
-	{
-	    // zero counts that aren't divisible by the radix size need rounding up
-	    iter += 1U;
-	}
 	return std::make_tuple(&shortcut, iter);
     }
 }
@@ -523,12 +505,20 @@ void bitwise_trie<k, v, a>::leading_zero_index::insert(
 	const trie_key& key,
 	const typename trie_key::iterator& iter)
 {
-    trie_key tmp(std::numeric_limits<key_type>::max());
-    tmp.copy(key, key.begin(), iter);
-    std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
-    if (zero_count < index_.max_size())
+    auto result = key.get_preceding_prefixes(iter);
+    if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
     {
-	index_[zero_count].reset(branch, child_type::branch);
+	trie_key tmp(std::numeric_limits<key_type>::max());
+	tmp.copy(key, key.begin(), iter);
+	std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
+	std::size_t upper_bound = zero_count + trie_key::radix_bit_size();
+	for (std::size_t cursor = zero_count; cursor < upper_bound; ++cursor)
+	{
+	    if (cursor < index_.max_size())
+	    {
+		index_[cursor].reset(branch, child_type::branch);
+	    }
+	}
     }
 }
 
@@ -537,12 +527,20 @@ void bitwise_trie<k, v, a>::leading_zero_index::remove(
 	const trie_key& key,
 	const typename trie_key::iterator& iter)
 {
-    trie_key tmp(std::numeric_limits<key_type>::max());
-    tmp.copy(key, key.begin(), iter);
-    std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
-    if (zero_count < index_.max_size())
+    auto result = key.get_preceding_prefixes(iter);
+    if (std::get<0>(result) == trie_key::get_result::unavailable || std::get<1>(result) == 0U)
     {
-	index_[zero_count].reset();
+	trie_key tmp(std::numeric_limits<key_type>::max());
+	tmp.copy(key, key.begin(), iter);
+	std::size_t zero_count = turbo::toolset::count_leading_zero(tmp.get_key());
+	std::size_t upper_bound = zero_count + trie_key::radix_bit_size();
+	for (std::size_t cursor = zero_count; cursor < upper_bound; ++cursor)
+	{
+	    if (cursor < index_.max_size())
+	    {
+		index_[cursor].reset();
+	    }
+	}
     }
 }
 
