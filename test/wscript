@@ -14,6 +14,7 @@ def configure(confCtx):
     confCtx.recurse('memory')
     confCtx.recurse('filesystem')
     confCtx.recurse('process')
+    confCtx.recurse('cinterop')
 
 def build(buildCtx):
     buildCtx.env.product = buildCtx.env.solution.getProduct(NAME)
@@ -24,3 +25,4 @@ def build(buildCtx):
     buildCtx.recurse('memory')
     buildCtx.recurse('filesystem')
     buildCtx.recurse('process')
+    buildCtx.recurse('cinterop')
