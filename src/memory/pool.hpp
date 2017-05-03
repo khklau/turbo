@@ -132,6 +132,7 @@ public:
     inline const_iterator cend() const noexcept { return const_iterator(); }
     std::unique_ptr<node> create_node(block::capacity_type capacity) const;
     std::unique_ptr<node> clone_node(const node& other) const;
+    void* allocate();
 private:
     class node
     {

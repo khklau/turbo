@@ -356,6 +356,24 @@ std::unique_ptr<block_list::node> block_list::clone_node(const node& other) cons
     return std::move(std::unique_ptr<block_list::node>(new block_list::node(other)));
 }
 
+void* block_list::allocate()
+{
+    void* allocation = nullptr;
+    for (auto iter = begin(); allocation == nullptr && iter != end(); ++iter)
+    {
+	allocation = iter->allocate();
+	if (allocation == nullptr && iter.is_last())
+	{
+	    block::capacity_type capacity = iter->is_empty() ?
+		    contingency_capacity_ :
+		    iter->get_capacity() * get_growth_factor();
+	    iter.try_append(std::move(create_node(capacity)));
+	    ++list_size_;
+	}
+    }
+    return allocation;
+}
+
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
     :
 	pool(calibrate(default_capacity, config), default_capacity)
@@ -399,19 +417,7 @@ void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capaci
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));
     if (TURBO_LIKELY(bucket < block_map_.size()))
     {
-	void* allocation = nullptr;
-	for (auto iter = block_map_[bucket].begin(); allocation == nullptr && iter != block_map_[bucket].end(); ++iter)
-	{
-	    allocation = iter->allocate();
-	    if (allocation == nullptr && iter.is_last())
-	    {
-		block::capacity_type capacity = iter->is_empty() ?
-			default_capacity_ :
-			iter->get_capacity() * block_map_[bucket].get_growth_factor();
-		iter.try_append(std::move(block_map_[bucket].create_node(capacity)));
-	    }
-	}
-	return allocation;
+	return block_map_[bucket].allocate();
     }
     else
     {
