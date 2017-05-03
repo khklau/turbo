@@ -33,11 +33,13 @@ struct block_config
 {
     block_config();
     block_config(std::size_t size, capacity_type capacity);
-    block_config(std::size_t size, capacity_type capacity, std::size_t growth_factor);
+    block_config(std::size_t size, capacity_type capacity, capacity_type contingency);
+    block_config(std::size_t size, capacity_type capacity, capacity_type contingency, std::size_t growth);
     bool operator<(const block_config& other) const;
     bool operator==(const block_config& other) const;
     std::size_t block_size;
     capacity_type initial_capacity;
+    capacity_type contingency_capacity;
     std::size_t growth_factor;
 };
 
@@ -113,8 +115,9 @@ public:
 	block_type& operator*() const;
 	block_type* operator->() const;
     };
-    block_list(std::size_t value_size, block::capacity_type capacity);
-    block_list(std::size_t value_size, block::capacity_type capacity, std::size_t growth_factor);
+    block_list(std::size_t value_size, block::capacity_type initial);
+    block_list(std::size_t value_size, block::capacity_type initial, block::capacity_type contingency);
+    block_list(std::size_t value_size, block::capacity_type initial, block::capacity_type contingency, std::size_t growth_factor);
     block_list(const block_config& config); // allow implicit conversion
     block_list(const block_list& other);
     ~block_list() noexcept = default;
@@ -122,6 +125,7 @@ public:
     bool operator==(const block_list& other) const;
     inline std::size_t get_value_size() const { return value_size_; }
     inline std::size_t get_growth_factor() const { return growth_factor_; }
+    inline std::size_t get_list_size() const { return list_size_; }
     inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
     inline const_iterator cbegin() const noexcept { return const_iterator(&first_); }
@@ -154,6 +158,8 @@ private:
     block_list& operator=(block_list&&) = delete;
     std::size_t value_size_;
     std::size_t growth_factor_;
+    block::capacity_type contingency_capacity_;
+    std::size_t list_size_;
     node first_;
 };
 
@@ -214,7 +220,7 @@ private:
     std::vector<block_list> block_map_;
 };
 
-std::vector<block_config> calibrate(const std::vector<block_config>& config);
+std::vector<block_config> calibrate(block::capacity_type contingency_capacity, const std::vector<block_config>& config);
 
 } // namespace memory
 } // namespace turbo

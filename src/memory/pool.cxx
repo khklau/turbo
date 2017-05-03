@@ -2,6 +2,7 @@
 #include "pool.hxx"
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 #include <turbo/memory/alignment.hpp>
 #include <turbo/memory/alignment.hxx>
 #include <turbo/toolset/extension.hpp>
@@ -11,20 +12,31 @@ namespace memory {
 
 block_config::block_config()
     :
-	block_config(0U, 0U, 0U)
+	block_config(0U, 0U, 0U, 0U)
 { }
 
-block_config::block_config(std::size_t size, capacity_type capacity)
+block_config::block_config(std::size_t size, capacity_type initial)
     :
-	block_config(size, capacity, 2U)
+	block_config(size, initial, 0U, 2U)
 { }
 
-block_config::block_config(std::size_t size, capacity_type capacity, std::size_t growth)
+block_config::block_config(std::size_t size, capacity_type initial, capacity_type contingency)
+    :
+	block_config(size, initial, contingency, 2U)
+{ }
+
+block_config::block_config(std::size_t size, capacity_type initial, capacity_type contingency, std::size_t growth)
     :
 	block_size(size),
-	initial_capacity(capacity),
+	initial_capacity(initial),
+	contingency_capacity(contingency),
 	growth_factor(growth < 2U ? 2U : growth)
-{ }
+{
+    if (block_size != 0U && initial_capacity == 0U && contingency_capacity == 0U)
+    {
+	throw std::invalid_argument("block_config - the initial and contingency capacity arguments cannot both be 0");
+    }
+}
 
 bool block_config::operator<(const block_config& other) const
 {
@@ -234,22 +246,40 @@ bool block_list::node::operator==(const node& other) const
 	&& ((this_next == nullptr && other_next == nullptr) || (this_next != nullptr && other_next != nullptr));
 }
 
-block_list::block_list(std::size_t value_size, block::capacity_type capacity)
+block_list::block_list(std::size_t value_size, block::capacity_type initial)
     :
-	block_list(value_size, capacity, 2U)
+	block_list(value_size, initial, 0U, 2U)
 { }
 
-block_list::block_list(std::size_t value_size, block::capacity_type capacity, std::size_t growth_factor)
+block_list::block_list(std::size_t value_size, block::capacity_type initial, block::capacity_type contingency)
+    :
+	block_list(value_size, initial, contingency, 2U)
+{ }
+
+block_list::block_list(std::size_t value_size, block::capacity_type initial, block::capacity_type contingency, std::size_t growth_factor)
     :
 	value_size_(value_size),
 	growth_factor_(growth_factor),
-	first_(value_size, capacity)
-{ }
+	contingency_capacity_(contingency),
+	list_size_(1U),
+	first_(value_size, initial)
+{
+    if (value_size == 0U)
+    {
+	throw std::invalid_argument("block_list - the value size argument cannot be 0");
+    }
+    else if (initial == 0U && contingency == 0U)
+    {
+	throw std::invalid_argument("block_list - the initial and contingency capacity arguments cannot both be 0");
+    }
+}
 
 block_list::block_list(const block_config& config)
     :
 	value_size_(config.block_size),
 	growth_factor_(config.growth_factor),
+	contingency_capacity_(config.contingency_capacity),
+	list_size_(1U),
 	first_(config.block_size, config.initial_capacity)
 { }
 
@@ -257,6 +287,8 @@ block_list::block_list(const block_list& other)
     :
 	value_size_(other.value_size_),
 	growth_factor_(other.growth_factor_),
+	contingency_capacity_(other.contingency_capacity_),
+	list_size_(other.list_size_),
 	first_(other.first_)
 {
     auto this_iter = this->begin();
@@ -291,6 +323,8 @@ block_list& block_list::operator=(const block_list& other)
 		this_iter.try_truncate();
 	    }
 	}
+	this->contingency_capacity_ = other.contingency_capacity_;
+	this->list_size_ = other.list_size_;
     }
     return *this;
 }
@@ -298,20 +332,18 @@ block_list& block_list::operator=(const block_list& other)
 bool block_list::operator==(const block_list& other) const
 {
     bool is_list_matching = true;
-    bool is_length_matching = true;
     auto this_iter = this->cbegin();
     for (auto other_iter = other.cbegin(); other_iter != other.cend() && this_iter != this->cend();)
     {
 	is_list_matching = is_list_matching && (*this_iter == *other_iter);
 	++this_iter;
 	++other_iter;
-	is_length_matching = is_length_matching
-		&& ((other_iter != other.cend() && this_iter != this->cend()) || (other_iter == other.cend() && this_iter == this->cend()));
     }
     return this->value_size_ == other.value_size_
 	&& this->growth_factor_ == other.growth_factor_
-	&& is_list_matching
-	&& is_length_matching;
+	&& this->contingency_capacity_ == other.contingency_capacity_
+	&& this->list_size_ == other.list_size_
+	&& is_list_matching;
 }
 
 std::unique_ptr<block_list::node> block_list::create_node(block::capacity_type capacity) const
@@ -326,7 +358,7 @@ std::unique_ptr<block_list::node> block_list::clone_node(const node& other) cons
 
 pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
     :
-	pool(calibrate(config), default_capacity)
+	pool(calibrate(default_capacity, config), default_capacity)
 { }
 
 pool::pool(const std::vector<block_config>& config, capacity_type default_capacity)
@@ -403,7 +435,7 @@ void pool::deallocate(std::size_t value_size, std::size_t value_alignment, void*
     }
 }
 
-std::vector<block_config> calibrate(const std::vector<block_config>& config)
+std::vector<block_config> calibrate(block::capacity_type contingency_capacity, const std::vector<block_config>& config)
 {
     std::vector<block_config> sorted(config);
     std::stable_sort(sorted.begin(), sorted.end());
@@ -421,7 +453,7 @@ std::vector<block_config> calibrate(const std::vector<block_config>& config)
 	    if (next_step == current_step)
 	    {
 		// no configuration set for this particular desired size
-		result.emplace_back(desired_size, 0U);
+		result.emplace_back(desired_size, 0U, contingency_capacity);
 	    }
 	    else
 	    {
@@ -433,6 +465,7 @@ std::vector<block_config> calibrate(const std::vector<block_config>& config)
 		result.emplace_back(
 			desired_size,
 			total_capacity,
+			contingency_capacity,
 			std::llround(std::pow(2U, std::ceil(std::log2(current_step->growth_factor)))));
 		current_step = next_step;
 	    }
