@@ -157,7 +157,7 @@ TEST(pool_test, list_sequential_append)
     ++iter1;
     EXPECT_TRUE(4U <= iter1->get_capacity()) << "Capacity of third block in block list is less than requested";
 
-    tme::block_list list2(sizeof(std::int64_t), 0U);
+    tme::block_list list2(sizeof(std::int64_t), 0U, 8U);
     auto iter2 = list2.begin();
     EXPECT_EQ(0U, iter2->get_capacity()) << "Capacity of first empty block is not zero";
     EXPECT_EQ(tme::block_list::append_result::success, iter2.try_append(std::move(list2.create_node(8U)))) << "Append to empty block failed";
@@ -2001,7 +2001,7 @@ TEST(pool_test, calibrate_positive)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected1{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual1(tme::calibrate(input1));
+    std::vector<tme::block_config> actual1(tme::calibrate(2U, input1));
     EXPECT_TRUE(!actual1.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect calibration for config requiring just a reorder: "
 	    << "expected [ "
@@ -2015,7 +2015,7 @@ TEST(pool_test, calibrate_positive)
 
     std::vector<tme::block_config> input2{ {64U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual2(tme::calibrate(input2));
+    std::vector<tme::block_config> actual2(tme::calibrate(2U, input2));
     EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect calibration for config requiring a bucket size adjustment: "
 	    << "expected [ "
@@ -2029,7 +2029,7 @@ TEST(pool_test, calibrate_positive)
 
     std::vector<tme::block_config> input3{ {32U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
-    std::vector<tme::block_config> actual3(tme::calibrate(input3));
+    std::vector<tme::block_config> actual3(tme::calibrate(2U, input3));
     EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect calibration for config requiring input bucket merging: "
 	    << "expected [ "
@@ -2040,8 +2040,8 @@ TEST(pool_test, calibrate_positive)
 	    << "{" << actual3[1].block_size << ", " << actual3[1].initial_capacity << "} ]";
 
     std::vector<tme::block_config> input4{ {16U, 16U}, {64U, 4U} };
-    std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
-    std::vector<tme::block_config> actual4(tme::calibrate(input4));
+    std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U, 2U}, {64U, 4U} };
+    std::vector<tme::block_config> actual4(tme::calibrate(2U, input4));
     EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect calibration for config requiring a generated empty bucket: "
 	    << "expected [ "
@@ -2054,8 +2054,8 @@ TEST(pool_test, calibrate_positive)
 	    << "{" << actual4[2].block_size << ", " << actual4[2].initial_capacity << "} ]";
 
     std::vector<tme::block_config> input5{ {25U, 16U}, {5U, 4U} };
-    std::vector<tme::block_config> expected5{ {8U, 4U}, {16U, 0U}, {32U, 16U} };
-    std::vector<tme::block_config> actual5(tme::calibrate(input5));
+    std::vector<tme::block_config> expected5{ {8U, 4U}, {16U, 0U, 2U}, {32U, 16U} };
+    std::vector<tme::block_config> actual5(tme::calibrate(2U, input5));
     EXPECT_TRUE(!actual5.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected5.cbegin(), expected5.cend(), actual5.cbegin())) << "Incorrect calibration for config requiring a generated empty bucket and reordering: "
 	    << "expected [ "
@@ -2072,7 +2072,7 @@ TEST(pool_test, calibrate_repeating)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {64U, 16U} };
     std::vector<tme::block_config> expected1{ {32U, 8U}, {64U, 20U} };
-    std::vector<tme::block_config> actual1(tme::calibrate(input1));
+    std::vector<tme::block_config> actual1(tme::calibrate(2U, input1));
     EXPECT_TRUE(!actual1.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), actual1.cbegin())) << "Incorrect calibration for config requiring just a reorder: "
 	    << "expected [ "
@@ -2084,7 +2084,7 @@ TEST(pool_test, calibrate_repeating)
 
     std::vector<tme::block_config> input2{ {32U, 4U}, {32U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 12U} };
-    std::vector<tme::block_config> actual2(tme::calibrate(input2));
+    std::vector<tme::block_config> actual2(tme::calibrate(2U, input2));
     EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect calibration for config requiring just a reorder: "
 	    << "expected [ "
@@ -2095,8 +2095,8 @@ TEST(pool_test, calibrate_repeating)
 	    << "{" << actual2[1].block_size << ", " << actual2[1].initial_capacity << "} ]";
 
     std::vector<tme::block_config> input3{ {8U, 4U}, {24U, 8U}, {24U, 16U} };
-    std::vector<tme::block_config> expected3{ {8U, 4U}, {16U, 0U}, {32U, 24U} };
-    std::vector<tme::block_config> actual3(tme::calibrate(input3));
+    std::vector<tme::block_config> expected3{ {8U, 4U}, {16U, 0U, 2U}, {32U, 24U} };
+    std::vector<tme::block_config> actual3(tme::calibrate(2U, input3));
     EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect calibration for config requiring a bucket size adjustment: "
 	    << "expected [ "
@@ -2110,7 +2110,7 @@ TEST(pool_test, calibrate_repeating)
 
     std::vector<tme::block_config> input4{ {24U, 4U}, {16U, 8U}, {24U, 16U} };
     std::vector<tme::block_config> expected4{ {16U, 8U}, {32U, 20U} };
-    std::vector<tme::block_config> actual4(tme::calibrate(input4));
+    std::vector<tme::block_config> actual4(tme::calibrate(2U, input4));
     EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect calibration for config requiring a bucket size adjustment: "
 	    << "expected [ "
@@ -2124,12 +2124,12 @@ TEST(pool_test, calibrate_repeating)
 TEST(pool_test, calibrate_negative)
 {
     std::vector<tme::block_config> input1;
-    std::vector<tme::block_config> actual1(tme::calibrate(input1));
+    std::vector<tme::block_config> actual1(tme::calibrate(2U, input1));
     EXPECT_TRUE(actual1.empty()) << "Empty output from non-empty input";
 
     std::vector<tme::block_config> input2{ {64U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected2{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual2(tme::calibrate(input2));
+    std::vector<tme::block_config> actual2(tme::calibrate(2U, input2));
     EXPECT_TRUE(!actual2.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected2.cbegin(), expected2.cend(), actual2.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -2143,7 +2143,7 @@ TEST(pool_test, calibrate_negative)
 
     std::vector<tme::block_config> input3{ {32U, 4U}, {24U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected3{ {16U, 16U}, {32U, 12U} };
-    std::vector<tme::block_config> actual3(tme::calibrate(input3));
+    std::vector<tme::block_config> actual3(tme::calibrate(2U, input3));
     EXPECT_TRUE(!actual3.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected3.cbegin(), expected3.cend(), actual3.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
@@ -2154,8 +2154,8 @@ TEST(pool_test, calibrate_negative)
 	    << "{" << actual3[1].block_size << ", " << actual3[1].initial_capacity << "} ]";
 
     std::vector<tme::block_config> input4{ {16U, 16U}, {64U, 4U} };
-    std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U}, {64U, 4U} };
-    std::vector<tme::block_config> actual4(tme::calibrate(input4));
+    std::vector<tme::block_config> expected4{ {16U, 16U}, {32U, 0U, 2U}, {64U, 4U} };
+    std::vector<tme::block_config> actual4(tme::calibrate(2U, input4));
     EXPECT_TRUE(!actual4.empty()) << "Empty output from non-empty input";
     EXPECT_TRUE(std::equal(expected4.cbegin(), expected4.cend(), actual4.cbegin())) << "Incorrect reordering: "
 	    << "expected [ "
