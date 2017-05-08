@@ -14,6 +14,27 @@
 #include <turbo/algorithm/recovery.hpp>
 #include <turbo/algorithm/recovery.hxx>
 
+namespace turbo {
+namespace memory {
+
+class pool_tester
+{
+public:
+    pool_tester(pool& a_pool)
+	:
+	    pool_(a_pool)
+    { }
+    inline std::size_t find_block_bucket(std::size_t allocation_size) const
+    {
+	return pool_.find_block_bucket(allocation_size);
+    }
+private:
+    pool& pool_;
+};
+
+} // namespace memory
+} // namespace turbo
+
 namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
@@ -953,51 +974,57 @@ TEST(pool_test, list_parallel_use_octshort)
 TEST(pool_test, find_block_bucket_basic)
 {
     tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} });
-    EXPECT_EQ(0U, pool1.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool1.find_block_bucket(2U)) << "Unexpected bucket with bucket size parameter of 2U";
-    EXPECT_EQ(1U, pool1.find_block_bucket(3U)) << "Unexpected bucket with bucket size parameter of 3U";
-    EXPECT_EQ(1U, pool1.find_block_bucket(4U)) << "Unexpected bucket with bucket size parameter of 3U";
-    EXPECT_EQ(2U, pool1.find_block_bucket(5U)) << "Unexpected bucket with bucket size parameter of 8U";
-    EXPECT_EQ(2U, pool1.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
-    EXPECT_EQ(3U, pool1.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
-    EXPECT_EQ(3U, pool1.find_block_bucket(16U)) << "Unexpected bucket with bucket size parameter of 9U";
-    EXPECT_EQ(4U, pool1.find_block_bucket(17U)) << "Unexpected bucket with bucket size parameter of 32U";
-    EXPECT_EQ(4U, pool1.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
+    tme::pool_tester tester1(pool1);
+    EXPECT_EQ(0U, tester1.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, tester1.find_block_bucket(2U)) << "Unexpected bucket with bucket size parameter of 2U";
+    EXPECT_EQ(1U, tester1.find_block_bucket(3U)) << "Unexpected bucket with bucket size parameter of 3U";
+    EXPECT_EQ(1U, tester1.find_block_bucket(4U)) << "Unexpected bucket with bucket size parameter of 3U";
+    EXPECT_EQ(2U, tester1.find_block_bucket(5U)) << "Unexpected bucket with bucket size parameter of 8U";
+    EXPECT_EQ(2U, tester1.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
+    EXPECT_EQ(3U, tester1.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
+    EXPECT_EQ(3U, tester1.find_block_bucket(16U)) << "Unexpected bucket with bucket size parameter of 9U";
+    EXPECT_EQ(4U, tester1.find_block_bucket(17U)) << "Unexpected bucket with bucket size parameter of 32U";
+    EXPECT_EQ(4U, tester1.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
 
     tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} });
-    EXPECT_EQ(0U, pool2.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool2.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
-    EXPECT_EQ(1U, pool2.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
-    EXPECT_EQ(1U, pool2.find_block_bucket(16U)) << "Unexpected bucket with bucket size parameter of 9U";
-    EXPECT_EQ(2U, pool2.find_block_bucket(17U)) << "Unexpected bucket with bucket size parameter of 32U";
-    EXPECT_EQ(2U, pool2.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
-    EXPECT_EQ(3U, pool2.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
-    EXPECT_EQ(3U, pool2.find_block_bucket(64U)) << "Unexpected bucket with bucket size parameter of 33U";
-    EXPECT_EQ(4U, pool2.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 128U";
-    EXPECT_EQ(4U, pool2.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
+    tme::pool_tester tester2(pool2);
+    EXPECT_EQ(0U, tester2.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, tester2.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
+    EXPECT_EQ(1U, tester2.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
+    EXPECT_EQ(1U, tester2.find_block_bucket(16U)) << "Unexpected bucket with bucket size parameter of 9U";
+    EXPECT_EQ(2U, tester2.find_block_bucket(17U)) << "Unexpected bucket with bucket size parameter of 32U";
+    EXPECT_EQ(2U, tester2.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
+    EXPECT_EQ(3U, tester2.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
+    EXPECT_EQ(3U, tester2.find_block_bucket(64U)) << "Unexpected bucket with bucket size parameter of 33U";
+    EXPECT_EQ(4U, tester2.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 128U";
+    EXPECT_EQ(4U, tester2.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
 
     tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} });
-    EXPECT_EQ(0U, pool3.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
-    EXPECT_EQ(0U, pool3.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
-    EXPECT_EQ(1U, pool3.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
-    EXPECT_EQ(1U, pool3.find_block_bucket(64U)) << "Unexpected bucket with bucket size parameter of 64U";
-    EXPECT_EQ(2U, pool3.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 65U";
-    EXPECT_EQ(2U, pool3.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
+    tme::pool_tester tester3(pool3);
+    EXPECT_EQ(0U, tester3.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
+    EXPECT_EQ(0U, tester3.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
+    EXPECT_EQ(1U, tester3.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
+    EXPECT_EQ(1U, tester3.find_block_bucket(64U)) << "Unexpected bucket with bucket size parameter of 64U";
+    EXPECT_EQ(2U, tester3.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 65U";
+    EXPECT_EQ(2U, tester3.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
 }
 
 TEST(pool_test, find_block_bucket_invalid)
 {
     tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} });
-    EXPECT_EQ(0U, pool1.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(5U, pool1.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
+    tme::pool_tester tester1(pool1);
+    EXPECT_EQ(0U, tester1.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(5U, tester1.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
 
     tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} });
-    EXPECT_EQ(0U, pool2.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(5U, pool2.find_block_bucket(129U)) << "Unexpected bucket with bucket size parameter of 129U";
+    tme::pool_tester tester2(pool2);
+    EXPECT_EQ(0U, tester2.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(5U, tester2.find_block_bucket(129U)) << "Unexpected bucket with bucket size parameter of 129U";
 
     tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} });
-    EXPECT_EQ(0U, pool3.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
-    EXPECT_EQ(4U, pool3.find_block_bucket(257U)) << "Unexpected bucket with bucket size parameter of 257U";
+    tme::pool_tester tester3(pool3);
+    EXPECT_EQ(0U, tester3.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
+    EXPECT_EQ(4U, tester3.find_block_bucket(257U)) << "Unexpected bucket with bucket size parameter of 257U";
 }
 
 template <class value_t, std::size_t limit>
