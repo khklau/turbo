@@ -174,6 +174,7 @@ public:
     ~pool() = default;
     pool& operator=(const pool& other);
     bool operator==(const pool& other) const;
+    inline const block_list& get_block_list(std::size_t value_size, std::size_t value_alignment, capacity_type quantity) const;
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
     template <class value_t, class... args_t>
@@ -207,6 +208,10 @@ public:
     inline void deallocate(value_t* pointer)
     {
 	deallocate(pointer, 1U);
+    }
+    inline void* malloc(std::size_t size)
+    {
+	return allocate(size, size, 1U, nullptr);
     }
     friend class pool_tester;
 private:
