@@ -215,6 +215,8 @@ TEST(alignment_test, calc_total_aligned_size_already_aligned)
 {
     EXPECT_EQ(1U, tme::calc_total_aligned_size(1U, 1U, 1U)) << "Returned size is not the total size when requested alignment matches value size";
     EXPECT_EQ(4U, tme::calc_total_aligned_size(4U, 4U, 1U)) << "Returned size is not the total size when requested alignment matches value size";
+    EXPECT_EQ(8U, tme::calc_total_aligned_size(8U, 2U, 1U)) << "Returned size is not the total size when requested alignment is a factor of the value size";
+    EXPECT_EQ(8U, tme::calc_total_aligned_size(8U, 4U, 1U)) << "Returned size is not the total size when requested alignment is a factor of the value size";
     EXPECT_EQ(4U, tme::calc_total_aligned_size(1U, 1U, 4U)) << "Returned size is not the total size when requested alignment matches value size";
     EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 4U, 4U)) << "Returned size is not the total size when requested alignment matches value size";
 }
@@ -235,6 +237,7 @@ TEST(alignment_test, calc_total_aligned_size_smaller_alignment)
 {
     EXPECT_EQ(2U, tme::calc_total_aligned_size(2U, 1U, 1U)) << "Expected total size rounded to nearest multiple of alignment & quantity when alignment is smaller than value size";
     EXPECT_EQ(8U, tme::calc_total_aligned_size(5U, 4U, 1U)) << "Expected total size rounded to nearest multiple of alignment & quantity when alignment is smaller than value size";
+    EXPECT_EQ(128U, tme::calc_total_aligned_size(64U + 32U + 16U, 64U, 1U)) << "Returned size is not the total size when requested alignment is a factor of the value size";
     EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 1U, 4U)) << "Expected total size rounded to nearest multiple of alignment & quantity when alignment is smaller than value size";
     EXPECT_EQ(16U, tme::calc_total_aligned_size(4U, 2U, 4U)) << "Expected total size rounded to nearest multiple of alignment & quantity when alignment is smaller than value size";
     EXPECT_EQ(60U, tme::calc_total_aligned_size(8U, 6U, 5U)) << "Expected total size rounded to nearest multiple of alignment & quantity when alignment is smaller than value size";
