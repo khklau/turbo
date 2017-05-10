@@ -75,6 +75,11 @@ typename block_list::basic_iterator<b, n> block_list::basic_iterator<b, n>::oper
     }
 }
 
+inline bool pool::in_configured_range(std::size_t value_size) const
+{
+    return find_block_bucket(calc_total_aligned_size(value_size, value_size, 1U)) < block_map_.size();
+}
+
 inline const block_list& pool::at(std::size_t size) const
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(size, size, 1U));
@@ -84,7 +89,7 @@ inline const block_list& pool::at(std::size_t size) const
     }
     else
     {
-	throw std::invalid_argument("pool::get_block_list - there is no block_list matching the given arguments");
+	throw std::invalid_argument("pool::at - there is no block_list matching the given arguments");
     }
 }
 
@@ -97,7 +102,7 @@ inline block_list& pool::at(std::size_t size)
     }
     else
     {
-	throw std::invalid_argument("pool::get_block_list - there is no block_list matching the given arguments");
+	throw std::invalid_argument("pool::at - there is no block_list matching the given arguments");
     }
 }
 

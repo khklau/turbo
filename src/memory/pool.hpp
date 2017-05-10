@@ -227,6 +227,7 @@ public:
     {
 	return deallocate(size, size, ptr, 1U);
     }
+    inline bool in_configured_range(std::size_t value_size) const;
     inline const block_list& at(std::size_t size) const;
     inline block_list& at(std::size_t size);
     friend class pool_tester;
