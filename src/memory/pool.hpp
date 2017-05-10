@@ -223,6 +223,10 @@ public:
     {
 	return allocate(size, size, 1U, nullptr);
     }
+    inline void free(void* ptr, std::size_t size)
+    {
+	return deallocate(size, size, ptr, 1U);
+    }
     inline const block_list& at(std::size_t size) const;
     inline block_list& at(std::size_t size);
     friend class pool_tester;

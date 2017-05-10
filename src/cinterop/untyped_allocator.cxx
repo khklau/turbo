@@ -22,7 +22,7 @@ untyped_allocator::untyped_allocator(
     {
 	for (tme::block& block: list)
 	{
-	    address_map_.emplace(reinterpret_cast<std::uintptr_t>(block.get_base_address()), &block);
+	    address_map_.emplace(reinterpret_cast<std::uintptr_t>(block.get_base_address()), block.get_value_size());
 	}
     }
 }
@@ -47,11 +47,20 @@ void* untyped_allocator::malloc(std::size_t size)
 	{
 	    if (iter.is_last())
 	    {
-		address_map_.emplace(reinterpret_cast<std::uintptr_t>(iter->get_base_address()), &(*iter));
+		address_map_.emplace(reinterpret_cast<std::uintptr_t>(iter->get_base_address()), iter->get_value_size());
 	    }
 	}
     }
     return result;
+}
+
+void untyped_allocator::free(void* ptr)
+{
+    auto iter = address_map_.find_less_equal(reinterpret_cast<std::uintptr_t>(ptr));
+    if (iter != address_map_.cend())
+    {
+	allocation_pool_.free(ptr, *iter);
+    }
 }
 
 std::vector<tme::block_config> untyped_allocator::derive_trie_config(const std::vector<tme::block_config>& alloc_config)

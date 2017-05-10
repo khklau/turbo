@@ -99,6 +99,16 @@ TEST(untyped_allocator_test, malloc_basic)
     EXPECT_TRUE(record1 != nullptr) << "Unexpected malloc failure";
 }
 
+TEST(untyped_allocator_test, free_basic)
+{
+    tci::untyped_allocator allocator1(1U, { {sizeof(record), 1U}, {sizeof(ipv4_address), 1U} });
+    record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_TRUE(record1 != nullptr) << "Unexpected malloc failure";
+    allocator1.free(record1);
+    record* record2 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_EQ(record1, record2) << "Allocator did not recycle the available memory slot";
+}
+
 TEST(untyped_allocator_test, pool_copy_assignment_same_length)
 {
     tci::untyped_allocator allocator1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
