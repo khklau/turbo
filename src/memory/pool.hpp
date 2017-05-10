@@ -168,13 +168,23 @@ class TURBO_SYMBOL_DECL pool_tester;
 
 class TURBO_SYMBOL_DECL pool
 {
+private:
+    typedef std::vector<block_list> block_map_type;
 public:
+    typedef block_map_type::iterator iterator;
     pool(block::capacity_type default_capacity, const std::vector<block_config>& config);
     pool(const pool& other);
     ~pool() = default;
     pool& operator=(const pool& other);
     bool operator==(const pool& other) const;
-    inline const block_list& get_block_list(std::size_t value_size, std::size_t value_alignment, capacity_type quantity) const;
+    inline iterator begin()
+    {
+	return block_map_.begin();
+    }
+    inline iterator end()
+    {
+	return block_map_.end();
+    }
     template <class value_t, class... args_t>
     std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
     template <class value_t, class... args_t>
@@ -213,6 +223,8 @@ public:
     {
 	return allocate(size, size, 1U, nullptr);
     }
+    inline const block_list& at(std::size_t size) const;
+    inline block_list& at(std::size_t size);
     friend class pool_tester;
 private:
     pool() = delete;
@@ -226,7 +238,7 @@ private:
     inline void unmake(value_t* pointer);
     block::capacity_type default_capacity_;
     std::size_t smallest_block_exponent_;
-    std::vector<block_list> block_map_;
+    block_map_type block_map_;
 };
 
 std::vector<block_config> calibrate(block::capacity_type contingency_capacity, const std::vector<block_config>& config);
