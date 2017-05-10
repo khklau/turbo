@@ -2,7 +2,7 @@
 #include <utility>
 #include <turbo/container/bitwise_trie.hxx>
 #include <turbo/container/trie_key.hpp>
-#include <turbo/memory/pool.hpp>
+#include <turbo/memory/pool.hxx>
 
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
@@ -15,9 +15,17 @@ untyped_allocator::untyped_allocator(
 	const std::vector<tme::block_config>& config)
     :
 	allocation_pool_(default_capacity, config),
-	trie_pool_(default_capacity, tme::calibrate(config)),
+	trie_pool_(default_capacity, derive_trie_config(tme::calibrate(default_capacity, config))),
 	address_map_(trie_pool_)
-{ }
+{
+    for (tme::block_list& list: allocation_pool_)
+    {
+	for (tme::block& block: list)
+	{
+	    address_map_.emplace(reinterpret_cast<std::uintptr_t>(block.get_base_address()), &block);
+	}
+    }
+}
 
 ///
 /// For some reason using the default destructor requires users of this library
@@ -26,6 +34,25 @@ untyped_allocator::untyped_allocator(
 ///
 untyped_allocator::~untyped_allocator()
 { }
+
+void* untyped_allocator::malloc(std::size_t size)
+{
+    turbo::memory::block_list& list = allocation_pool_.at(size);
+    std::size_t old_size = list.get_list_size();
+    void* result = allocation_pool_.malloc(size);
+    std::size_t new_size = list.get_list_size();
+    if (old_size < new_size)
+    {
+	for (auto iter = list.begin(); iter != list.end(); ++iter)
+	{
+	    if (iter.is_last())
+	    {
+		address_map_.emplace(reinterpret_cast<std::uintptr_t>(iter->get_base_address()), &(*iter));
+	    }
+	}
+    }
+    return result;
+}
 
 std::vector<tme::block_config> untyped_allocator::derive_trie_config(const std::vector<tme::block_config>& alloc_config)
 {

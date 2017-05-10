@@ -92,11 +92,11 @@ bool record::operator<(const record& other) const
 
 typedef std::array<uint8_t, 4> ipv4_address;
 
-TEST(untyped_allocator_test, calibrate_positive)
+TEST(untyped_allocator_test, malloc_basic)
 {
-    std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
-    std::vector<tme::block_config> expected1{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
-    std::vector<tme::block_config> actual1(tme::calibrate(input1));
+    tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
+    record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_TRUE(record1 != nullptr) << "Unexpected malloc failure";
 }
 
 TEST(untyped_allocator_test, pool_copy_assignment_same_length)

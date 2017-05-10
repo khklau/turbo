@@ -24,6 +24,7 @@ public:
     static const std::size_t growth_contingency = 2U;
     untyped_allocator(std::uint32_t default_capacity, const std::vector<turbo::memory::block_config>& config);
     ~untyped_allocator();
+    void* malloc(std::size_t size);
     friend class untyped_allocator_tester;
 private:
     typedef turbo::container::bitwise_trie<std::uintptr_t, turbo::memory::block*, turbo::memory::pool> trie_type;
