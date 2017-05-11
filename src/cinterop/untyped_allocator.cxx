@@ -37,6 +37,10 @@ untyped_allocator::~untyped_allocator()
 
 void* untyped_allocator::malloc(std::size_t size)
 {
+    if (!allocation_pool_.in_configured_range(size))
+    {
+	return nullptr;
+    }
     turbo::memory::block_list& list = allocation_pool_.at(size);
     std::size_t old_size = list.get_list_size();
     void* result = allocation_pool_.malloc(size);

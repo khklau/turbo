@@ -1704,6 +1704,18 @@ TEST(pool_test, pool_parallel_use_octshort)
     }
 }
 
+TEST(pool_test, allocate_invalid)
+{
+    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
+    EXPECT_EQ(nullptr, pool1.allocate<std::string>(0U)) << "Allocating a quantity of 0 succeeded";
+}
+
+TEST(pool_test, malloc_invalid)
+{
+    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
+    EXPECT_EQ(nullptr, pool1.malloc(0U)) << "Allocating a quantity of 0 succeeded";
+}
+
 TEST(pool_test, pool_copy_construction)
 {
     tme::pool pool1(2U, { {sizeof(std::string), 2U} });

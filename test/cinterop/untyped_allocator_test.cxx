@@ -92,11 +92,20 @@ bool record::operator<(const record& other) const
 
 typedef std::array<uint8_t, 4> ipv4_address;
 
+TEST(untyped_allocator_test, malloc_invalid)
+{
+    tci::untyped_allocator allocator1(2U, { {32U, 2U}, {64U, 2U} });
+    EXPECT_EQ(nullptr, static_cast<record*>(allocator1.malloc(128U))) << "Malloc succeeded for an unsupported size";
+    EXPECT_EQ(nullptr, static_cast<record*>(allocator1.malloc(0U))) << "Malloc succeeded for an unsupported size";
+}
+
 TEST(untyped_allocator_test, malloc_basic)
 {
     tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
     record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
     EXPECT_TRUE(record1 != nullptr) << "Unexpected malloc failure";
+    ipv4_address* address1 = static_cast<ipv4_address*>(allocator1.malloc(sizeof(ipv4_address)));
+    EXPECT_TRUE(address1 != nullptr) << "Unexpected malloc failure";
 }
 
 TEST(untyped_allocator_test, free_basic)

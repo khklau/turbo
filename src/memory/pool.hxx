@@ -77,7 +77,7 @@ typename block_list::basic_iterator<b, n> block_list::basic_iterator<b, n>::oper
 
 inline bool pool::in_configured_range(std::size_t value_size) const
 {
-    return find_block_bucket(calc_total_aligned_size(value_size, value_size, 1U)) < block_map_.size();
+    return value_size != 0U && find_block_bucket(calc_total_aligned_size(value_size, value_size, 1U)) < block_map_.size();
 }
 
 inline const block_list& pool::at(std::size_t size) const

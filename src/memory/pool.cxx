@@ -415,7 +415,7 @@ bool pool::operator==(const pool& other) const
 void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));
-    if (TURBO_LIKELY(bucket < block_map_.size()))
+    if (TURBO_LIKELY(value_size != 0U && quantity != 0U && bucket < block_map_.size()))
     {
 	return block_map_[bucket].allocate();
     }
