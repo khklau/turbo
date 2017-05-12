@@ -108,20 +108,50 @@ TEST(untyped_allocator_test, malloc_basic)
     EXPECT_TRUE(address1 != nullptr) << "Unexpected malloc failure";
 }
 
+TEST(untyped_allocator_test, free_invalid)
+{
+    tci::untyped_allocator allocator1(1U, { {sizeof(record), 1U}, {sizeof(ipv4_address), 1U} });
+    record record1;
+    EXPECT_NO_THROW(allocator1.free(&record1)) << "Free should just ignore invalid addresses";
+}
+
 TEST(untyped_allocator_test, free_basic)
 {
     tci::untyped_allocator allocator1(1U, { {sizeof(record), 1U}, {sizeof(ipv4_address), 1U} });
     record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
-    EXPECT_TRUE(record1 != nullptr) << "Unexpected malloc failure";
+    EXPECT_NE(nullptr, record1) << "Unexpected malloc failure";
     allocator1.free(record1);
     record* record2 = static_cast<record*>(allocator1.malloc(sizeof(record)));
     EXPECT_EQ(record1, record2) << "Allocator did not recycle the available memory slot";
 }
 
-TEST(untyped_allocator_test, pool_copy_assignment_same_length)
+TEST(untyped_allocator_test, pool_copy_construction_basic)
 {
-    tci::untyped_allocator allocator1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    tci::untyped_allocator allocator2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    //allocator2 = allocator1;
-    //EXPECT_TRUE(allocator1 == allocator2) << "Copy assigned pool is not equal to the original";
+    tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
+    record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_NE(nullptr, record1) << "Unexpected malloc failure";
+    new (record1) record(5U, 8741U, 20873U);
+    ipv4_address* address1 = static_cast<ipv4_address*>(allocator1.malloc(sizeof(ipv4_address)));
+    EXPECT_NE(nullptr, address1) << "Unexpected malloc failure";
+    (*address1)[0] = 192U;
+    (*address1)[1] = 168U;
+    (*address1)[2] = 1U;
+    (*address1)[3] = 254U;
+    tci::untyped_allocator allocator2(allocator1);
+    record* record2 = static_cast<record*>(allocator2.malloc(sizeof(record)));
+    EXPECT_NE(nullptr, record2) << "Unexpected malloc failure";
+    new (record2) record(6U, 8593U, 192582U);
+    ipv4_address* address2 = static_cast<ipv4_address*>(allocator2.malloc(sizeof(ipv4_address)));
+    EXPECT_NE(nullptr, address2) << "Unexpected malloc failure";
+    (*address2)[0] = 255U;
+    (*address2)[1] = 255U;
+    (*address2)[2] = 255U;
+    (*address2)[3] = 255U;
+    record* record3 = static_cast<record*>(allocator2.malloc(sizeof(record)));
+    EXPECT_NE(nullptr, record3) << "Unexpected malloc failure";
+    ipv4_address* address3 = static_cast<ipv4_address*>(allocator2.malloc(sizeof(ipv4_address)));
+    EXPECT_NE(nullptr, address3) << "Unexpected malloc failure";
+    EXPECT_EQ(record(5U, 8741U, 20873U), *record1) << "Allocation from original pool was affected by allocation from copy constructed pool";
+    ipv4_address expected1 {192U, 168U, 1U, 254U };
+    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), address1->cbegin())) << "Allocation from original pool was affected by allocation from copy constructed pool";
 }

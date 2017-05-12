@@ -18,13 +18,16 @@ untyped_allocator::untyped_allocator(
 	trie_pool_(default_capacity, derive_trie_config(tme::calibrate(default_capacity, config))),
 	address_map_(trie_pool_)
 {
-    for (tme::block_list& list: allocation_pool_)
-    {
-	for (tme::block& block: list)
-	{
-	    address_map_.emplace(reinterpret_cast<std::uintptr_t>(block.get_base_address()), block.get_value_size());
-	}
-    }
+    init_address_map();
+}
+
+untyped_allocator::untyped_allocator(const untyped_allocator& other)
+    :
+	allocation_pool_(other.allocation_pool_),
+	trie_pool_(other.trie_pool_),
+	address_map_(trie_pool_)
+{
+    init_address_map();
 }
 
 ///
@@ -74,6 +77,17 @@ std::vector<tme::block_config> untyped_allocator::derive_trie_config(const std::
     result.push_back(tme::block_config(trie_type::node_sizes[0], alloc_config.size() * growth_contingency));
     result.push_back(tme::block_config(trie_type::node_sizes[1], alloc_config.size() * growth_contingency * key_type::max_prefix_capacity()));
     return std::move(result);
+}
+
+void untyped_allocator::init_address_map()
+{
+    for (tme::block_list& list: allocation_pool_)
+    {
+	for (tme::block& block: list)
+	{
+	    address_map_.emplace(reinterpret_cast<std::uintptr_t>(block.get_base_address()), block.get_value_size());
+	}
+    }
 }
 
 } // namespace cinterop
