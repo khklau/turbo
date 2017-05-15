@@ -173,7 +173,7 @@ private:
     typedef std::vector<block_list> block_map_type;
 public:
     typedef block_map_type::iterator iterator;
-    pool(block::capacity_type default_capacity, const std::vector<block_config>& config);
+    pool(block::capacity_type contingency_capacity, const std::vector<block_config>& config);
     pool(const pool& other);
     ~pool() = default;
     pool& operator=(const pool& other);
@@ -235,7 +235,7 @@ public:
     friend class pool_tester;
 private:
     pool() = delete;
-    pool(const std::vector<block_config>& config, block::capacity_type default_capacity);
+    pool(const std::vector<block_config>& config);
     pool(pool&&) = delete;
     pool& operator=(pool&&) = delete;
     inline std::size_t find_block_bucket(std::size_t allocation_size) const;
@@ -243,7 +243,6 @@ private:
     void deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity);
     template <class value_t>
     inline void unmake(value_t* pointer);
-    block::capacity_type default_capacity_;
     std::size_t smallest_block_exponent_;
     block_map_type block_map_;
 };

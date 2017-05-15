@@ -374,21 +374,19 @@ void* block_list::allocate()
     return allocation;
 }
 
-pool::pool(capacity_type default_capacity, const std::vector<block_config>& config)
+pool::pool(capacity_type contingency_capacity, const std::vector<block_config>& config)
     :
-	pool(calibrate(default_capacity, config), default_capacity)
+	pool(calibrate(contingency_capacity, config))
 { }
 
-pool::pool(const std::vector<block_config>& config, capacity_type default_capacity)
+pool::pool(const std::vector<block_config>& config)
     :
-	default_capacity_(std::llround(std::pow(2U, std::ceil(std::log2(default_capacity))))),
 	smallest_block_exponent_(std::llround(std::log2(config.cbegin()->block_size))),
 	block_map_(config.cbegin(), config.cend())
 { }
 
 pool::pool(const pool& other)
     :
-	default_capacity_(other.default_capacity_),
 	smallest_block_exponent_(other.smallest_block_exponent_),
 	block_map_(other.block_map_)
 { }
@@ -396,7 +394,6 @@ pool::pool(const pool& other)
 pool& pool::operator=(const pool& other)
 {
     if (this != &other
-	    && this->default_capacity_ == other.default_capacity_
 	    && this->smallest_block_exponent_ == other.smallest_block_exponent_
 	    && this->block_map_.size() == other.block_map_.size())
     {
@@ -407,9 +404,7 @@ pool& pool::operator=(const pool& other)
 
 bool pool::operator==(const pool& other) const
 {
-    return this->default_capacity_ == other.default_capacity_
-	&& this->smallest_block_exponent_ == other.smallest_block_exponent_
-	&& this->block_map_ == other.block_map_;
+    return this->smallest_block_exponent_ == other.smallest_block_exponent_ && this->block_map_ == other.block_map_;
 }
 
 const std::vector<block_config> pool::get_block_config() const
