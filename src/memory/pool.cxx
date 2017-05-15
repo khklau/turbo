@@ -412,6 +412,20 @@ bool pool::operator==(const pool& other) const
 	&& this->block_map_ == other.block_map_;
 }
 
+const std::vector<block_config> pool::get_block_config() const
+{
+    std::vector<block_config> output;
+    for (const block_list& list: block_map_)
+    {
+	output.emplace_back(
+		list.get_value_size(),
+		list.cbegin()->get_capacity(),
+		list.get_contingency_capacity(),
+		list.get_growth_factor());
+    }
+    return std::move(output);
+}
+
 void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));

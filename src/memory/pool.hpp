@@ -125,6 +125,7 @@ public:
     bool operator==(const block_list& other) const;
     inline std::size_t get_value_size() const { return value_size_; }
     inline std::size_t get_growth_factor() const { return growth_factor_; }
+    inline std::size_t get_contingency_capacity() const { return contingency_capacity_; }
     inline std::size_t get_list_size() const { return list_size_; }
     inline iterator begin() noexcept { return iterator(&first_); }
     inline iterator end() noexcept { return iterator(); }
@@ -177,6 +178,7 @@ public:
     ~pool() = default;
     pool& operator=(const pool& other);
     bool operator==(const pool& other) const;
+    const std::vector<block_config> get_block_config() const;
     inline iterator begin()
     {
 	return block_map_.begin();
