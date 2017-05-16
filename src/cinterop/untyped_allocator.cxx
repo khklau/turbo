@@ -24,7 +24,7 @@ untyped_allocator::untyped_allocator(
 untyped_allocator::untyped_allocator(const untyped_allocator& other)
     :
 	allocation_pool_(other.allocation_pool_),
-	trie_pool_(other.trie_pool_),
+	trie_pool_(2U, other.trie_pool_.get_block_config()),
 	address_map_(trie_pool_)
 {
     init_address_map();
@@ -37,6 +37,17 @@ untyped_allocator::untyped_allocator(const untyped_allocator& other)
 ///
 untyped_allocator::~untyped_allocator()
 { }
+
+untyped_allocator& untyped_allocator::operator=(const untyped_allocator& other)
+{
+    if (this != &other
+	    && this->trie_pool_.get_block_config() == other.trie_pool_.get_block_config()
+	    && this->address_map_.size() >= other.address_map_.size())
+    {
+	this->allocation_pool_ = other.allocation_pool_;
+    }
+    return *this;
+}
 
 void* untyped_allocator::malloc(std::size_t size)
 {

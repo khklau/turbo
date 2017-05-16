@@ -155,3 +155,83 @@ TEST(untyped_allocator_test, pool_copy_construction_basic)
     ipv4_address expected1 {192U, 168U, 1U, 254U };
     EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), address1->cbegin())) << "Allocation from original pool was affected by allocation from copy constructed pool";
 }
+
+TEST(untyped_allocator_test, pool_copy_assignent_basic)
+{
+    tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
+    record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_NE(nullptr, record1) << "Unexpected malloc failure";
+    new (record1) record(5U, 8741U, 20873U);
+    ipv4_address* address1 = static_cast<ipv4_address*>(allocator1.malloc(sizeof(ipv4_address)));
+    EXPECT_NE(nullptr, address1) << "Unexpected malloc failure";
+    (*address1)[0] = 192U;
+    (*address1)[1] = 168U;
+    (*address1)[2] = 1U;
+    (*address1)[3] = 254U;
+    tci::untyped_allocator allocator2(allocator1);
+    record1->first = 8U;
+    record1->second = 5092U;
+    record1->third = 38692U;
+    (*address1)[0] = 255U;
+    (*address1)[1] = 255U;
+    (*address1)[2] = 255U;
+    (*address1)[3] = 255U;
+    allocator1 = allocator2;
+    EXPECT_EQ(record(5U, 8741U, 20873U), *record1) << "Copy assignment from snapshot did not restore the allocator to the original state";
+    ipv4_address expected1 {192U, 168U, 1U, 254U };
+    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), address1->cbegin()))
+	    << "Copy assignment from snapshot did not restore the allocator to the original state";
+}
+
+TEST(untyped_allocator_test, pool_copy_assignent_additional_allocation)
+{
+    tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
+    record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_NE(nullptr, record1) << "Unexpected malloc failure";
+    new (record1) record(5U, 8741U, 20873U);
+    ipv4_address* address1 = static_cast<ipv4_address*>(allocator1.malloc(sizeof(ipv4_address)));
+    EXPECT_NE(nullptr, address1) << "Unexpected malloc failure";
+    (*address1)[0] = 192U;
+    (*address1)[1] = 168U;
+    (*address1)[2] = 1U;
+    (*address1)[3] = 254U;
+    tci::untyped_allocator allocator2(allocator1);
+    record* record2 = static_cast<record*>(allocator1.malloc(sizeof(record)));
+    EXPECT_NE(nullptr, record2) << "Unexpected malloc failure";
+    new (record2) record(1U, 902U, 46194U);
+    ipv4_address* address2 = static_cast<ipv4_address*>(allocator1.malloc(sizeof(ipv4_address)));
+    EXPECT_NE(nullptr, address2) << "Unexpected malloc failure";
+    (*address2)[0] = 10U;
+    (*address2)[1] = 14U;
+    (*address2)[2] = 65U;
+    (*address2)[3] = 102U;
+    record1->first = 8U;
+    record1->second = 5092U;
+    record1->third = 38692U;
+    (*address1)[0] = 255U;
+    (*address1)[1] = 255U;
+    (*address1)[2] = 255U;
+    (*address1)[3] = 255U;
+    tci::untyped_allocator allocator3(allocator1);
+    record2->first = 7U;
+    record2->second = 332U;
+    record2->third = 91025U;
+    (*address2)[0] = 0U;
+    (*address2)[1] = 0U;
+    (*address2)[2] = 0U;
+    (*address2)[3] = 0U;
+    allocator1 = allocator2;
+    EXPECT_EQ(record(5U, 8741U, 20873U), *record1) << "Copy assignment from snapshot did not restore the allocator to the original state";
+    ipv4_address expected1a {192U, 168U, 1U, 254U };
+    EXPECT_TRUE(std::equal(expected1a.cbegin(), expected1a.cend(), address1->cbegin()))
+	    << "Copy assignment from snapshot did not restore the allocator to the original state";
+    allocator1 = allocator3;
+    EXPECT_EQ(record(8U, 5092U, 38692), *record1) << "Copy assignment from snapshot did not restore the allocator to the original state";
+    ipv4_address expected1b {255U, 255U, 255U, 255U };
+    EXPECT_TRUE(std::equal(expected1b.cbegin(), expected1b.cend(), address1->cbegin()))
+	    << "Copy assignment from snapshot did not restore the allocator to the original state";
+    EXPECT_EQ(record(1U, 902U, 46194U), *record2) << "Copy assignment from snapshot did not restore the allocator to the original state";
+    ipv4_address expected2a {10U, 14U, 65U, 102U };
+    EXPECT_TRUE(std::equal(expected2a.cbegin(), expected2a.cend(), address2->cbegin()))
+	    << "Copy assignment from snapshot did not restore the allocator to the original state";
+}

@@ -25,6 +25,11 @@ public:
     untyped_allocator(std::uint32_t default_capacity, const std::vector<turbo::memory::block_config>& config);
     untyped_allocator(const untyped_allocator& other);
     ~untyped_allocator();
+    untyped_allocator& operator=(const untyped_allocator& other);
+    inline std::size_t get_block_count()
+    {
+	return address_map_.size();
+    }
     void* malloc(std::size_t size);
     void free(void* ptr);
     friend class untyped_allocator_tester;
@@ -32,6 +37,7 @@ private:
     typedef turbo::container::bitwise_trie<std::uintptr_t, std::size_t, turbo::memory::pool> trie_type;
     untyped_allocator() = delete;
     untyped_allocator(untyped_allocator&&) = delete;
+    untyped_allocator& operator=(untyped_allocator&&) = delete;
     static std::vector<turbo::memory::block_config> derive_trie_config(const std::vector<turbo::memory::block_config>& alloc_config);
     void init_address_map();
     turbo::memory::pool allocation_pool_;
