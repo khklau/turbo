@@ -13,7 +13,7 @@ namespace tps = turbo::process::status;
 
 tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
 {
-    tpp::child&& child = tpp::spawn(exe, args, env, 2 << 16);
+    tpp::child child(std::move(tpp::spawn(exe, args, env, 2 << 16)));
     const char* expected = "READY\n";
     char signal[7];
     child.err.read_all(signal, strlen(expected));
@@ -27,7 +27,7 @@ tpp::child spawn_child(const char* exe, char* const args[], char* const env[])
 TEST(spawn_test, stdstream_check)
 {
     tf::path exe = tps::current_exe_path().parent_path() /= "spawn_child";
-    tpp::child&& child = spawn_child(exe.c_str(), {}, {});
+    tpp::child child(std::move(spawn_child(exe.c_str(), {}, {})));
 
     char input[] = "FOO\n";
     child.in.write_all(input, strlen(input));

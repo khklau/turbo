@@ -93,9 +93,9 @@ child spawn(const char* exepath, char* const args[], char* const env[], std::siz
 	    option::non_blocking,
 	    option::fork_compatible
     };
-    end_pair&& in = make_pipe(options, bufsize);
-    end_pair&& out = make_pipe(options, bufsize);
-    end_pair&& err = make_pipe(options, bufsize);
+    end_pair in(std::move(make_pipe(options, bufsize)));
+    end_pair out(std::move(make_pipe(options, bufsize)));
+    end_pair err(std::move(make_pipe(options, bufsize)));
     pid_t pid = fork();
     if (pid == 0)
     {

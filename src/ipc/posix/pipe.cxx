@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <system_error>
+#include <utility>
 #include <turbo/toolset/extension.hpp>
 
 namespace {
@@ -351,7 +352,7 @@ end_pair make_pipe(std::vector<option>& options, std::size_t bufsize)
     }
     set_size(tmp[0], bufsize, "r");
     set_size(tmp[1], bufsize, "w");
-    return std::make_pair(front(key(), tmp[0]), back(key(), tmp[1]));
+    return std::move(std::make_pair(front(key(), tmp[0]), back(key(), tmp[1])));
 }
 
 } // namespace pipe

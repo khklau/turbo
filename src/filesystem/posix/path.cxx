@@ -127,7 +127,7 @@ path& path::operator/=(const path& path)
 
 path path::parent_path() const
 {
-    std::vector<std::string::const_iterator>&& separators = find_all(pathname_, is_exactly(preferred_separator));
+    std::vector<std::string::const_iterator> separators(std::move(find_all(pathname_, is_exactly(preferred_separator))));
     bool is_absolute = ::is_absolute(pathname_);
     bool has_trailing_separator = ::has_trailing_separator(pathname_);
     if (is_absolute && has_trailing_separator && separators.size() <= 2)
