@@ -22,7 +22,7 @@ class TURBO_SYMBOL_DECL untyped_allocator final
 {
 public:
     static const std::size_t growth_contingency = 2U;
-    untyped_allocator(std::uint32_t default_capacity, const std::vector<turbo::memory::block_config>& config);
+    untyped_allocator(std::uint32_t contingency_capacity, const std::vector<turbo::memory::block_config>& config);
     untyped_allocator(const untyped_allocator& other);
     ~untyped_allocator();
     untyped_allocator& operator=(const untyped_allocator& other);

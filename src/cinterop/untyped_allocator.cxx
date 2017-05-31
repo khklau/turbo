@@ -11,11 +11,11 @@ namespace turbo {
 namespace cinterop {
 
 untyped_allocator::untyped_allocator(
-	std::uint32_t default_capacity,
+	std::uint32_t contingency_capacity,
 	const std::vector<tme::block_config>& config)
     :
-	allocation_pool_(default_capacity, config),
-	trie_pool_(default_capacity, derive_trie_config(tme::calibrate(default_capacity, config))),
+	allocation_pool_(contingency_capacity, config),
+	trie_pool_(contingency_capacity, derive_trie_config(tme::calibrate(contingency_capacity, config))),
 	address_map_(trie_pool_)
 {
     init_address_map();
