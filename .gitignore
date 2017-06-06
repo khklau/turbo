@@ -13,9 +13,6 @@
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-
 # Compiled Static libraries
 *.lai
 *.la
@@ -35,10 +32,16 @@
 /.waf*
 /waf
 /build.status
+
+# Build output
 /build
 /bin
 /lib
 /include
+/share
+
+# Dia
+*.dia~
 
 # GNU Global
 GPATH
