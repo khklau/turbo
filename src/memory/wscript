@@ -5,6 +5,7 @@ publicHeaders = [
     'alignment.hpp',
     'alignment.hxx',
     'block.hpp',
+    'block.hxx',
     'cstdlib_allocator.hpp',
     'pool.hpp',
     'pool.hxx',
