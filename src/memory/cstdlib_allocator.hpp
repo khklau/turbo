@@ -1,5 +1,5 @@
-#ifndef TURBO_MEMORY_TYPED_ALLOCATOR_HPP
-#define TURBO_MEMORY_TYPED_ALLOCATOR_HPP
+#ifndef TURBO_MEMORY_CSTDLIB_ALLOCATOR_HPP
+#define TURBO_MEMORY_CSTDLIB_ALLOCATOR_HPP
 
 #include <cstdlib>
 #include <memory>
@@ -10,7 +10,7 @@ namespace memory {
 /***
  * Default typed allocator
  ***/
-class typed_allocator
+class cstdlib_typed_allocator
 {
 public:
     typedef std::size_t size_type;

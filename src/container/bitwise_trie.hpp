@@ -7,7 +7,7 @@
 #include <tuple>
 #include <turbo/container/trie_key.hpp>
 #include <turbo/memory/tagged_ptr.hpp>
-#include <turbo/memory/typed_allocator.hpp>
+#include <turbo/memory/cstdlib_allocator.hpp>
 
 namespace turbo {
 namespace container {
@@ -154,10 +154,10 @@ public:
     explicit inline invalid_bitwise_trie_error(const char* what) : logic_error(what) { }
 };
 
-template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator>
+template <class key_t, class value_t, class allocator_t = turbo::memory::cstdlib_typed_allocator>
 class bitwise_trie_tester;
 
-template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator>
+template <class key_t, class value_t, class allocator_t = turbo::memory::cstdlib_typed_allocator>
 class bitwise_trie final
 {
 private:

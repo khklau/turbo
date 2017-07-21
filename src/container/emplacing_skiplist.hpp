@@ -7,15 +7,15 @@
 #include <tuple>
 #include <vector>
 #include <turbo/container/emplacing_list.hpp>
-#include <turbo/memory/typed_allocator.hpp>
+#include <turbo/memory/cstdlib_allocator.hpp>
 
 namespace turbo {
 namespace container {
 
-template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator, class compare_f = std::less_equal<key_t>>
+template <class key_t, class value_t, class allocator_t = turbo::memory::cstdlib_typed_allocator, class compare_f = std::less_equal<key_t>>
 class emplacing_skiplist_tester;
 
-template <class key_t, class value_t, class allocator_t = turbo::memory::typed_allocator, class compare_f = std::less_equal<key_t>>
+template <class key_t, class value_t, class allocator_t = turbo::memory::cstdlib_typed_allocator, class compare_f = std::less_equal<key_t>>
 class emplacing_skiplist
 {
 public:

@@ -5,10 +5,10 @@ publicHeaders = [
     'alignment.hpp',
     'alignment.hxx',
     'block.hpp',
+    'cstdlib_allocator.hpp',
     'pool.hpp',
     'pool.hxx',
-    'tagged_ptr.hpp',
-    'typed_allocator.hpp']
+    'tagged_ptr.hpp']
 
 sourceFiles = [
     'alignment.cxx',

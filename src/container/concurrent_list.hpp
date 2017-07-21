@@ -6,7 +6,7 @@
 #include <atomic>
 #include <memory>
 #include <turbo/memory/tagged_ptr.hpp>
-#include <turbo/memory/typed_allocator.hpp>
+#include <turbo/memory/cstdlib_allocator.hpp>
 
 namespace turbo {
 namespace container {
@@ -15,7 +15,7 @@ template <class value_t>
 using list_unique_ptr = std::unique_ptr<value_t, std::function<void (value_t*)>>;
 
 
-template <class value_t, class typed_allocator_t = turbo::memory::typed_allocator>
+template <class value_t, class typed_allocator_t = turbo::memory::cstdlib_typed_allocator>
 class concurrent_list
 {
 private:

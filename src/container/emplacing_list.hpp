@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <iterator>
 #include <utility>
-#include <turbo/memory/typed_allocator.hpp>
+#include <turbo/memory/cstdlib_allocator.hpp>
 
 namespace turbo {
 namespace container {
@@ -141,7 +141,7 @@ public:
 
 } // namespace emplacing_list_iterator
 
-template <class value_t, class typed_allocator_t = turbo::memory::typed_allocator>
+template <class value_t, class typed_allocator_t = turbo::memory::cstdlib_typed_allocator>
 class emplacing_list
 {
 private:
