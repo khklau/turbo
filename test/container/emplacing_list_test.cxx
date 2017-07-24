@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
 #include <turbo/algorithm/recovery.hxx>
-#include <turbo/memory/pool.hpp>
-#include <turbo/memory/pool.hxx>
+#include <turbo/memory/slab_allocator.hpp>
+#include <turbo/memory/slab_allocator.hxx>
 
 namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;

@@ -7,14 +7,14 @@ publicHeaders = [
     'block.hpp',
     'block.hxx',
     'cstdlib_allocator.hpp',
-    'pool.hpp',
-    'pool.hxx',
+    'slab_allocator.hpp',
+    'slab_allocator.hxx',
     'tagged_ptr.hpp']
 
 sourceFiles = [
     'alignment.cxx',
     'block.cxx',
-    'pool.cxx']
+    'slab_allocator.cxx']
 
 def name(context):
     return os.path.basename(str(context.path))

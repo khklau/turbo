@@ -2,7 +2,7 @@
 #include <utility>
 #include <turbo/container/bitwise_trie.hxx>
 #include <turbo/container/trie_key.hpp>
-#include <turbo/memory/pool.hxx>
+#include <turbo/memory/slab_allocator.hxx>
 
 namespace tco = turbo::container;
 namespace tme = turbo::memory;

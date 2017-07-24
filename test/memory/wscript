@@ -47,9 +47,9 @@ def build(buildCtx):
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=None)
     buildCtx.program(
-	    name='exe_pool_test',
-	    source=[buildCtx.path.find_node('pool_test.cxx')],
-	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'pool_test'),
+	    name='exe_slab_allocator_test',
+	    source=[buildCtx.path.find_node('slab_allocator_test.cxx')],
+	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'slab_allocator_test'),
 	    defines=['GTEST_HAS_PTHREAD=1'],
 	    includes=['.'] + buildCtx.env.component.include_path_list,
 	    cxxflags=buildCtx.env.CXXFLAGS,

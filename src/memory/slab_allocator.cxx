@@ -1,5 +1,5 @@
-#include "pool.hpp"
-#include "pool.hxx"
+#include "slab_allocator.hpp"
+#include "slab_allocator.hxx"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>

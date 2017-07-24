@@ -1,7 +1,7 @@
 #ifndef TURBO_MEMORY_POOL_HXX
 #define TURBO_MEMORY_POOL_HXX
 
-#include <turbo/memory/pool.hpp>
+#include <turbo/memory/slab_allocator.hpp>
 #include <cstring>
 #include <algorithm>
 #include <limits>

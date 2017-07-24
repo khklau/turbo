@@ -5,8 +5,8 @@
 #include <map>
 #include <random>
 #include <gtest/gtest.h>
-#include <turbo/memory/pool.hpp>
-#include <turbo/memory/pool.hxx>
+#include <turbo/memory/slab_allocator.hpp>
+#include <turbo/memory/slab_allocator.hxx>
 
 namespace turbo {
 namespace container {

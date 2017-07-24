@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <turbo/container/bitwise_trie.hpp>
-#include <turbo/memory/pool.hpp>
+#include <turbo/memory/slab_allocator.hpp>
 #include <turbo/toolset/attribute.hpp>
 
 namespace turbo {
