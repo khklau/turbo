@@ -14,18 +14,18 @@ untyped_allocator::untyped_allocator(
 	std::uint32_t contingency_capacity,
 	const std::vector<tme::block_config>& config)
     :
-	allocation_pool_(contingency_capacity, config),
-	trie_pool_(contingency_capacity, derive_trie_config(tme::calibrate(contingency_capacity, config))),
-	address_map_(trie_pool_)
+	allocation_slab_(contingency_capacity, config),
+	trie_slab_(contingency_capacity, derive_trie_config(tme::calibrate(contingency_capacity, config))),
+	address_map_(trie_slab_)
 {
     init_address_map();
 }
 
 untyped_allocator::untyped_allocator(const untyped_allocator& other)
     :
-	allocation_pool_(other.allocation_pool_),
-	trie_pool_(2U, other.trie_pool_.get_block_config()),
-	address_map_(trie_pool_)
+	allocation_slab_(other.allocation_slab_),
+	trie_slab_(2U, other.trie_slab_.get_block_config()),
+	address_map_(trie_slab_)
 {
     init_address_map();
 }
@@ -41,23 +41,23 @@ untyped_allocator::~untyped_allocator()
 untyped_allocator& untyped_allocator::operator=(const untyped_allocator& other)
 {
     if (this != &other
-	    && this->trie_pool_.get_block_config() == other.trie_pool_.get_block_config()
+	    && this->trie_slab_.get_block_config() == other.trie_slab_.get_block_config()
 	    && this->address_map_.size() >= other.address_map_.size())
     {
-	this->allocation_pool_ = other.allocation_pool_;
+	this->allocation_slab_ = other.allocation_slab_;
     }
     return *this;
 }
 
 void* untyped_allocator::malloc(std::size_t size)
 {
-    if (!allocation_pool_.in_configured_range(size))
+    if (!allocation_slab_.in_configured_range(size))
     {
 	return nullptr;
     }
-    turbo::memory::block_list& list = allocation_pool_.at(size);
+    turbo::memory::block_list& list = allocation_slab_.at(size);
     std::size_t old_size = list.get_list_size();
-    void* result = allocation_pool_.malloc(size);
+    void* result = allocation_slab_.malloc(size);
     std::size_t new_size = list.get_list_size();
     if (old_size < new_size)
     {
@@ -77,7 +77,7 @@ void untyped_allocator::free(void* ptr)
     auto iter = address_map_.find_less_equal(reinterpret_cast<std::uintptr_t>(ptr));
     if (iter != address_map_.cend())
     {
-	allocation_pool_.free(ptr, *iter);
+	allocation_slab_.free(ptr, *iter);
     }
 }
 
@@ -92,7 +92,7 @@ std::vector<tme::block_config> untyped_allocator::derive_trie_config(const std::
 
 void untyped_allocator::init_address_map()
 {
-    for (tme::block_list& list: allocation_pool_)
+    for (tme::block_list& list: allocation_slab_)
     {
 	for (tme::block& block: list)
 	{

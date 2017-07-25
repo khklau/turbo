@@ -1,5 +1,5 @@
-#ifndef TURBO_MEMORY_POOL_HPP
-#define TURBO_MEMORY_POOL_HPP
+#ifndef TURBO_MEMORY_SLAB_ALLOCATOR_HPP
+#define TURBO_MEMORY_SLAB_ALLOCATOR_HPP
 
 #include <cstdint>
 #include <cstdlib>
@@ -19,27 +19,27 @@ namespace turbo {
 namespace memory {
 
 template <class value_t>
-using pool_unique_ptr = std::unique_ptr<value_t, std::function<void (value_t*)>>;
+using slab_unique_ptr = std::unique_ptr<value_t, std::function<void (value_t*)>>;
 
 enum class make_result
 {
     success,
-    pool_full
+    slab_full
 };
 
-class TURBO_SYMBOL_DECL pool_tester;
+class TURBO_SYMBOL_DECL concurrent_sized_slab_tester;
 
-class TURBO_SYMBOL_DECL pool
+class TURBO_SYMBOL_DECL concurrent_sized_slab
 {
 private:
     typedef std::vector<block_list> block_map_type;
 public:
     typedef block_map_type::iterator iterator;
-    pool(block::capacity_type contingency_capacity, const std::vector<block_config>& config);
-    pool(const pool& other);
-    ~pool() = default;
-    pool& operator=(const pool& other);
-    bool operator==(const pool& other) const;
+    concurrent_sized_slab(block::capacity_type contingency_capacity, const std::vector<block_config>& config);
+    concurrent_sized_slab(const concurrent_sized_slab& other);
+    ~concurrent_sized_slab() = default;
+    concurrent_sized_slab& operator=(const concurrent_sized_slab& other);
+    bool operator==(const concurrent_sized_slab& other) const;
     const std::vector<block_config> get_block_config() const;
     inline iterator begin()
     {
@@ -50,7 +50,7 @@ public:
 	return block_map_.end();
     }
     template <class value_t, class... args_t>
-    std::pair<make_result, pool_unique_ptr<value_t>> make_unique(args_t&&... args);
+    std::pair<make_result, slab_unique_ptr<value_t>> make_unique(args_t&&... args);
     template <class value_t, class... args_t>
     std::pair<make_result, std::shared_ptr<value_t>> make_shared(args_t&&... args);
     template <class value_t>
@@ -94,12 +94,12 @@ public:
     inline bool in_configured_range(std::size_t value_size) const;
     inline const block_list& at(std::size_t size) const;
     inline block_list& at(std::size_t size);
-    friend class pool_tester;
+    friend class concurrent_sized_slab_tester;
 private:
-    pool() = delete;
-    pool(const std::vector<block_config>& config);
-    pool(pool&&) = delete;
-    pool& operator=(pool&&) = delete;
+    concurrent_sized_slab() = delete;
+    concurrent_sized_slab(const std::vector<block_config>& config);
+    concurrent_sized_slab(concurrent_sized_slab&&) = delete;
+    concurrent_sized_slab& operator=(concurrent_sized_slab&&) = delete;
     inline std::size_t find_block_bucket(std::size_t allocation_size) const;
     void* allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void* hint);
     void deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity);

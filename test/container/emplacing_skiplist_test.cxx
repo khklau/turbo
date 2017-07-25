@@ -81,8 +81,8 @@ namespace tme = turbo::memory;
 
 TEST(emplacing_skiplist_test, empty_skiplist)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     EXPECT_EQ(map1.end(), map1.begin()) << "In an empty skiplist begin and end iterators are not equal";
     EXPECT_EQ(0U, map1.size()) << "Size of an empty skiplist is not 0";
@@ -90,9 +90,9 @@ TEST(emplacing_skiplist_test, empty_skiplist)
 
 TEST(emplacing_skiplist_test, search_floor_basic)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
-    tme::pool allocator1(
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_tester;
+    tme::concurrent_sized_slab allocator1(
 	    8U,
 	    {
 		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
@@ -145,9 +145,9 @@ TEST(emplacing_skiplist_test, search_floor_basic)
 
 TEST(emplacing_skiplist_test, search_store_basic)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
-    tme::pool allocator1(
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_tester;
+    tme::concurrent_sized_slab allocator1(
 	    8U,
 	    {
 		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
@@ -197,9 +197,9 @@ TEST(emplacing_skiplist_test, search_store_basic)
 
 TEST(emplacing_skiplist_test, trace_tower_basic)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
-    tme::pool allocator1(
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_tester;
+    tme::concurrent_sized_slab allocator1(
 	    8U,
 	    {
 		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
@@ -306,17 +306,17 @@ TEST(emplacing_skiplist_test, trace_tower_basic)
 
 TEST(emplacing_skiplist_test, find_invalid)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     EXPECT_EQ(map1.end(), map1.find(99U)) << "Search for non-existant key did not return empty iterator";
 }
 
 TEST(emplacing_skiplist_test, find_basic)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
-    tme::pool allocator1(
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_tester;
+    tme::concurrent_sized_slab allocator1(
 	    8U,
 	    {
 		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
@@ -378,9 +378,9 @@ TEST(emplacing_skiplist_test, find_basic)
 
 TEST(emplacing_skiplist_test, emplace_tower_validation)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
-    tme::pool allocator1(
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_tester;
+    tme::concurrent_sized_slab allocator1(
 	    8U,
 	    {
 		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
@@ -514,8 +514,8 @@ TEST(emplacing_skiplist_test, emplace_tower_validation)
 
 TEST(emplacing_skiplist_test, emplace_basic)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     auto result1 = map1.emplace(6U, "foo");
     EXPECT_TRUE(std::get<1>(result1)) << "Emplace failed";
@@ -558,8 +558,8 @@ TEST(emplacing_skiplist_test, emplace_basic)
 
 TEST(emplacing_skiplist_test, emplace_duplicate)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     map1.emplace(99U, "bar");
     map1.emplace(60U, "foo");
@@ -584,9 +584,9 @@ TEST(emplacing_skiplist_test, emplace_duplicate)
 
 TEST(emplacing_skiplist_test, erase_tower_validation)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
-    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::pool> uint_tester;
-    tme::pool allocator1(
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
+    typedef tco::emplacing_skiplist_tester<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_tester;
+    tme::concurrent_sized_slab allocator1(
 	    8U,
 	    {
 		{uint_map::node_sizes[0], std::numeric_limits<std::uint8_t>::max()},
@@ -740,8 +740,8 @@ TEST(emplacing_skiplist_test, erase_tower_validation)
 
 TEST(emplacing_skiplist_test, erase_basic)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     string_map::iterator iter;
     string_map::iterator record6 = std::get<0U>(map1.emplace(6U, "foo"));
@@ -769,8 +769,8 @@ TEST(emplacing_skiplist_test, erase_basic)
 
 TEST(emplacing_skiplist_test, erase_invalid)
 {
-    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
+    typedef tco::emplacing_skiplist<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U}, {string_map::node_sizes[2], 8U} });
     string_map map1(allocator1);
     string_map::iterator iter;
     string_map::iterator record6 = std::get<0U>(map1.emplace(6U, "foo"));
@@ -792,7 +792,7 @@ TEST(emplacing_skiplist_test, erase_invalid)
 class emplacing_skiplist_perf_test : public ::testing::Test
 {
 public:
-    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::pool> uint_map;
+    typedef tco::emplacing_skiplist<std::uint32_t, std::uint32_t, tme::concurrent_sized_slab> uint_map;
     emplacing_skiplist_perf_test()
 	:
 	    allocator1(
@@ -804,7 +804,7 @@ public:
 		    })
     { }
 protected:
-    tme::pool allocator1;
+    tme::concurrent_sized_slab allocator1;
 };
 
 TEST_F(emplacing_skiplist_perf_test, perf_test_skiplist_emplace)

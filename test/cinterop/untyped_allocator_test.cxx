@@ -125,7 +125,7 @@ TEST(untyped_allocator_test, free_basic)
     EXPECT_EQ(record1, record2) << "Allocator did not recycle the available memory slot";
 }
 
-TEST(untyped_allocator_test, pool_copy_construction_basic)
+TEST(untyped_allocator_test, copy_construction_basic)
 {
     tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
     record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
@@ -151,12 +151,12 @@ TEST(untyped_allocator_test, pool_copy_construction_basic)
     EXPECT_NE(nullptr, record3) << "Unexpected malloc failure";
     ipv4_address* address3 = static_cast<ipv4_address*>(allocator2.malloc(sizeof(ipv4_address)));
     EXPECT_NE(nullptr, address3) << "Unexpected malloc failure";
-    EXPECT_EQ(record(5U, 8741U, 20873U), *record1) << "Allocation from original pool was affected by allocation from copy constructed pool";
+    EXPECT_EQ(record(5U, 8741U, 20873U), *record1) << "Allocation from original slab was affected by allocation from copy constructed slab";
     ipv4_address expected1 {192U, 168U, 1U, 254U };
-    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), address1->cbegin())) << "Allocation from original pool was affected by allocation from copy constructed pool";
+    EXPECT_TRUE(std::equal(expected1.cbegin(), expected1.cend(), address1->cbegin())) << "Allocation from original slab was affected by allocation from copy constructed slab";
 }
 
-TEST(untyped_allocator_test, pool_copy_assignent_basic)
+TEST(untyped_allocator_test, copy_assignent_basic)
 {
     tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
     record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));
@@ -183,7 +183,7 @@ TEST(untyped_allocator_test, pool_copy_assignent_basic)
 	    << "Copy assignment from snapshot did not restore the allocator to the original state";
 }
 
-TEST(untyped_allocator_test, pool_copy_assignent_additional_allocation)
+TEST(untyped_allocator_test, copy_assignent_additional_allocation)
 {
     tci::untyped_allocator allocator1(2U, { {sizeof(record), 2U}, {sizeof(ipv4_address), 2U} });
     record* record1 = static_cast<record*>(allocator1.malloc(sizeof(record)));

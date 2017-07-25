@@ -1,5 +1,5 @@
-#ifndef TURBO_MEMORY_POOL_HXX
-#define TURBO_MEMORY_POOL_HXX
+#ifndef TURBO_MEMORY_SLAB_ALLOCATOR_HXX
+#define TURBO_MEMORY_SLAB_ALLOCATOR_HXX
 
 #include <turbo/memory/slab_allocator.hpp>
 #include <cstring>
@@ -16,12 +16,12 @@
 namespace turbo {
 namespace memory {
 
-inline bool pool::in_configured_range(std::size_t value_size) const
+inline bool concurrent_sized_slab::in_configured_range(std::size_t value_size) const
 {
     return value_size != 0U && find_block_bucket(calc_total_aligned_size(value_size, value_size, 1U)) < block_map_.size();
 }
 
-inline const block_list& pool::at(std::size_t size) const
+inline const block_list& concurrent_sized_slab::at(std::size_t size) const
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(size, size, 1U));
     if (TURBO_LIKELY(bucket < block_map_.size()))
@@ -30,11 +30,11 @@ inline const block_list& pool::at(std::size_t size) const
     }
     else
     {
-	throw std::invalid_argument("pool::at - there is no block_list matching the given arguments");
+	throw std::invalid_argument("concurrent_sized_slab::at - there is no block_list matching the given arguments");
     }
 }
 
-inline block_list& pool::at(std::size_t size)
+inline block_list& concurrent_sized_slab::at(std::size_t size)
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(size, size, 1U));
     if (TURBO_LIKELY(bucket < block_map_.size()))
@@ -43,11 +43,11 @@ inline block_list& pool::at(std::size_t size)
     }
     else
     {
-	throw std::invalid_argument("pool::at - there is no block_list matching the given arguments");
+	throw std::invalid_argument("concurrent_sized_slab::at - there is no block_list matching the given arguments");
     }
 }
 
-inline std::size_t pool::find_block_bucket(std::size_t allocation_size) const
+inline std::size_t concurrent_sized_slab::find_block_bucket(std::size_t allocation_size) const
 {
     std::size_t allocation_exponent = std::llround(std::ceil(std::log2(allocation_size)));
     if (allocation_size == 0U || allocation_exponent < smallest_block_exponent_)
@@ -62,25 +62,25 @@ inline std::size_t pool::find_block_bucket(std::size_t allocation_size) const
 }
 
 template <class value_t, class ...args_t>
-std::pair<make_result, pool_unique_ptr<value_t>> pool::make_unique(args_t&&... args)
+std::pair<make_result, slab_unique_ptr<value_t>> concurrent_sized_slab::make_unique(args_t&&... args)
 {
     value_t* result = allocate<value_t>();
     if (result != nullptr)
     {
 	return std::make_pair(
 		make_result::success,
-		pool_unique_ptr<value_t>(
+		slab_unique_ptr<value_t>(
 			new (result) value_t(std::forward<args_t>(args)...),
-			std::bind(static_cast<void (pool::*)(value_t*)>(&pool::unmake<value_t>), this, std::placeholders::_1)));
+			std::bind(static_cast<void (concurrent_sized_slab::*)(value_t*)>(&concurrent_sized_slab::unmake<value_t>), this, std::placeholders::_1)));
     }
     else
     {
-	return std::make_pair(make_result::pool_full, pool_unique_ptr<value_t>());
+	return std::make_pair(make_result::slab_full, slab_unique_ptr<value_t>());
     }
 }
 
 template <class value_t, class... args_t>
-std::pair<make_result, std::shared_ptr<value_t>> pool::make_shared(args_t&&... args)
+std::pair<make_result, std::shared_ptr<value_t>> concurrent_sized_slab::make_shared(args_t&&... args)
 {
     value_t* result = allocate<value_t>();
     if (result != nullptr)
@@ -89,16 +89,16 @@ std::pair<make_result, std::shared_ptr<value_t>> pool::make_shared(args_t&&... a
 		make_result::success,
 		std::shared_ptr<value_t>(
 			new (result) value_t(std::forward<args_t>(args)...),
-			std::bind(static_cast<void (pool::*)(value_t*)>(&pool::unmake<value_t>), this, std::placeholders::_1)));
+			std::bind(static_cast<void (concurrent_sized_slab::*)(value_t*)>(&concurrent_sized_slab::unmake<value_t>), this, std::placeholders::_1)));
     }
     else
     {
-	return std::make_pair(make_result::pool_full, std::shared_ptr<value_t>());
+	return std::make_pair(make_result::slab_full, std::shared_ptr<value_t>());
     }
 }
 
 template <class value_t>
-void pool::unmake(value_t* pointer)
+void concurrent_sized_slab::unmake(value_t* pointer)
 {
     pointer->~value_t();
     deallocate(pointer);

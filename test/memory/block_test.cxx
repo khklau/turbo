@@ -709,7 +709,7 @@ void sum_task<limit>::sum()
 
 TEST(block_test, parallel_use)
 {
-    tme::block pool1(sizeof(oct_short), 8192U, alignof(oct_short));
+    tme::block block1(sizeof(oct_short), 8192U, alignof(oct_short));
     std::unique_ptr<std::array<oct_short, 2048U>> input1(new std::array<oct_short, 2048U>());
     std::unique_ptr<std::array<oct_short, 2048U>> input2(new std::array<oct_short, 2048U>());
     std::unique_ptr<std::array<oct_short, 2048U>> input3(new std::array<oct_short, 2048U>());
@@ -791,10 +791,10 @@ TEST(block_test, parallel_use)
 	});
     }
     {
-	sum_task<2048U> sum1(pool1, *input1, *actual_output1);
-	sum_task<2048U> sum2(pool1, *input2, *actual_output2);
-	sum_task<2048U> sum3(pool1, *input3, *actual_output3);
-	sum_task<2048U> sum4(pool1, *input4, *actual_output4);
+	sum_task<2048U> sum1(block1, *input1, *actual_output1);
+	sum_task<2048U> sum2(block1, *input2, *actual_output2);
+	sum_task<2048U> sum3(block1, *input3, *actual_output3);
+	sum_task<2048U> sum4(block1, *input4, *actual_output4);
 	sum1.run();
 	sum2.run();
 	sum3.run();

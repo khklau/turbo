@@ -62,7 +62,7 @@ namespace tme = turbo::memory;
 
 TEST(leading_zero_index_test, empty_index)
 {
-    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::concurrent_sized_slab> trie_tester;
     trie_tester::branch_ptr root1;
     trie_tester::leading_zero_index index1(root1);
     trie_tester::trie_key key1(32768U);
@@ -85,7 +85,7 @@ TEST(leading_zero_index_test, empty_index)
 
 TEST(leading_zero_index_test, insert_invalid)
 {
-    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::concurrent_sized_slab> trie_tester;
     trie_tester::branch root1;
     trie_tester::branch_ptr root_ptr1(&root1);
     trie_tester::leading_zero_index index1(root_ptr1);
@@ -104,7 +104,7 @@ TEST(leading_zero_index_test, insert_invalid)
 
 TEST(leading_zero_index_test, insert_basic)
 {
-    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::concurrent_sized_slab> trie_tester;
     trie_tester::branch root1;
     trie_tester::branch_ptr root_ptr1(&root1);
     trie_tester::leading_zero_index index1(root_ptr1);
@@ -201,7 +201,7 @@ TEST(leading_zero_index_test, insert_basic)
 
 TEST(leading_zero_index_test, remove_invalid)
 {
-    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::pool> trie_tester;
+    typedef tco::bitwise_trie_tester<std::uint16_t, std::string, tme::concurrent_sized_slab> trie_tester;
     trie_tester::branch root1;
     trie_tester::branch_ptr root_ptr1(&root1);
     trie_tester::leading_zero_index index1(root_ptr1);
@@ -218,7 +218,7 @@ TEST(leading_zero_index_test, remove_invalid)
 
 TEST(leading_zero_index_test, remove_basic)
 {
-    typedef tco::bitwise_trie_tester<std::uint8_t, std::string, tme::pool> trie_tester;
+    typedef tco::bitwise_trie_tester<std::uint8_t, std::string, tme::concurrent_sized_slab> trie_tester;
     trie_tester::branch root1;
     trie_tester::branch_ptr root_ptr1(&root1);
     trie_tester::leading_zero_index index1(root_ptr1);
@@ -266,8 +266,8 @@ TEST(leading_zero_index_test, remove_basic)
 
 TEST(bitwise_trie_test, empty_trie)
 {
-    typedef tco::bitwise_trie<std::uint32_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint32_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     EXPECT_EQ(0U, map1.size()) << "Size of an empty trie is not 0";
     EXPECT_EQ(map1.cend(), map1.cbegin()) << "The cbegin and cend iterators of an empty trie are not equal";
@@ -288,8 +288,8 @@ TEST(bitwise_trie_test, empty_trie)
 
 TEST(bitwise_trie_test, emplace_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     auto result1 = map1.emplace(64U, "bar");
     EXPECT_TRUE(std::get<1>(result1)) << "Emplace failed";
@@ -305,8 +305,8 @@ TEST(bitwise_trie_test, emplace_invalid)
 
 TEST(bitwise_trie_test, emplace_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     auto result1 = map1.emplace(64U, "bar");
     EXPECT_TRUE(std::get<1>(result1)) << "Emplace failed";
@@ -339,8 +339,8 @@ TEST(bitwise_trie_test, emplace_basic)
 
 TEST(bitwise_trie_test, begin_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(255U, "foo");
     auto iter1a = map1.cbegin();
@@ -361,8 +361,8 @@ TEST(bitwise_trie_test, begin_basic)
 
 TEST(bitwise_trie_test, find_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(32U, "foo");
     map1.emplace(64U, "bar");
@@ -392,8 +392,8 @@ TEST(bitwise_trie_test, find_invalid)
 
 TEST(bitwise_trie_test, find_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(64U, "bar");
     map1.emplace(32U, "foo");
@@ -418,8 +418,8 @@ TEST(bitwise_trie_test, find_basic)
 
 TEST(bitwise_trie_test, forward_successor_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -446,8 +446,8 @@ TEST(bitwise_trie_test, forward_successor_invalid)
 
 TEST(bitwise_trie_test, forward_successor_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -474,8 +474,8 @@ TEST(bitwise_trie_test, forward_successor_basic)
 
 TEST(bitwise_trie_test, forward_predecessor_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -506,8 +506,8 @@ TEST(bitwise_trie_test, forward_predecessor_invalid)
 
 TEST(bitwise_trie_test, forward_predecessor_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -540,8 +540,8 @@ TEST(bitwise_trie_test, forward_predecessor_basic)
 
 TEST(bitwise_trie_test, reverse_successor_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -568,8 +568,8 @@ TEST(bitwise_trie_test, reverse_successor_invalid)
 
 TEST(bitwise_trie_test, reverse_successor_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -600,8 +600,8 @@ TEST(bitwise_trie_test, reverse_successor_basic)
 
 TEST(bitwise_trie_test, reverse_predecessor_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -632,8 +632,8 @@ TEST(bitwise_trie_test, reverse_predecessor_invalid)
 
 TEST(bitwise_trie_test, reverse_predecessor_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(0U, "foo");
     map1.emplace(128U, "bar");
@@ -666,8 +666,8 @@ TEST(bitwise_trie_test, reverse_predecessor_basic)
 
 TEST(bitwise_trie_test, find_less_equal_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(1U, "foo");
     map1.emplace(32U, "bar");
@@ -686,8 +686,8 @@ TEST(bitwise_trie_test, find_less_equal_invalid)
 
 TEST(bitwise_trie_test, find_less_equal_basic)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(64U, "bar");
     map1.emplace(32U, "foo");
@@ -742,9 +742,9 @@ TEST(bitwise_trie_test, find_less_equal_basic)
 
 TEST(bitwise_trie_test, erase_invalid)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_map;
-    typedef tco::bitwise_trie_tester<std::uint8_t, std::string, tme::pool> map_tester;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_map;
+    typedef tco::bitwise_trie_tester<std::uint8_t, std::string, tme::concurrent_sized_slab> map_tester;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
     string_map map1(allocator1);
     map1.emplace(1U, "foo");
     map1.emplace(32U, "bar");
@@ -790,9 +790,9 @@ TEST(bitwise_trie_test, erase_invalid)
 
 TEST(bitwise_trie_test, erase_basic)
 {
-    typedef tco::bitwise_trie<std::uint64_t, std::string, tme::pool> string_map;
-    typedef tco::bitwise_trie_tester<std::uint64_t, std::string, tme::pool> map_tester;
-    tme::pool allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint64_t, std::string, tme::concurrent_sized_slab> string_map;
+    typedef tco::bitwise_trie_tester<std::uint64_t, std::string, tme::concurrent_sized_slab> map_tester;
+    tme::concurrent_sized_slab allocator1(8U, { {string_map::node_sizes[0], 8U}, {string_map::node_sizes[1], 8U} });
 
     string_map map1(allocator1);
     map_tester tester1(map1);
@@ -842,9 +842,9 @@ TEST(bitwise_trie_test, erase_basic)
 
 TEST(bitwise_trie_test, emplace_erase_reuse)
 {
-    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint64_map;
-    typedef tco::bitwise_trie_tester<std::uint64_t, std::uint64_t, tme::pool> map_tester;
-    tme::pool allocator1(8U, { {uint64_map::node_sizes[0], 8U}, {uint64_map::node_sizes[1], 15U} });
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::concurrent_sized_slab> uint64_map;
+    typedef tco::bitwise_trie_tester<std::uint64_t, std::uint64_t, tme::concurrent_sized_slab> map_tester;
+    tme::concurrent_sized_slab allocator1(8U, { {uint64_map::node_sizes[0], 8U}, {uint64_map::node_sizes[1], 15U} });
 
     uint64_map map1(allocator1);
     map_tester tester1(map1);
@@ -900,23 +900,23 @@ TEST(bitwise_trie_test, emplace_erase_reuse)
 
 TEST(bitwise_trie_test, copy_construct)
 {
-    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::pool> string_trie;
-    tme::pool allocator1(8U, { {string_trie::node_sizes[0], 8U}, {string_trie::node_sizes[1], 8U} });
-    tme::pool allocator2(8U, { {string_trie::node_sizes[0], 8U}, {string_trie::node_sizes[1], 8U} });
+    typedef tco::bitwise_trie<std::uint8_t, std::string, tme::concurrent_sized_slab> string_trie;
+    tme::concurrent_sized_slab allocator1(8U, { {string_trie::node_sizes[0], 8U}, {string_trie::node_sizes[1], 8U} });
+    tme::concurrent_sized_slab allocator2(8U, { {string_trie::node_sizes[0], 8U}, {string_trie::node_sizes[1], 8U} });
     string_trie map1(allocator1);
     map1.emplace(64U, "bar");
     map1.emplace(32U, "foo");
     map1.emplace(128U, "blah");
     EXPECT_EQ(3U, map1.size()) << "Size of trie after 3 emplace is not 3";
     string_trie map2(map1, &allocator2);
-    EXPECT_FALSE(allocator1 == allocator2) << "Memory pools should not be equal because they contain points to different values";
+    EXPECT_FALSE(allocator1 == allocator2) << "Memory slabs should not be equal because they contain points to different values";
     EXPECT_TRUE(map1 == map2) << "Copy constructed bitwise trie is not equal to the original";
 }
 
 class bitwise_trie_emplace_perf_test : public ::testing::Test
 {
 public:
-    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_trie;
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::concurrent_sized_slab> uint_trie;
     typedef std::map<std::uint64_t, std::uint64_t> uint_map;
     bitwise_trie_emplace_perf_test()
 	:
@@ -937,7 +937,7 @@ public:
 	}
     }
 protected:
-    tme::pool allocator1;
+    tme::concurrent_sized_slab allocator1;
     uint_trie trie;
     uint_map map;
     std::vector<std::uint64_t> values;
@@ -976,7 +976,7 @@ TEST_F(bitwise_trie_emplace_perf_test, perf_test_map_emplace)
 class bitwise_trie_find_perf_test : public ::testing::Test
 {
 public:
-    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_trie;
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::concurrent_sized_slab> uint_trie;
     typedef std::map<std::uint64_t, std::uint64_t, std::greater_equal<std::uint64_t>> uint_map;
     bitwise_trie_find_perf_test()
 	:
@@ -996,7 +996,7 @@ public:
 	}
     }
 protected:
-    tme::pool allocator;
+    tme::concurrent_sized_slab allocator;
     uint_trie trie;
     uint_map map;
     std::vector<std::uint64_t> values;
@@ -1026,7 +1026,7 @@ TEST_F(bitwise_trie_find_perf_test, perf_test_map_find)
 class bitwise_trie_find_less_equal_perf_test : public ::testing::Test
 {
 public:
-    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_trie;
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::concurrent_sized_slab> uint_trie;
     typedef std::map<std::uint64_t, std::uint64_t, std::greater_equal<std::uint64_t>> uint_map;
     bitwise_trie_find_less_equal_perf_test()
 	:
@@ -1059,7 +1059,7 @@ public:
 	}
     }
 protected:
-    tme::pool allocator;
+    tme::concurrent_sized_slab allocator;
     uint_trie trie;
     uint_map map;
     std::vector<std::uint64_t> input;
@@ -1096,7 +1096,7 @@ TEST_F(bitwise_trie_find_less_equal_perf_test, perf_test_map_find_less_equal)
 class bitwise_trie_erase_perf_test : public ::testing::Test
 {
 public:
-    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::pool> uint_trie;
+    typedef tco::bitwise_trie<std::uint64_t, std::uint64_t, tme::concurrent_sized_slab> uint_trie;
     typedef std::map<std::uint64_t, std::uint64_t> uint_map;
     bitwise_trie_erase_perf_test()
 	:
@@ -1115,7 +1115,7 @@ public:
 	}
     }
 protected:
-    tme::pool allocator;
+    tme::concurrent_sized_slab allocator;
     uint_trie trie;
     uint_map map;
     std::vector<std::uint64_t> input;

@@ -34,14 +34,14 @@ public:
     void free(void* ptr);
     friend class untyped_allocator_tester;
 private:
-    typedef turbo::container::bitwise_trie<std::uintptr_t, std::size_t, turbo::memory::pool> trie_type;
+    typedef turbo::container::bitwise_trie<std::uintptr_t, std::size_t, turbo::memory::concurrent_sized_slab> trie_type;
     untyped_allocator() = delete;
     untyped_allocator(untyped_allocator&&) = delete;
     untyped_allocator& operator=(untyped_allocator&&) = delete;
     static std::vector<turbo::memory::block_config> derive_trie_config(const std::vector<turbo::memory::block_config>& alloc_config);
     void init_address_map();
-    turbo::memory::pool allocation_pool_;
-    turbo::memory::pool trie_pool_;
+    turbo::memory::concurrent_sized_slab allocation_slab_;
+    turbo::memory::concurrent_sized_slab trie_slab_;
     trie_type address_map_;
 };
 

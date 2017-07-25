@@ -17,19 +17,19 @@
 namespace turbo {
 namespace memory {
 
-class pool_tester
+class concurrent_sized_slab_tester
 {
 public:
-    pool_tester(pool& a_pool)
+    concurrent_sized_slab_tester(concurrent_sized_slab& a_slab)
 	:
-	    pool_(a_pool)
+	    slab_(a_slab)
     { }
     inline std::size_t find_block_bucket(std::size_t allocation_size) const
     {
-	return pool_.find_block_bucket(allocation_size);
+	return slab_.find_block_bucket(allocation_size);
     }
 private:
-    pool& pool_;
+    concurrent_sized_slab& slab_;
 };
 
 } // namespace memory
@@ -115,10 +115,10 @@ void random_spin()
     for (std::uint64_t iter = 0U; iter < limit; ++iter) { };
 }
 
-TEST(pool_test, find_block_bucket_basic)
+TEST(concurrent_sized_slab_test, find_block_bucket_basic)
 {
-    tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} });
-    tme::pool_tester tester1(pool1);
+    tme::concurrent_sized_slab slab1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} });
+    tme::concurrent_sized_slab_tester tester1(slab1);
     EXPECT_EQ(0U, tester1.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
     EXPECT_EQ(0U, tester1.find_block_bucket(2U)) << "Unexpected bucket with bucket size parameter of 2U";
     EXPECT_EQ(1U, tester1.find_block_bucket(3U)) << "Unexpected bucket with bucket size parameter of 3U";
@@ -130,8 +130,8 @@ TEST(pool_test, find_block_bucket_basic)
     EXPECT_EQ(4U, tester1.find_block_bucket(17U)) << "Unexpected bucket with bucket size parameter of 32U";
     EXPECT_EQ(4U, tester1.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
 
-    tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} });
-    tme::pool_tester tester2(pool2);
+    tme::concurrent_sized_slab slab2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} });
+    tme::concurrent_sized_slab_tester tester2(slab2);
     EXPECT_EQ(0U, tester2.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
     EXPECT_EQ(0U, tester2.find_block_bucket(8U)) << "Unexpected bucket with bucket size parameter of 8U";
     EXPECT_EQ(1U, tester2.find_block_bucket(9U)) << "Unexpected bucket with bucket size parameter of 9U";
@@ -143,8 +143,8 @@ TEST(pool_test, find_block_bucket_basic)
     EXPECT_EQ(4U, tester2.find_block_bucket(65U)) << "Unexpected bucket with bucket size parameter of 128U";
     EXPECT_EQ(4U, tester2.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
 
-    tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} });
-    tme::pool_tester tester3(pool3);
+    tme::concurrent_sized_slab slab3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} });
+    tme::concurrent_sized_slab_tester tester3(slab3);
     EXPECT_EQ(0U, tester3.find_block_bucket(1U)) << "Unexpected bucket with bucket size parameter of 1U";
     EXPECT_EQ(0U, tester3.find_block_bucket(32U)) << "Unexpected bucket with bucket size parameter of 32U";
     EXPECT_EQ(1U, tester3.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
@@ -153,51 +153,51 @@ TEST(pool_test, find_block_bucket_basic)
     EXPECT_EQ(2U, tester3.find_block_bucket(128U)) << "Unexpected bucket with bucket size parameter of 128U";
 }
 
-TEST(pool_test, find_block_bucket_invalid)
+TEST(concurrent_sized_slab_test, find_block_bucket_invalid)
 {
-    tme::pool pool1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} });
-    tme::pool_tester tester1(pool1);
+    tme::concurrent_sized_slab slab1(16U, { {2U, 16U}, {8U, 16U}, {32U, 16U} });
+    tme::concurrent_sized_slab_tester tester1(slab1);
     EXPECT_EQ(0U, tester1.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
     EXPECT_EQ(5U, tester1.find_block_bucket(33U)) << "Unexpected bucket with bucket size parameter of 33U";
 
-    tme::pool pool2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} });
-    tme::pool_tester tester2(pool2);
+    tme::concurrent_sized_slab slab2(16U, { {8U, 16U}, {32U, 16U}, {128U, 16U} });
+    tme::concurrent_sized_slab_tester tester2(slab2);
     EXPECT_EQ(0U, tester2.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
     EXPECT_EQ(5U, tester2.find_block_bucket(129U)) << "Unexpected bucket with bucket size parameter of 129U";
 
-    tme::pool pool3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} });
-    tme::pool_tester tester3(pool3);
+    tme::concurrent_sized_slab slab3(8U, { {32U, 16U}, {64U, 16U}, {128U, 16U}, {256U, 16U} });
+    tme::concurrent_sized_slab_tester tester3(slab3);
     EXPECT_EQ(0U, tester3.find_block_bucket(0U)) << "Unexpected bucket with bucket size parameter of 0U";
     EXPECT_EQ(4U, tester3.find_block_bucket(257U)) << "Unexpected bucket with bucket size parameter of 257U";
 }
 
 template <class value_t, std::size_t limit>
-class pool_producer_task
+class concurrent_sized_slab_producer_task
 {
 public:
     typedef tco::mpmc_ring_queue<value_t*> queue;
-    pool_producer_task(typename queue::producer& producer, tme::pool& pool, const std::array<value_t, limit>& input);
-    ~pool_producer_task() noexcept;
+    concurrent_sized_slab_producer_task(typename queue::producer& producer, tme::concurrent_sized_slab& slab, const std::array<value_t, limit>& input);
+    ~concurrent_sized_slab_producer_task() noexcept;
     void run();
     void produce();
 private:
     typename queue::producer& producer_;
-    tme::pool& pool_;
+    tme::concurrent_sized_slab& slab_;
     const std::array<value_t, limit>& input_;
     std::thread* thread_;
 };
 
 template <class value_t, std::size_t limit>
-pool_producer_task<value_t, limit>::pool_producer_task(typename queue::producer& producer, tme::pool& pool, const std::array<value_t, limit>& input)
+concurrent_sized_slab_producer_task<value_t, limit>::concurrent_sized_slab_producer_task(typename queue::producer& producer, tme::concurrent_sized_slab& slab, const std::array<value_t, limit>& input)
     :
 	producer_(producer),
-	pool_(pool),
+	slab_(slab),
 	input_(input),
 	thread_(nullptr)
 { }
 
 template <class value_t, std::size_t limit>
-pool_producer_task<value_t, limit>::~pool_producer_task() noexcept
+concurrent_sized_slab_producer_task<value_t, limit>::~concurrent_sized_slab_producer_task() noexcept
 {
     try
     {
@@ -215,21 +215,21 @@ pool_producer_task<value_t, limit>::~pool_producer_task() noexcept
 }
 
 template <class value_t, std::size_t limit>
-void pool_producer_task<value_t, limit>::run()
+void concurrent_sized_slab_producer_task<value_t, limit>::run()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&pool_producer_task::produce, this));
+	std::function<void ()> entry(std::bind(&concurrent_sized_slab_producer_task::produce, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class value_t, std::size_t limit>
-void pool_producer_task<value_t, limit>::produce()
+void concurrent_sized_slab_producer_task<value_t, limit>::produce()
 {
     for (auto input_iter = input_.cbegin(); input_iter != input_.cend();)
     {
-	value_t* result = pool_.allocate<value_t>();
+	value_t* result = slab_.allocate<value_t>();
 	if (result != nullptr)
 	{
 	    new (result) value_t(*input_iter);
@@ -248,38 +248,38 @@ void pool_producer_task<value_t, limit>::produce()
 	}
 	else
 	{
-	    std::cerr << "ERROR: pool allocation failed" << std::endl;
+	    std::cerr << "ERROR: slab allocation failed" << std::endl;
 	}
     }
 }
 
 template <class value_t, std::size_t limit>
-class pool_consumer_task
+class concurrent_sized_slab_consumer_task
 {
 public:
     typedef tco::mpmc_ring_queue<value_t*> queue;
-    pool_consumer_task(typename queue::consumer& consumer, tme::pool& pool, std::array<value_t, limit>& output);
-    ~pool_consumer_task() noexcept;
+    concurrent_sized_slab_consumer_task(typename queue::consumer& consumer, tme::concurrent_sized_slab& slab, std::array<value_t, limit>& output);
+    ~concurrent_sized_slab_consumer_task() noexcept;
     void run();
     void consume();
 private:
     typename queue::consumer& consumer_;
-    tme::pool& pool_;
+    tme::concurrent_sized_slab& slab_;
     std::array<value_t, limit>& output_;
     std::thread* thread_;
 };
 
 template <class value_t, std::size_t limit>
-pool_consumer_task<value_t, limit>::pool_consumer_task(typename queue::consumer& consumer, tme::pool& pool, std::array<value_t, limit>& output)
+concurrent_sized_slab_consumer_task<value_t, limit>::concurrent_sized_slab_consumer_task(typename queue::consumer& consumer, tme::concurrent_sized_slab& slab, std::array<value_t, limit>& output)
     :
 	consumer_(consumer),
-	pool_(pool),
+	slab_(slab),
 	output_(output),
 	thread_(nullptr)
 { }
 
 template <class value_t, std::size_t limit>
-pool_consumer_task<value_t, limit>::~pool_consumer_task() noexcept
+concurrent_sized_slab_consumer_task<value_t, limit>::~concurrent_sized_slab_consumer_task() noexcept
 {
     try
     {
@@ -297,17 +297,17 @@ pool_consumer_task<value_t, limit>::~pool_consumer_task() noexcept
 }
 
 template <class value_t, std::size_t limit>
-void pool_consumer_task<value_t, limit>::run()
+void concurrent_sized_slab_consumer_task<value_t, limit>::run()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&pool_consumer_task::consume, this));
+	std::function<void ()> entry(std::bind(&concurrent_sized_slab_consumer_task::consume, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class value_t, std::size_t limit>
-void pool_consumer_task<value_t, limit>::consume()
+void concurrent_sized_slab_consumer_task<value_t, limit>::consume()
 {
     for (auto output_iter = output_.begin(); output_iter != output_.end();)
     {
@@ -319,7 +319,7 @@ void pool_consumer_task<value_t, limit>::consume()
 		*output_iter = *tmp;
 		random_spin();
 		tmp->~value_t();
-		pool_.deallocate<value_t>(tmp);
+		slab_.deallocate<value_t>(tmp);
 		++output_iter;
 		return tar::try_state::done;
 	    }
@@ -331,11 +331,11 @@ void pool_consumer_task<value_t, limit>::consume()
     }
 }
 
-TEST(pool_test, pool_message_pass_string)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_message_pass_string)
 {
     typedef tco::mpmc_ring_queue<std::string*> string_queue;
     string_queue queue1(8U, 4U);
-    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::string), 2U} });
     std::unique_ptr<std::array<std::string, 8192U>> expected_output(new std::array<std::string, 8192U>());
     std::unique_ptr<std::array<std::string, 2048U>> input1(new std::array<std::string, 2048U>());
     std::unique_ptr<std::array<std::string, 2048U>> input2(new std::array<std::string, 2048U>());
@@ -382,14 +382,14 @@ TEST(pool_test, pool_message_pass_string)
 	(*expected_output)[counter4 + 6144U] = ostream.str();
     }
     {
-	pool_producer_task<std::string, 2048U> producer1(queue1.get_producer(), pool1, *input1);
-	pool_producer_task<std::string, 2048U> producer2(queue1.get_producer(), pool1, *input2);
-	pool_producer_task<std::string, 2048U> producer3(queue1.get_producer(), pool1, *input3);
-	pool_producer_task<std::string, 2048U> producer4(queue1.get_producer(), pool1, *input4);
-	pool_consumer_task<std::string, 2048U> consumer1(queue1.get_consumer(), pool1, *output1);
-	pool_consumer_task<std::string, 2048U> consumer2(queue1.get_consumer(), pool1, *output2);
-	pool_consumer_task<std::string, 2048U> consumer3(queue1.get_consumer(), pool1, *output3);
-	pool_consumer_task<std::string, 2048U> consumer4(queue1.get_consumer(), pool1, *output4);
+	concurrent_sized_slab_producer_task<std::string, 2048U> producer1(queue1.get_producer(), slab1, *input1);
+	concurrent_sized_slab_producer_task<std::string, 2048U> producer2(queue1.get_producer(), slab1, *input2);
+	concurrent_sized_slab_producer_task<std::string, 2048U> producer3(queue1.get_producer(), slab1, *input3);
+	concurrent_sized_slab_producer_task<std::string, 2048U> producer4(queue1.get_producer(), slab1, *input4);
+	concurrent_sized_slab_consumer_task<std::string, 2048U> consumer1(queue1.get_consumer(), slab1, *output1);
+	concurrent_sized_slab_consumer_task<std::string, 2048U> consumer2(queue1.get_consumer(), slab1, *output2);
+	concurrent_sized_slab_consumer_task<std::string, 2048U> consumer3(queue1.get_consumer(), slab1, *output3);
+	concurrent_sized_slab_consumer_task<std::string, 2048U> consumer4(queue1.get_consumer(), slab1, *output4);
 	producer4.run();
 	consumer1.run();
 	producer3.run();
@@ -433,11 +433,11 @@ TEST(pool_test, pool_message_pass_string)
     }
 }
 
-TEST(pool_test, pool_message_pass_record)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_message_pass_record)
 {
     typedef tco::mpmc_ring_queue<record*> record_queue;
     record_queue queue1(8U, 4U);
-    tme::pool pool1(2U, { {sizeof(record), 2U} });
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(record), 2U} });
     std::unique_ptr<std::array<record, 8192U>> expected_output(new std::array<record, 8192U>());
     std::unique_ptr<std::array<record, 2048U>> input1(new std::array<record, 2048U>());
     std::unique_ptr<std::array<record, 2048U>> input2(new std::array<record, 2048U>());
@@ -476,14 +476,14 @@ TEST(pool_test, pool_message_pass_record)
 	(*expected_output)[counter4 + 6144U] = tmp;
     }
     {
-	pool_producer_task<record, 2048U> producer1(queue1.get_producer(), pool1, *input1);
-	pool_producer_task<record, 2048U> producer2(queue1.get_producer(), pool1, *input2);
-	pool_producer_task<record, 2048U> producer3(queue1.get_producer(), pool1, *input3);
-	pool_producer_task<record, 2048U> producer4(queue1.get_producer(), pool1, *input4);
-	pool_consumer_task<record, 2048U> consumer1(queue1.get_consumer(), pool1, *output1);
-	pool_consumer_task<record, 2048U> consumer2(queue1.get_consumer(), pool1, *output2);
-	pool_consumer_task<record, 2048U> consumer3(queue1.get_consumer(), pool1, *output3);
-	pool_consumer_task<record, 2048U> consumer4(queue1.get_consumer(), pool1, *output4);
+	concurrent_sized_slab_producer_task<record, 2048U> producer1(queue1.get_producer(), slab1, *input1);
+	concurrent_sized_slab_producer_task<record, 2048U> producer2(queue1.get_producer(), slab1, *input2);
+	concurrent_sized_slab_producer_task<record, 2048U> producer3(queue1.get_producer(), slab1, *input3);
+	concurrent_sized_slab_producer_task<record, 2048U> producer4(queue1.get_producer(), slab1, *input4);
+	concurrent_sized_slab_consumer_task<record, 2048U> consumer1(queue1.get_consumer(), slab1, *output1);
+	concurrent_sized_slab_consumer_task<record, 2048U> consumer2(queue1.get_consumer(), slab1, *output2);
+	concurrent_sized_slab_consumer_task<record, 2048U> consumer3(queue1.get_consumer(), slab1, *output3);
+	concurrent_sized_slab_consumer_task<record, 2048U> consumer4(queue1.get_consumer(), slab1, *output4);
 	producer4.run();
 	consumer1.run();
 	producer3.run();
@@ -528,15 +528,15 @@ TEST(pool_test, pool_message_pass_record)
 }
 
 template <class input_t, class output_t, std::size_t limit>
-class pool_user_task
+class concurrent_sized_slab_user_task
 {
 public:
-    pool_user_task(tme::pool& pool, const std::array<input_t, limit>& input, std::array<output_t, limit>& output, const std::function<output_t (const input_t&)>& process);
-    ~pool_user_task() noexcept;
+    concurrent_sized_slab_user_task(tme::concurrent_sized_slab& slab, const std::array<input_t, limit>& input, std::array<output_t, limit>& output, const std::function<output_t (const input_t&)>& process);
+    ~concurrent_sized_slab_user_task() noexcept;
     void run();
     void use();
 private:
-    tme::pool& pool_;
+    tme::concurrent_sized_slab& slab_;
     const std::array<input_t, limit>& input_;
     std::array<output_t, limit>& output_;
     const std::function<output_t (const input_t&)>& process_;
@@ -544,13 +544,13 @@ private:
 };
 
 template <class input_t, class output_t, std::size_t limit>
-pool_user_task<input_t, output_t, limit>::pool_user_task(
-	tme::pool& pool,
+concurrent_sized_slab_user_task<input_t, output_t, limit>::concurrent_sized_slab_user_task(
+	tme::concurrent_sized_slab& slab,
 	const std::array<input_t, limit>& input,
 	std::array<output_t, limit>& output,
 	const std::function<output_t (const input_t&)>& process)
     :
-	pool_(pool),
+	slab_(slab),
 	input_(input),
 	output_(output),
 	process_(process),
@@ -558,7 +558,7 @@ pool_user_task<input_t, output_t, limit>::pool_user_task(
 { }
 
 template <class input_t, class output_t, std::size_t limit>
-pool_user_task<input_t, output_t, limit>::~pool_user_task() noexcept
+concurrent_sized_slab_user_task<input_t, output_t, limit>::~concurrent_sized_slab_user_task() noexcept
 {
     try
     {
@@ -576,21 +576,21 @@ pool_user_task<input_t, output_t, limit>::~pool_user_task() noexcept
 }
 
 template <class input_t, class output_t, std::size_t limit>
-void pool_user_task<input_t, output_t, limit>::run()
+void concurrent_sized_slab_user_task<input_t, output_t, limit>::run()
 {
     if (!thread_)
     {
-	std::function<void ()> entry(std::bind(&pool_user_task::use, this));
+	std::function<void ()> entry(std::bind(&concurrent_sized_slab_user_task::use, this));
 	thread_ = new std::thread(entry);
     }
 }
 
 template <class input_t, class output_t, std::size_t limit>
-void pool_user_task<input_t, output_t, limit>::use()
+void concurrent_sized_slab_user_task<input_t, output_t, limit>::use()
 {
     for (auto iter = 0U; iter < limit; ++iter)
     {
-	input_t* result = pool_.allocate<input_t>();
+	input_t* result = slab_.allocate<input_t>();
 	if (result != nullptr)
 	{
 	    random_spin();
@@ -598,18 +598,18 @@ void pool_user_task<input_t, output_t, limit>::use()
 	    output_[iter] = process_(*result);
 	    random_spin();
 	    result->~input_t();
-	    pool_.deallocate<input_t>(result);
+	    slab_.deallocate<input_t>(result);
 	}
 	else
 	{
-	    std::cerr << "ERROR: pool allocation failed" << std::endl;
+	    std::cerr << "ERROR: slab allocation failed" << std::endl;
 	}
     }
 }
 
-TEST(pool_test, pool_parallel_use_string)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_parallel_use_string)
 {
-    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::string), 2U} });
     std::unique_ptr<std::array<std::string, 2048U>> input1(new std::array<std::string, 2048U>());
     std::unique_ptr<std::array<std::string, 2048U>> input2(new std::array<std::string, 2048U>());
     std::unique_ptr<std::array<std::string, 2048U>> input3(new std::array<std::string, 2048U>());
@@ -669,10 +669,10 @@ TEST(pool_test, pool_parallel_use_string)
 	    std::copy(input.crbegin(), input.crend(), output.begin());
 	    return std::move(output);
 	};
-	pool_user_task<std::string, std::string, 2048U> task1(pool1, *input1, *actual_output1, process);
-	pool_user_task<std::string, std::string, 2048U> task2(pool1, *input2, *actual_output2, process);
-	pool_user_task<std::string, std::string, 2048U> task3(pool1, *input3, *actual_output3, process);
-	pool_user_task<std::string, std::string, 2048U> task4(pool1, *input4, *actual_output4, process);
+	concurrent_sized_slab_user_task<std::string, std::string, 2048U> task1(slab1, *input1, *actual_output1, process);
+	concurrent_sized_slab_user_task<std::string, std::string, 2048U> task2(slab1, *input2, *actual_output2, process);
+	concurrent_sized_slab_user_task<std::string, std::string, 2048U> task3(slab1, *input3, *actual_output3, process);
+	concurrent_sized_slab_user_task<std::string, std::string, 2048U> task4(slab1, *input4, *actual_output4, process);
 	task1.run();
 	task2.run();
 	task3.run();
@@ -712,9 +712,9 @@ TEST(pool_test, pool_parallel_use_string)
     }
 }
 
-TEST(pool_test, pool_parallel_use_octshort)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_parallel_use_octshort)
 {
-    tme::pool pool1(2U, { {sizeof(oct_short), 2U} });
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(oct_short), 2U} });
     std::unique_ptr<std::array<oct_short, 2048U>> input1(new std::array<oct_short, 2048U>());
     std::unique_ptr<std::array<oct_short, 2048U>> input2(new std::array<oct_short, 2048U>());
     std::unique_ptr<std::array<oct_short, 2048U>> input3(new std::array<oct_short, 2048U>());
@@ -805,10 +805,10 @@ TEST(pool_test, pool_parallel_use_octshort)
 	    });
 	    return output;
 	};
-	pool_user_task<oct_short, std::uint32_t, 2048U> task1(pool1, *input1, *actual_output1, process);
-	pool_user_task<oct_short, std::uint32_t, 2048U> task2(pool1, *input2, *actual_output2, process);
-	pool_user_task<oct_short, std::uint32_t, 2048U> task3(pool1, *input3, *actual_output3, process);
-	pool_user_task<oct_short, std::uint32_t, 2048U> task4(pool1, *input4, *actual_output4, process);
+	concurrent_sized_slab_user_task<oct_short, std::uint32_t, 2048U> task1(slab1, *input1, *actual_output1, process);
+	concurrent_sized_slab_user_task<oct_short, std::uint32_t, 2048U> task2(slab1, *input2, *actual_output2, process);
+	concurrent_sized_slab_user_task<oct_short, std::uint32_t, 2048U> task3(slab1, *input3, *actual_output3, process);
+	concurrent_sized_slab_user_task<oct_short, std::uint32_t, 2048U> task4(slab1, *input4, *actual_output4, process);
 	task1.run();
 	task2.run();
 	task3.run();
@@ -848,339 +848,339 @@ TEST(pool_test, pool_parallel_use_octshort)
     }
 }
 
-TEST(pool_test, allocate_invalid)
+TEST(concurrent_sized_slab_test, allocate_invalid)
 {
-    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
-    EXPECT_EQ(nullptr, pool1.allocate<std::string>(0U)) << "Allocating a quantity of 0 succeeded";
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::string), 2U} });
+    EXPECT_EQ(nullptr, slab1.allocate<std::string>(0U)) << "Allocating a quantity of 0 succeeded";
 }
 
-TEST(pool_test, malloc_invalid)
+TEST(concurrent_sized_slab_test, malloc_invalid)
 {
-    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
-    EXPECT_EQ(nullptr, pool1.malloc(0U)) << "Allocating a quantity of 0 succeeded";
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::string), 2U} });
+    EXPECT_EQ(nullptr, slab1.malloc(0U)) << "Allocating a quantity of 0 succeeded";
 }
 
-TEST(pool_test, pool_copy_construction)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_copy_construction)
 {
-    tme::pool pool1(2U, { {sizeof(std::string), 2U} });
-    auto result1a = pool1.make_unique<std::string>("abc123");
-    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("abc123"), *result1a.second) << "String in memory pool didn't initialise";
-    auto result1b = pool1.make_unique<std::string>("xyz789");
-    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("xyz789"), *result1b.second) << "String in memory pool didn't initialise";
-    tme::pool pool2(pool1);
-    EXPECT_TRUE(pool1 == pool2) << "Copy constructed pool is not equal to the original";
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::string), 2U} });
+    auto result1a = slab1.make_unique<std::string>("abc123");
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("abc123"), *result1a.second) << "String in memory slab didn't initialise";
+    auto result1b = slab1.make_unique<std::string>("xyz789");
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("xyz789"), *result1b.second) << "String in memory slab didn't initialise";
+    tme::concurrent_sized_slab slab2(slab1);
+    EXPECT_TRUE(slab1 == slab2) << "Copy constructed slab is not equal to the original";
 
-    tme::pool pool3(2U, { {sizeof(std::string), 2U} });
-    auto result3a = pool3.make_unique<std::string>("abc321");
-    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("abc321"), *result3a.second) << "String in memory pool didn't initialise";
-    auto result3b = pool3.make_unique<std::string>("xyz987");
-    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("xyz987"), *result3b.second) << "String in memory pool didn't initialise";
-    auto result3c = pool3.make_unique<std::string>("lmn654");
-    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("lmn654"), *result3c.second) << "String in memory pool didn't initialise";
-    auto result3d = pool3.make_unique<std::string>("!@#000");
-    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("!@#000"), *result3d.second) << "String in memory pool didn't initialise";
-    auto result3e = pool3.make_unique<std::string>("   ");
-    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique pool string failed";
-    EXPECT_EQ(std::string("   "), *result3e.second) << "String in memory pool didn't initialise";
-    tme::pool pool4(pool3);
-    EXPECT_TRUE(pool3 == pool4) << "Copy constructed pool is not equal to the original";
+    tme::concurrent_sized_slab slab3(2U, { {sizeof(std::string), 2U} });
+    auto result3a = slab3.make_unique<std::string>("abc321");
+    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("abc321"), *result3a.second) << "String in memory slab didn't initialise";
+    auto result3b = slab3.make_unique<std::string>("xyz987");
+    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("xyz987"), *result3b.second) << "String in memory slab didn't initialise";
+    auto result3c = slab3.make_unique<std::string>("lmn654");
+    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("lmn654"), *result3c.second) << "String in memory slab didn't initialise";
+    auto result3d = slab3.make_unique<std::string>("!@#000");
+    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("!@#000"), *result3d.second) << "String in memory slab didn't initialise";
+    auto result3e = slab3.make_unique<std::string>("   ");
+    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("   "), *result3e.second) << "String in memory slab didn't initialise";
+    tme::concurrent_sized_slab slab4(slab3);
+    EXPECT_TRUE(slab3 == slab4) << "Copy constructed slab is not equal to the original";
 }
 
-TEST(pool_test, pool_copy_assignment_same_length)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_copy_assignment_same_length)
 {
-    tme::pool pool1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    auto result1a = pool1.make_unique<std::uint64_t>(123U);
-    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
-    EXPECT_EQ(123U, *result1a.second) << "String in memory pool didn't initialise";
-    auto result1b = pool1.make_unique<std::uint64_t>(789U);
-    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
-    EXPECT_EQ(789U, *result1b.second) << "String in memory pool didn't initialise";
-    auto result1c = pool1.make_unique<std::uint16_t>(123U);
-    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique pool string failed";
-    EXPECT_EQ(123U, *result1c.second) << "String in memory pool didn't initialise";
-    auto result1d = pool1.make_unique<std::uint16_t>(789U);
-    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique pool string failed";
-    EXPECT_EQ(789U, *result1d.second) << "String in memory pool didn't initialise";
-    tme::pool pool2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    auto result2a = pool2.make_unique<std::uint64_t>(456U);
-    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique pool string failed";
-    EXPECT_EQ(456U, *result2a.second) << "String in memory pool didn't initialise";
-    auto result2b = pool2.make_unique<std::uint64_t>(0U);
-    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique pool string failed";
-    EXPECT_EQ(0U, *result2b.second) << "String in memory pool didn't initialise";
-    auto result2c = pool2.make_unique<std::uint16_t>(456U);
-    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique pool string failed";
-    EXPECT_EQ(456U, *result2c.second) << "String in memory pool didn't initialise";
-    auto result2d = pool2.make_unique<std::uint16_t>(0U);
-    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique pool string failed";
-    EXPECT_EQ(0U, *result2d.second) << "String in memory pool didn't initialise";
-    pool2 = pool1;
-    EXPECT_TRUE(pool1 == pool2) << "Copy assigned pool is not equal to the original";
-    EXPECT_EQ(123U, *result2a.second) << "Memory blocks in pool weren't copied during assignment";
-    EXPECT_EQ(789U, *result2b.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(123U, *result2c.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(789U, *result2d.second) << "String in memory pool didn't initialise";
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result1a = slab1.make_unique<std::uint64_t>(123U);
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique slab string failed";
+    EXPECT_EQ(123U, *result1a.second) << "String in memory slab didn't initialise";
+    auto result1b = slab1.make_unique<std::uint64_t>(789U);
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique slab string failed";
+    EXPECT_EQ(789U, *result1b.second) << "String in memory slab didn't initialise";
+    auto result1c = slab1.make_unique<std::uint16_t>(123U);
+    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique slab string failed";
+    EXPECT_EQ(123U, *result1c.second) << "String in memory slab didn't initialise";
+    auto result1d = slab1.make_unique<std::uint16_t>(789U);
+    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique slab string failed";
+    EXPECT_EQ(789U, *result1d.second) << "String in memory slab didn't initialise";
+    tme::concurrent_sized_slab slab2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result2a = slab2.make_unique<std::uint64_t>(456U);
+    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique slab string failed";
+    EXPECT_EQ(456U, *result2a.second) << "String in memory slab didn't initialise";
+    auto result2b = slab2.make_unique<std::uint64_t>(0U);
+    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique slab string failed";
+    EXPECT_EQ(0U, *result2b.second) << "String in memory slab didn't initialise";
+    auto result2c = slab2.make_unique<std::uint16_t>(456U);
+    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique slab string failed";
+    EXPECT_EQ(456U, *result2c.second) << "String in memory slab didn't initialise";
+    auto result2d = slab2.make_unique<std::uint16_t>(0U);
+    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique slab string failed";
+    EXPECT_EQ(0U, *result2d.second) << "String in memory slab didn't initialise";
+    slab2 = slab1;
+    EXPECT_TRUE(slab1 == slab2) << "Copy assigned slab is not equal to the original";
+    EXPECT_EQ(123U, *result2a.second) << "Memory blocks in slab weren't copied during assignment";
+    EXPECT_EQ(789U, *result2b.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(123U, *result2c.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(789U, *result2d.second) << "String in memory slab didn't initialise";
 
-    tme::pool pool3(2U, { {sizeof(std::uint64_t), 2U} });
-    auto result3a = pool3.make_unique<std::uint64_t>(321U);
-    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique pool string failed";
-    EXPECT_EQ(321U, *result3a.second) << "String in memory pool didn't initialise";
-    auto result3b = pool3.make_unique<std::uint64_t>(987U);
-    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique pool string failed";
-    EXPECT_EQ(987U, *result3b.second) << "String in memory pool didn't initialise";
-    auto result3c = pool3.make_unique<std::uint64_t>(654U);
-    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique pool string failed";
-    EXPECT_EQ(654U, *result3c.second) << "String in memory pool didn't initialise";
-    auto result3d = pool3.make_unique<std::uint64_t>(999U);
-    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique pool string failed";
-    EXPECT_EQ(999U, *result3d.second) << "String in memory pool didn't initialise";
-    auto result3e = pool3.make_unique<std::uint64_t>(111U);
-    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique pool string failed";
-    EXPECT_EQ(111U, *result3e.second) << "String in memory pool didn't initialise";
-    tme::pool pool4(2U, { {sizeof(std::uint64_t), 2U} });
-    auto result4a = pool4.make_unique<std::uint64_t>(1991U);
-    EXPECT_EQ(tme::make_result::success, result4a.first) << "Make unique pool string failed";
-    EXPECT_EQ(1991U, *result4a.second) << "String in memory pool didn't initialise";
-    auto result4b = pool4.make_unique<std::uint64_t>(5665U);
-    EXPECT_EQ(tme::make_result::success, result4b.first) << "Make unique pool string failed";
-    EXPECT_EQ(5665U, *result4b.second) << "String in memory pool didn't initialise";
-    auto result4c = pool4.make_unique<std::uint64_t>(2882U);
-    EXPECT_EQ(tme::make_result::success, result4c.first) << "Make unique pool string failed";
-    EXPECT_EQ(2882U, *result4c.second) << "String in memory pool didn't initialise";
-    auto result4d = pool4.make_unique<std::uint64_t>(3773U);
-    EXPECT_EQ(tme::make_result::success, result4d.first) << "Make unique pool string failed";
-    EXPECT_EQ(3773U, *result4d.second) << "String in memory pool didn't initialise";
-    pool4 = pool3;
-    EXPECT_TRUE(pool3 == pool4) << "Copy assigned pool is not equal to the original";
-    EXPECT_EQ(321U, *result4a.second) << "Memory blocks in pool weren't copied during assignment";
-    EXPECT_EQ(987U, *result4b.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(654U, *result4c.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(999U, *result4d.second) << "String in memory pool didn't initialise";
+    tme::concurrent_sized_slab slab3(2U, { {sizeof(std::uint64_t), 2U} });
+    auto result3a = slab3.make_unique<std::uint64_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique slab string failed";
+    EXPECT_EQ(321U, *result3a.second) << "String in memory slab didn't initialise";
+    auto result3b = slab3.make_unique<std::uint64_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique slab string failed";
+    EXPECT_EQ(987U, *result3b.second) << "String in memory slab didn't initialise";
+    auto result3c = slab3.make_unique<std::uint64_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique slab string failed";
+    EXPECT_EQ(654U, *result3c.second) << "String in memory slab didn't initialise";
+    auto result3d = slab3.make_unique<std::uint64_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique slab string failed";
+    EXPECT_EQ(999U, *result3d.second) << "String in memory slab didn't initialise";
+    auto result3e = slab3.make_unique<std::uint64_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique slab string failed";
+    EXPECT_EQ(111U, *result3e.second) << "String in memory slab didn't initialise";
+    tme::concurrent_sized_slab slab4(2U, { {sizeof(std::uint64_t), 2U} });
+    auto result4a = slab4.make_unique<std::uint64_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result4a.first) << "Make unique slab string failed";
+    EXPECT_EQ(1991U, *result4a.second) << "String in memory slab didn't initialise";
+    auto result4b = slab4.make_unique<std::uint64_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result4b.first) << "Make unique slab string failed";
+    EXPECT_EQ(5665U, *result4b.second) << "String in memory slab didn't initialise";
+    auto result4c = slab4.make_unique<std::uint64_t>(2882U);
+    EXPECT_EQ(tme::make_result::success, result4c.first) << "Make unique slab string failed";
+    EXPECT_EQ(2882U, *result4c.second) << "String in memory slab didn't initialise";
+    auto result4d = slab4.make_unique<std::uint64_t>(3773U);
+    EXPECT_EQ(tme::make_result::success, result4d.first) << "Make unique slab string failed";
+    EXPECT_EQ(3773U, *result4d.second) << "String in memory slab didn't initialise";
+    slab4 = slab3;
+    EXPECT_TRUE(slab3 == slab4) << "Copy assigned slab is not equal to the original";
+    EXPECT_EQ(321U, *result4a.second) << "Memory blocks in slab weren't copied during assignment";
+    EXPECT_EQ(987U, *result4b.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(654U, *result4c.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(999U, *result4d.second) << "String in memory slab didn't initialise";
 }
 
-TEST(pool_test, pool_copy_assignment_expand_length)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_copy_assignment_expand_length)
 {
-    tme::pool pool1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    auto result1a = pool1.make_unique<std::uint64_t>(321U);
-    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
-    EXPECT_EQ(321U, *result1a.second) << "String in memory pool didn't initialise";
-    auto result1b = pool1.make_unique<std::uint64_t>(987U);
-    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
-    EXPECT_EQ(987U, *result1b.second) << "String in memory pool didn't initialise";
-    auto result1c = pool1.make_unique<std::uint64_t>(654U);
-    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique pool string failed";
-    EXPECT_EQ(654U, *result1c.second) << "String in memory pool didn't initialise";
-    auto result1d = pool1.make_unique<std::uint64_t>(999U);
-    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique pool string failed";
-    EXPECT_EQ(999U, *result1d.second) << "String in memory pool didn't initialise";
-    auto result1e = pool1.make_unique<std::uint64_t>(111U);
-    EXPECT_EQ(tme::make_result::success, result1e.first) << "Make unique pool string failed";
-    EXPECT_EQ(111U, *result1e.second) << "String in memory pool didn't initialise";
-    auto result1f = pool1.make_unique<std::uint16_t>(321U);
-    EXPECT_EQ(tme::make_result::success, result1f.first) << "Make unique pool string failed";
-    EXPECT_EQ(321U, *result1f.second) << "String in memory pool didn't initialise";
-    auto result1g = pool1.make_unique<std::uint16_t>(987U);
-    EXPECT_EQ(tme::make_result::success, result1g.first) << "Make unique pool string failed";
-    EXPECT_EQ(987U, *result1g.second) << "String in memory pool didn't initialise";
-    auto result1h = pool1.make_unique<std::uint16_t>(654U);
-    EXPECT_EQ(tme::make_result::success, result1h.first) << "Make unique pool string failed";
-    EXPECT_EQ(654U, *result1h.second) << "String in memory pool didn't initialise";
-    auto result1i = pool1.make_unique<std::uint16_t>(999U);
-    EXPECT_EQ(tme::make_result::success, result1i.first) << "Make unique pool string failed";
-    EXPECT_EQ(999U, *result1i.second) << "String in memory pool didn't initialise";
-    auto result1j = pool1.make_unique<std::uint16_t>(111U);
-    EXPECT_EQ(tme::make_result::success, result1j.first) << "Make unique pool string failed";
-    EXPECT_EQ(111U, *result1j.second) << "String in memory pool didn't initialise";
-    tme::pool pool2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    auto result2a = pool2.make_unique<std::uint64_t>(1991U);
-    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique pool string failed";
-    EXPECT_EQ(1991U, *result2a.second) << "String in memory pool didn't initialise";
-    auto result2b = pool2.make_unique<std::uint64_t>(5665U);
-    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique pool string failed";
-    EXPECT_EQ(5665U, *result2b.second) << "String in memory pool didn't initialise";
-    auto result2c = pool2.make_unique<std::uint16_t>(1991U);
-    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique pool string failed";
-    EXPECT_EQ(1991U, *result2c.second) << "String in memory pool didn't initialise";
-    auto result2d = pool2.make_unique<std::uint16_t>(5665U);
-    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique pool string failed";
-    EXPECT_EQ(5665U, *result2d.second) << "String in memory pool didn't initialise";
-    pool2 = pool1;
-    EXPECT_TRUE(pool1 == pool2) << "Copy assigned pool is not equal to the original";
-    EXPECT_EQ(321U, *result2a.second) << "Memory blocks in pool weren't copied during assignment";
-    EXPECT_EQ(987U, *result2b.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(321U, *result2c.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(987U, *result2d.second) << "String in memory pool didn't initialise";
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result1a = slab1.make_unique<std::uint64_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique slab string failed";
+    EXPECT_EQ(321U, *result1a.second) << "String in memory slab didn't initialise";
+    auto result1b = slab1.make_unique<std::uint64_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique slab string failed";
+    EXPECT_EQ(987U, *result1b.second) << "String in memory slab didn't initialise";
+    auto result1c = slab1.make_unique<std::uint64_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique slab string failed";
+    EXPECT_EQ(654U, *result1c.second) << "String in memory slab didn't initialise";
+    auto result1d = slab1.make_unique<std::uint64_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique slab string failed";
+    EXPECT_EQ(999U, *result1d.second) << "String in memory slab didn't initialise";
+    auto result1e = slab1.make_unique<std::uint64_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result1e.first) << "Make unique slab string failed";
+    EXPECT_EQ(111U, *result1e.second) << "String in memory slab didn't initialise";
+    auto result1f = slab1.make_unique<std::uint16_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result1f.first) << "Make unique slab string failed";
+    EXPECT_EQ(321U, *result1f.second) << "String in memory slab didn't initialise";
+    auto result1g = slab1.make_unique<std::uint16_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result1g.first) << "Make unique slab string failed";
+    EXPECT_EQ(987U, *result1g.second) << "String in memory slab didn't initialise";
+    auto result1h = slab1.make_unique<std::uint16_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result1h.first) << "Make unique slab string failed";
+    EXPECT_EQ(654U, *result1h.second) << "String in memory slab didn't initialise";
+    auto result1i = slab1.make_unique<std::uint16_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result1i.first) << "Make unique slab string failed";
+    EXPECT_EQ(999U, *result1i.second) << "String in memory slab didn't initialise";
+    auto result1j = slab1.make_unique<std::uint16_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result1j.first) << "Make unique slab string failed";
+    EXPECT_EQ(111U, *result1j.second) << "String in memory slab didn't initialise";
+    tme::concurrent_sized_slab slab2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result2a = slab2.make_unique<std::uint64_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique slab string failed";
+    EXPECT_EQ(1991U, *result2a.second) << "String in memory slab didn't initialise";
+    auto result2b = slab2.make_unique<std::uint64_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique slab string failed";
+    EXPECT_EQ(5665U, *result2b.second) << "String in memory slab didn't initialise";
+    auto result2c = slab2.make_unique<std::uint16_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique slab string failed";
+    EXPECT_EQ(1991U, *result2c.second) << "String in memory slab didn't initialise";
+    auto result2d = slab2.make_unique<std::uint16_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique slab string failed";
+    EXPECT_EQ(5665U, *result2d.second) << "String in memory slab didn't initialise";
+    slab2 = slab1;
+    EXPECT_TRUE(slab1 == slab2) << "Copy assigned slab is not equal to the original";
+    EXPECT_EQ(321U, *result2a.second) << "Memory blocks in slab weren't copied during assignment";
+    EXPECT_EQ(987U, *result2b.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(321U, *result2c.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(987U, *result2d.second) << "String in memory slab didn't initialise";
 }
 
-TEST(pool_test, pool_copy_assignment_strink_length)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_copy_assignment_strink_length)
 {
-    tme::pool pool1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    auto result1a = pool1.make_unique<std::uint64_t>(1991U);
-    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique pool string failed";
-    EXPECT_EQ(1991U, *result1a.second) << "String in memory pool didn't initialise";
-    auto result1b = pool1.make_unique<std::uint64_t>(5665U);
-    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique pool string failed";
-    EXPECT_EQ(5665U, *result1b.second) << "String in memory pool didn't initialise";
-    auto result1c = pool1.make_unique<std::uint16_t>(1991U);
-    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique pool string failed";
-    EXPECT_EQ(1991U, *result1c.second) << "String in memory pool didn't initialise";
-    auto result1d = pool1.make_unique<std::uint16_t>(5665U);
-    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique pool string failed";
-    EXPECT_EQ(5665U, *result1d.second) << "String in memory pool didn't initialise";
-    tme::pool pool2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
-    auto result2a = pool2.make_unique<std::uint64_t>(321U);
-    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique pool string failed";
-    EXPECT_EQ(321U, *result2a.second) << "String in memory pool didn't initialise";
-    auto result2b = pool2.make_unique<std::uint64_t>(987U);
-    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique pool string failed";
-    EXPECT_EQ(987U, *result2b.second) << "String in memory pool didn't initialise";
-    auto result2c = pool2.make_unique<std::uint64_t>(654U);
-    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique pool string failed";
-    EXPECT_EQ(654U, *result2c.second) << "String in memory pool didn't initialise";
-    auto result2d = pool2.make_unique<std::uint64_t>(999U);
-    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique pool string failed";
-    EXPECT_EQ(999U, *result2d.second) << "String in memory pool didn't initialise";
-    auto result2e = pool2.make_unique<std::uint64_t>(111U);
-    EXPECT_EQ(tme::make_result::success, result2e.first) << "Make unique pool string failed";
-    EXPECT_EQ(111U, *result2e.second) << "String in memory pool didn't initialise";
-    auto result2f = pool2.make_unique<std::uint16_t>(321U);
-    EXPECT_EQ(tme::make_result::success, result2f.first) << "Make unique pool string failed";
-    EXPECT_EQ(321U, *result2f.second) << "String in memory pool didn't initialise";
-    auto result2g = pool2.make_unique<std::uint16_t>(987U);
-    EXPECT_EQ(tme::make_result::success, result2g.first) << "Make unique pool string failed";
-    EXPECT_EQ(987U, *result2g.second) << "String in memory pool didn't initialise";
-    auto result2h = pool2.make_unique<std::uint16_t>(654U);
-    EXPECT_EQ(tme::make_result::success, result2h.first) << "Make unique pool string failed";
-    EXPECT_EQ(654U, *result2h.second) << "String in memory pool didn't initialise";
-    auto result2i = pool2.make_unique<std::uint16_t>(999U);
-    EXPECT_EQ(tme::make_result::success, result2i.first) << "Make unique pool string failed";
-    EXPECT_EQ(999U, *result2i.second) << "String in memory pool didn't initialise";
-    auto result2j = pool2.make_unique<std::uint16_t>(111U);
-    EXPECT_EQ(tme::make_result::success, result2j.first) << "Make unique pool string failed";
-    EXPECT_EQ(111U, *result2j.second) << "String in memory pool didn't initialise";
-    pool2 = pool1;
-    EXPECT_TRUE(pool1 == pool2) << "Copy assigned pool is not equal to the original";
-    EXPECT_EQ(1991U, *result2a.second) << "Memory blocks in pool weren't copied during assignment";
-    EXPECT_EQ(5665U, *result2b.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(1991U, *result2f.second) << "String in memory pool didn't initialise";
-    EXPECT_EQ(5665U, *result2g.second) << "String in memory pool didn't initialise";
+    tme::concurrent_sized_slab slab1(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result1a = slab1.make_unique<std::uint64_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique slab string failed";
+    EXPECT_EQ(1991U, *result1a.second) << "String in memory slab didn't initialise";
+    auto result1b = slab1.make_unique<std::uint64_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique slab string failed";
+    EXPECT_EQ(5665U, *result1b.second) << "String in memory slab didn't initialise";
+    auto result1c = slab1.make_unique<std::uint16_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique slab string failed";
+    EXPECT_EQ(1991U, *result1c.second) << "String in memory slab didn't initialise";
+    auto result1d = slab1.make_unique<std::uint16_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique slab string failed";
+    EXPECT_EQ(5665U, *result1d.second) << "String in memory slab didn't initialise";
+    tme::concurrent_sized_slab slab2(2U, { {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result2a = slab2.make_unique<std::uint64_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique slab string failed";
+    EXPECT_EQ(321U, *result2a.second) << "String in memory slab didn't initialise";
+    auto result2b = slab2.make_unique<std::uint64_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique slab string failed";
+    EXPECT_EQ(987U, *result2b.second) << "String in memory slab didn't initialise";
+    auto result2c = slab2.make_unique<std::uint64_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique slab string failed";
+    EXPECT_EQ(654U, *result2c.second) << "String in memory slab didn't initialise";
+    auto result2d = slab2.make_unique<std::uint64_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique slab string failed";
+    EXPECT_EQ(999U, *result2d.second) << "String in memory slab didn't initialise";
+    auto result2e = slab2.make_unique<std::uint64_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result2e.first) << "Make unique slab string failed";
+    EXPECT_EQ(111U, *result2e.second) << "String in memory slab didn't initialise";
+    auto result2f = slab2.make_unique<std::uint16_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result2f.first) << "Make unique slab string failed";
+    EXPECT_EQ(321U, *result2f.second) << "String in memory slab didn't initialise";
+    auto result2g = slab2.make_unique<std::uint16_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result2g.first) << "Make unique slab string failed";
+    EXPECT_EQ(987U, *result2g.second) << "String in memory slab didn't initialise";
+    auto result2h = slab2.make_unique<std::uint16_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result2h.first) << "Make unique slab string failed";
+    EXPECT_EQ(654U, *result2h.second) << "String in memory slab didn't initialise";
+    auto result2i = slab2.make_unique<std::uint16_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result2i.first) << "Make unique slab string failed";
+    EXPECT_EQ(999U, *result2i.second) << "String in memory slab didn't initialise";
+    auto result2j = slab2.make_unique<std::uint16_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result2j.first) << "Make unique slab string failed";
+    EXPECT_EQ(111U, *result2j.second) << "String in memory slab didn't initialise";
+    slab2 = slab1;
+    EXPECT_TRUE(slab1 == slab2) << "Copy assigned slab is not equal to the original";
+    EXPECT_EQ(1991U, *result2a.second) << "Memory blocks in slab weren't copied during assignment";
+    EXPECT_EQ(5665U, *result2b.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(1991U, *result2f.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(5665U, *result2g.second) << "String in memory slab didn't initialise";
 }
 
-TEST(pool_test, pool_make_unique_basic)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_make_unique_basic)
 {
-    tme::pool pool1(3U, { {sizeof(std::string), 3U} });
+    tme::concurrent_sized_slab slab1(3U, { {sizeof(std::string), 3U} });
     {
-	auto result1 = pool1.make_unique<std::string>("abc123");
-	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
-	EXPECT_EQ(std::string("abc123"), *result1.second) << "String in memory pool didn't initialise";
-	auto result2 = pool1.make_unique<std::string>("xyz789");
-	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique pool string failed";
-	EXPECT_EQ(std::string("xyz789"), *result2.second) << "String in memory pool didn't initialise";
-	auto result3 = pool1.make_unique<std::string>("lmn456");
-	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
-	EXPECT_EQ(std::string("lmn456"), *result3.second) << "String in memory pool didn't initialise";
+	auto result1 = slab1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique slab string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "String in memory slab didn't initialise";
+	auto result2 = slab1.make_unique<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique slab string failed";
+	EXPECT_EQ(std::string("xyz789"), *result2.second) << "String in memory slab didn't initialise";
+	auto result3 = slab1.make_unique<std::string>("lmn456");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique slab string failed";
+	EXPECT_EQ(std::string("lmn456"), *result3.second) << "String in memory slab didn't initialise";
     }
-    tme::pool pool2(2U, { {2U, 32U}, {32U, 32U} });
+    tme::concurrent_sized_slab slab2(2U, { {2U, 32U}, {32U, 32U} });
     {
-	auto result1 = pool1.make_unique<std::uint64_t>(123U);
-	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
-	EXPECT_EQ(123U, *result1.second) << "Integer in initially empty memory pool didn't initialise";
-	auto result2 = pool1.make_unique<std::uint64_t>(456U);
-	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique pool string failed";
-	EXPECT_EQ(456U, *result2.second) << "Integer in initially empty memory pool didn't initialise";
-	auto result3 = pool1.make_unique<std::uint64_t>(789U);
-	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
-	EXPECT_EQ(789U, *result3.second) << "Integer in initially empty memory pool didn't initialise";
-    }
-}
-
-TEST(pool_test, pool_make_unique_invalid)
-{
-    tme::pool pool1(8U, { {sizeof(std::uint8_t), 8U} });
-    {
-	auto result1 = pool1.make_unique<std::string>("abc123");
-	EXPECT_EQ(tme::make_result::pool_full, result1.first) << "Making a unique_ptr for a value that is larger than the configured pool succeeded";
-	EXPECT_EQ(nullptr, result1.second.get()) << "The unique_ptr returned when the requested value is larger than the configured pool is not nullptr";
+	auto result1 = slab1.make_unique<std::uint64_t>(123U);
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique slab string failed";
+	EXPECT_EQ(123U, *result1.second) << "Integer in initially empty memory slab didn't initialise";
+	auto result2 = slab1.make_unique<std::uint64_t>(456U);
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make unique slab string failed";
+	EXPECT_EQ(456U, *result2.second) << "Integer in initially empty memory slab didn't initialise";
+	auto result3 = slab1.make_unique<std::uint64_t>(789U);
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique slab string failed";
+	EXPECT_EQ(789U, *result3.second) << "Integer in initially empty memory slab didn't initialise";
     }
 }
 
-TEST(pool_test, pool_make_shared_basic)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_make_unique_invalid)
 {
-    tme::pool pool1(3U, { {sizeof(std::string), 3U} });
+    tme::concurrent_sized_slab slab1(8U, { {sizeof(std::uint8_t), 8U} });
     {
-	auto result1 = pool1.make_shared<std::string>("abc123");
-	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
-	EXPECT_EQ(std::string("abc123"), *result1.second) << "Shared pool string didn't initialise";
-	auto result2 = pool1.make_shared<std::string>("xyz789");
-	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
-	EXPECT_EQ(std::string("xyz789"), *result2.second) << "Shared pool string didn't initialise";
-	auto result3 = pool1.make_shared<std::string>("lmn456");
-	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
-	EXPECT_EQ(std::string("lmn456"), *result3.second) << "Shared pool string didn't initialise";
-    }
-    tme::pool pool2(2U, { {2U, 32U}, {32U, 32U} });
-    {
-	auto result1 = pool1.make_shared<std::uint64_t>(123U);
-	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared pool string failed";
-	EXPECT_EQ(123U, *result1.second) << "Integer in initially empty memory pool didn't initialise";
-	auto result2 = pool1.make_shared<std::uint64_t>(456U);
-	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
-	EXPECT_EQ(456U, *result2.second) << "Integer in initially empty memory pool didn't initialise";
-	auto result3 = pool1.make_shared<std::uint64_t>(789U);
-	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared pool string failed";
-	EXPECT_EQ(789U, *result3.second) << "Integer in initially empty memory pool didn't initialise";
+	auto result1 = slab1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::slab_full, result1.first) << "Making a unique_ptr for a value that is larger than the configured slab succeeded";
+	EXPECT_EQ(nullptr, result1.second.get()) << "The unique_ptr returned when the requested value is larger than the configured slab is not nullptr";
     }
 }
 
-TEST(pool_test, pool_make_shared_invalid)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_make_shared_basic)
 {
-    tme::pool pool1(8U, { {sizeof(std::uint8_t), 8U} });
+    tme::concurrent_sized_slab slab1(3U, { {sizeof(std::string), 3U} });
     {
-	auto result1 = pool1.make_shared<std::string>("abc123");
-	EXPECT_EQ(tme::make_result::pool_full, result1.first) << "Making a shared_ptr for a value that is larger than the configured pool succeeded";
-	EXPECT_EQ(nullptr, result1.second.get()) << "The shared_ptr returned when the requested value is larger than the configured pool is not nullptr";
+	auto result1 = slab1.make_shared<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared slab string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "Shared slab string didn't initialise";
+	auto result2 = slab1.make_shared<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared slab string failed";
+	EXPECT_EQ(std::string("xyz789"), *result2.second) << "Shared slab string didn't initialise";
+	auto result3 = slab1.make_shared<std::string>("lmn456");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared slab string failed";
+	EXPECT_EQ(std::string("lmn456"), *result3.second) << "Shared slab string didn't initialise";
+    }
+    tme::concurrent_sized_slab slab2(2U, { {2U, 32U}, {32U, 32U} });
+    {
+	auto result1 = slab1.make_shared<std::uint64_t>(123U);
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make shared slab string failed";
+	EXPECT_EQ(123U, *result1.second) << "Integer in initially empty memory slab didn't initialise";
+	auto result2 = slab1.make_shared<std::uint64_t>(456U);
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared slab string failed";
+	EXPECT_EQ(456U, *result2.second) << "Integer in initially empty memory slab didn't initialise";
+	auto result3 = slab1.make_shared<std::uint64_t>(789U);
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make shared slab string failed";
+	EXPECT_EQ(789U, *result3.second) << "Integer in initially empty memory slab didn't initialise";
     }
 }
 
-TEST(pool_test, pool_make_mixed_basic)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_make_shared_invalid)
 {
-    tme::pool pool1(4U, { {sizeof(std::string), 4U} });
+    tme::concurrent_sized_slab slab1(8U, { {sizeof(std::uint8_t), 8U} });
     {
-	auto result1 = pool1.make_unique<std::string>("abc123");
-	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique pool string failed";
-	EXPECT_EQ(std::string("abc123"), *result1.second) << "Unique pool string didn't initialise";
-	auto result2 = pool1.make_shared<std::string>("!@#");
-	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared pool string failed";
-	EXPECT_EQ(std::string("!@#"), *result2.second) << "Shared pool string didn't initialise";
-	auto result3 = pool1.make_unique<std::string>("xyz789");
-	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique pool string failed";
-	EXPECT_EQ(std::string("xyz789"), *result3.second) << "Unique pool string didn't initialise";
-	auto result4 = pool1.make_shared<std::string>("$%^");
-	EXPECT_EQ(tme::make_result::success, result4.first) << "Make shared pool string failed";
-	EXPECT_EQ(std::string("$%^"), *result4.second) << "Shared pool string didn't initialise";
+	auto result1 = slab1.make_shared<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::slab_full, result1.first) << "Making a shared_ptr for a value that is larger than the configured slab succeeded";
+	EXPECT_EQ(nullptr, result1.second.get()) << "The shared_ptr returned when the requested value is larger than the configured slab is not nullptr";
     }
 }
 
-TEST(pool_test, pool_make_mixed_invalid)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_make_mixed_basic)
 {
-    tme::pool pool1(8U, { {sizeof(std::uint8_t), 8U} });
+    tme::concurrent_sized_slab slab1(4U, { {sizeof(std::string), 4U} });
     {
-	auto result1 = pool1.make_unique<std::string>("abc123");
-	EXPECT_EQ(tme::make_result::pool_full, result1.first) << "Making a unique_ptr for a value that is larger than the configured pool succeeded";
-	EXPECT_EQ(nullptr, result1.second.get()) << "The unique_ptr returned when the requested value is larger than the configured pool is not nullptr";
-	auto result2 = pool1.make_shared<record>(4U, 5U, 6U);
-	EXPECT_EQ(tme::make_result::pool_full, result2.first) << "Making a shared_ptr for a value that is larger than the configured pool succeeded";
-	EXPECT_EQ(nullptr, result2.second.get()) << "The shared_ptr returned when the requested value is larger than the configured pool is not nullptr";
+	auto result1 = slab1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::success, result1.first) << "Make unique slab string failed";
+	EXPECT_EQ(std::string("abc123"), *result1.second) << "Unique slab string didn't initialise";
+	auto result2 = slab1.make_shared<std::string>("!@#");
+	EXPECT_EQ(tme::make_result::success, result2.first) << "Make shared slab string failed";
+	EXPECT_EQ(std::string("!@#"), *result2.second) << "Shared slab string didn't initialise";
+	auto result3 = slab1.make_unique<std::string>("xyz789");
+	EXPECT_EQ(tme::make_result::success, result3.first) << "Make unique slab string failed";
+	EXPECT_EQ(std::string("xyz789"), *result3.second) << "Unique slab string didn't initialise";
+	auto result4 = slab1.make_shared<std::string>("$%^");
+	EXPECT_EQ(tme::make_result::success, result4.first) << "Make shared slab string failed";
+	EXPECT_EQ(std::string("$%^"), *result4.second) << "Shared slab string didn't initialise";
     }
 }
 
-TEST(pool_test, calibrate_positive)
+TEST(concurrent_sized_slab_test, concurrent_sized_slab_make_mixed_invalid)
+{
+    tme::concurrent_sized_slab slab1(8U, { {sizeof(std::uint8_t), 8U} });
+    {
+	auto result1 = slab1.make_unique<std::string>("abc123");
+	EXPECT_EQ(tme::make_result::slab_full, result1.first) << "Making a unique_ptr for a value that is larger than the configured slab succeeded";
+	EXPECT_EQ(nullptr, result1.second.get()) << "The unique_ptr returned when the requested value is larger than the configured slab is not nullptr";
+	auto result2 = slab1.make_shared<record>(4U, 5U, 6U);
+	EXPECT_EQ(tme::make_result::slab_full, result2.first) << "Making a shared_ptr for a value that is larger than the configured slab succeeded";
+	EXPECT_EQ(nullptr, result2.second.get()) << "The shared_ptr returned when the requested value is larger than the configured slab is not nullptr";
+    }
+}
+
+TEST(concurrent_sized_slab_test, calibrate_positive)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {16U, 16U} };
     std::vector<tme::block_config> expected1{ {16U, 16U}, {32U, 8U}, {64U, 4U} };
@@ -1251,7 +1251,7 @@ TEST(pool_test, calibrate_positive)
 	    << "{" << actual5[2].block_size << ", " << actual5[2].initial_capacity << "} ]";
 }
 
-TEST(pool_test, calibrate_repeating)
+TEST(concurrent_sized_slab_test, calibrate_repeating)
 {
     std::vector<tme::block_config> input1{ {64U, 4U}, {32U, 8U}, {64U, 16U} };
     std::vector<tme::block_config> expected1{ {32U, 8U}, {64U, 20U} };
@@ -1304,7 +1304,7 @@ TEST(pool_test, calibrate_repeating)
 	    << "{" << actual4[1].block_size << ", " << actual4[1].initial_capacity << "} ]";
 }
 
-TEST(pool_test, calibrate_negative)
+TEST(concurrent_sized_slab_test, calibrate_negative)
 {
     std::vector<tme::block_config> input1;
     std::vector<tme::block_config> actual1(tme::calibrate(2U, input1));

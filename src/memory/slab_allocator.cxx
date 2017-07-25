@@ -11,24 +11,24 @@
 namespace turbo {
 namespace memory {
 
-pool::pool(capacity_type contingency_capacity, const std::vector<block_config>& config)
+concurrent_sized_slab::concurrent_sized_slab(capacity_type contingency_capacity, const std::vector<block_config>& config)
     :
-	pool(calibrate(contingency_capacity, config))
+	concurrent_sized_slab(calibrate(contingency_capacity, config))
 { }
 
-pool::pool(const std::vector<block_config>& config)
+concurrent_sized_slab::concurrent_sized_slab(const std::vector<block_config>& config)
     :
 	smallest_block_exponent_(std::llround(std::log2(config.cbegin()->block_size))),
 	block_map_(config.cbegin(), config.cend())
 { }
 
-pool::pool(const pool& other)
+concurrent_sized_slab::concurrent_sized_slab(const concurrent_sized_slab& other)
     :
 	smallest_block_exponent_(other.smallest_block_exponent_),
 	block_map_(other.block_map_)
 { }
 
-pool& pool::operator=(const pool& other)
+concurrent_sized_slab& concurrent_sized_slab::operator=(const concurrent_sized_slab& other)
 {
     if (this != &other
 	    && this->smallest_block_exponent_ == other.smallest_block_exponent_
@@ -39,12 +39,12 @@ pool& pool::operator=(const pool& other)
     return *this;
 }
 
-bool pool::operator==(const pool& other) const
+bool concurrent_sized_slab::operator==(const concurrent_sized_slab& other) const
 {
     return this->smallest_block_exponent_ == other.smallest_block_exponent_ && this->block_map_ == other.block_map_;
 }
 
-const std::vector<block_config> pool::get_block_config() const
+const std::vector<block_config> concurrent_sized_slab::get_block_config() const
 {
     std::vector<block_config> output;
     for (const block_list& list: block_map_)
@@ -58,7 +58,7 @@ const std::vector<block_config> pool::get_block_config() const
     return std::move(output);
 }
 
-void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
+void* concurrent_sized_slab::allocate(std::size_t value_size, std::size_t value_alignment, capacity_type quantity, const void*)
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));
     if (TURBO_LIKELY(value_size != 0U && quantity != 0U && bucket < block_map_.size()))
@@ -71,7 +71,7 @@ void* pool::allocate(std::size_t value_size, std::size_t value_alignment, capaci
     }
 }
 
-void pool::deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity)
+void concurrent_sized_slab::deallocate(std::size_t value_size, std::size_t value_alignment, void* pointer, capacity_type quantity)
 {
     const std::size_t bucket = find_block_bucket(calc_total_aligned_size(value_size, value_alignment, quantity));
     if (TURBO_LIKELY(bucket < block_map_.size()))

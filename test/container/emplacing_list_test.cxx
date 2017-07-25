@@ -17,8 +17,8 @@ namespace tme = turbo::memory;
 
 TEST(emplacing_list_test, empty_list)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     EXPECT_EQ(list1.end(), list1.begin()) << "When list is empty begin and end are not equal";
     EXPECT_EQ(list1.rend(), list1.rbegin()) << "When list is empty rbegin and rend are not equal";
@@ -27,8 +27,8 @@ TEST(emplacing_list_test, empty_list)
 
 TEST(emplacing_list_test, emplace_front_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     EXPECT_EQ(std::string("foobar"), *(list1.emplace_front("foobar"))) << "Returned iterator does not point to the emplaced value";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_front failed";
@@ -42,8 +42,8 @@ TEST(emplacing_list_test, emplace_front_basic)
 
 TEST(emplacing_list_test, emplace_back_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     EXPECT_EQ(std::string("foobar"), *(list1.emplace_back("foobar"))) << "Returned iterator does not point to the emplaced value";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace_back failed";
@@ -57,8 +57,8 @@ TEST(emplacing_list_test, emplace_back_basic)
 
 TEST(emplacing_list_test, emplace_mixed_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("BBB");
     EXPECT_EQ(std::string("BBB"), *(list1.begin())) << "When list is empty emplace_back failed";
@@ -80,8 +80,8 @@ TEST(emplacing_list_test, emplace_mixed_basic)
 
 TEST(emplacing_list_test, forward_iterate_invalid)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("789");
     list1.emplace_front("456");
@@ -128,7 +128,7 @@ TEST(emplacing_list_test, forward_iterate_invalid)
 	--iter;
 	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
     }
-    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    tme::concurrent_sized_slab allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     list2.emplace_back("123");
     list2.emplace_back("456");
@@ -179,8 +179,8 @@ TEST(emplacing_list_test, forward_iterate_invalid)
 
 TEST(emplacing_list_test, forward_iterate_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("789");
     list1.emplace_front("456");
@@ -229,7 +229,7 @@ TEST(emplacing_list_test, forward_iterate_basic)
 	--iter;
 	EXPECT_EQ(list1.cend(), iter) << "Iterator at position end is not equal to end iterator";
     }
-    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    tme::concurrent_sized_slab allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     list2.emplace_back("123");
     list2.emplace_back("456");
@@ -282,8 +282,8 @@ TEST(emplacing_list_test, forward_iterate_basic)
 
 TEST(emplacing_list_test, reverse_iterate_invalid)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("789");
     list1.emplace_front("456");
@@ -330,7 +330,7 @@ TEST(emplacing_list_test, reverse_iterate_invalid)
 	--iter;
 	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
     }
-    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    tme::concurrent_sized_slab allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     list2.emplace_back("123");
     list2.emplace_back("456");
@@ -381,8 +381,8 @@ TEST(emplacing_list_test, reverse_iterate_invalid)
 
 TEST(emplacing_list_test, reverse_iterate_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("789");
     list1.emplace_front("456");
@@ -431,7 +431,7 @@ TEST(emplacing_list_test, reverse_iterate_basic)
 	--iter;
 	EXPECT_EQ(list1.crend(), iter) << "Iterator at position end is not equal to end iterator";
     }
-    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    tme::concurrent_sized_slab allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     list2.emplace_back("123");
     list2.emplace_back("456");
@@ -484,8 +484,8 @@ TEST(emplacing_list_test, reverse_iterate_basic)
 
 TEST(emplacing_list_test, emplace_invalid)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     EXPECT_EQ(std::string("foobar"), *(list1.emplace(string_list::iterator(), "foobar"))) << "When list is empty emplace failed";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace failed";
@@ -495,14 +495,14 @@ TEST(emplacing_list_test, emplace_invalid)
 
 TEST(emplacing_list_test, emplace_empty)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     EXPECT_EQ(std::string("foobar"), *(list1.emplace(list1.begin(), "foobar"))) << "When list is empty emplace failed";
     EXPECT_EQ(std::string("foobar"), *(list1.begin())) << "When list is empty emplace failed";
     EXPECT_EQ(std::string("foobar"), *(list1.rbegin())) << "When list is empty emplace failed";
     EXPECT_EQ(1U, list1.size()) << "Size of list after emplacing to an empty list is not 1";
-    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    tme::concurrent_sized_slab allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     EXPECT_EQ(std::string("foobar"), *(list2.emplace(list2.end(), "foobar"))) << "When list is empty emplace failed";
     EXPECT_EQ(std::string("foobar"), *(list2.begin())) << "When list is empty emplace failed";
@@ -512,8 +512,8 @@ TEST(emplacing_list_test, emplace_empty)
 
 TEST(emplacing_list_test, emplace_front_non_empty)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("789");
     EXPECT_EQ(std::string("456"), *(list1.emplace(list1.begin(), "456"))) << "When list is not empty emplace failed";
@@ -548,8 +548,8 @@ TEST(emplacing_list_test, emplace_front_non_empty)
 
 TEST(emplacing_list_test, emplace_back_non_empty)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator2(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator2(8U, { {string_list::allocation_size(), 8U} });
     string_list list2(allocator2);
     list2.emplace_back("123");
     EXPECT_EQ(std::string("456"), *(list2.emplace(list2.end(), "456"))) << "When list is not empty emplace failed";
@@ -584,8 +584,8 @@ TEST(emplacing_list_test, emplace_back_non_empty)
 
 TEST(emplacing_list_test, single_emplace_middle)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("123");
     list1.emplace_back("789");
@@ -602,8 +602,8 @@ TEST(emplacing_list_test, single_emplace_middle)
 
 TEST(emplacing_list_test, multi_same_emplace_middle)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("aaa");
     list1.emplace_back("ddd");
@@ -623,8 +623,8 @@ TEST(emplacing_list_test, multi_same_emplace_middle)
 
 TEST(emplacing_list_test, multi_moving_emplace_middle)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("aaa");
     list1.emplace_back("eee");
@@ -649,8 +649,8 @@ TEST(emplacing_list_test, multi_moving_emplace_middle)
 
 TEST(emplacing_list_test, pop_front_invalid)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.pop_front();
     EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list is empty begin iterator is not equal to end iterator";
@@ -666,8 +666,8 @@ TEST(emplacing_list_test, pop_front_invalid)
 
 TEST(emplacing_list_test, pop_front_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("blah");
     list1.pop_front();
@@ -705,8 +705,8 @@ TEST(emplacing_list_test, pop_front_basic)
 
 TEST(emplacing_list_test, pop_back_invalid)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.pop_back();
     EXPECT_EQ(list1.cend(), list1.cbegin()) << "When the list is empty begin iterator is not equal to end iterator";
@@ -722,8 +722,8 @@ TEST(emplacing_list_test, pop_back_invalid)
 
 TEST(emplacing_list_test, pop_back_basic)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("blah");
     list1.pop_back();
@@ -761,8 +761,8 @@ TEST(emplacing_list_test, pop_back_basic)
 
 TEST(emplacing_list_test, erase_invalid)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     EXPECT_EQ(list1.end(), list1.erase(list1.cbegin())) << "When the list is empty the erase result iterator is not equal to end iterator";
     EXPECT_EQ(list1.end(), list1.erase(list1.cend())) << "When the list is empty the erase result iterator is not equal to end iterator";
@@ -776,8 +776,8 @@ TEST(emplacing_list_test, erase_invalid)
 
 TEST(emplacing_list_test, erase_front)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_front("blah");
     EXPECT_EQ(list1.end(), list1.erase(list1.cbegin())) << "Iterator returned by erasing the only element is not the end iterator";
@@ -819,8 +819,8 @@ TEST(emplacing_list_test, erase_front)
 
 TEST(emplacing_list_test, erase_back)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("blah");
     auto iter1a = list1.cbegin();
@@ -867,8 +867,8 @@ TEST(emplacing_list_test, erase_back)
 
 TEST(emplacing_list_test, single_erase_middle)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("123");
     list1.emplace_back("456");
@@ -892,8 +892,8 @@ TEST(emplacing_list_test, single_erase_middle)
 
 TEST(emplacing_list_test, multi_moving_erase_middle)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("aaa");
     list1.emplace_back("bbb");
@@ -927,8 +927,8 @@ TEST(emplacing_list_test, multi_moving_erase_middle)
 
 TEST(emplacing_list_test, multi_consecutive_erase_middle)
 {
-    typedef tco::emplacing_list<std::string, tme::pool> string_list;
-    tme::pool allocator1(8U, { {string_list::allocation_size(), 8U} });
+    typedef tco::emplacing_list<std::string, tme::concurrent_sized_slab> string_list;
+    tme::concurrent_sized_slab allocator1(8U, { {string_list::allocation_size(), 8U} });
     string_list list1(allocator1);
     list1.emplace_back("aaa");
     list1.emplace_back("bbb");
@@ -968,18 +968,18 @@ TEST(emplacing_list_test, multi_consecutive_erase_middle)
 class emplacing_list_perf_test : public ::testing::Test
 {
 public:
-    typedef tco::emplacing_list<std::uint32_t, tme::pool> uint_list;
+    typedef tco::emplacing_list<std::uint32_t, tme::concurrent_sized_slab> uint_list;
     emplacing_list_perf_test()
 	:
 	    allocator1(8U, { {uint_list::allocation_size(), std::numeric_limits<std::uint16_t>::max()} })
     { }
 protected:
-    tme::pool allocator1;
+    tme::concurrent_sized_slab allocator1;
 };
 
 TEST_F(emplacing_list_perf_test, perf_test_list_emplace)
 {
-    typedef tco::emplacing_list<std::uint32_t, tme::pool> uint_list;
+    typedef tco::emplacing_list<std::uint32_t, tme::concurrent_sized_slab> uint_list;
     uint_list list1(allocator1);
     list1.emplace_front(0U);
     list1.emplace_back(0U);
