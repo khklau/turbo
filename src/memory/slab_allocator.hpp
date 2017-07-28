@@ -111,6 +111,59 @@ private:
 
 std::vector<block_config> calibrate(block::capacity_type contingency_capacity, const std::vector<block_config>& config);
 
+struct default_type_index_policy
+{
+    template <class value_t>
+    static std::size_t get_index();
+};
+
+template <class type_index_t = default_type_index_policy>
+class TURBO_SYMBOL_DECL concurrent_typed_slab
+{
+private:
+    typedef std::vector<block_list> block_map_type;
+public:
+    typedef type_index_t type_index_policy;
+    typedef block_map_type::iterator iterator;
+    concurrent_typed_slab(const std::vector<block_config>& config);
+    concurrent_typed_slab(const concurrent_typed_slab& other);
+    ~concurrent_typed_slab() = default;
+    concurrent_typed_slab& operator=(const concurrent_typed_slab& other);
+    bool operator==(const concurrent_typed_slab& other) const;
+    inline iterator begin()
+    {
+	return block_map_.begin();
+    }
+    inline iterator end()
+    {
+	return block_map_.end();
+    }
+    template <class value_t, class... args_t>
+    std::pair<make_result, slab_unique_ptr<value_t>> make_unique(args_t&&... args);
+    template <class value_t, class... args_t>
+    std::pair<make_result, std::shared_ptr<value_t>> make_shared(args_t&&... args);
+    template <class value_t>
+    inline value_t* allocate(const value_t* hint);
+    template <class value_t>
+    inline value_t* allocate()
+    {
+	return allocate<value_t>(static_cast<const value_t*>(nullptr));
+    }
+    template <class value_t>
+    inline void deallocate(value_t* pointer);
+    template <class value_t>
+    inline const block_list& at() const;
+    template <class value_t>
+    inline block_list& at();
+private:
+    concurrent_typed_slab() = delete;
+    concurrent_typed_slab(concurrent_typed_slab&&) = delete;
+    concurrent_typed_slab& operator=(concurrent_typed_slab&&) = delete;
+    template <class value_t>
+    inline void unmake(value_t* pointer);
+    block_map_type block_map_;
+};
+
 } // namespace memory
 } // namespace turbo
 

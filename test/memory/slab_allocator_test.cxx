@@ -1350,3 +1350,145 @@ TEST(concurrent_sized_slab_test, calibrate_negative)
 	    << "{" << actual4[1].block_size << ", " << actual4[1].initial_capacity << "}, "
 	    << "{" << actual4[2].block_size << ", " << actual4[2].initial_capacity << "} ]";
 }
+
+struct string_only_policy
+{
+    template <class value_t>
+    static std::size_t get_index()
+    {
+	static_assert(sizeof(value_t) == 0U, "missing get_index specialisation");
+	return 0U;
+    }
+};
+
+template <>
+std::size_t string_only_policy::get_index<std::string>()
+{
+    return 0U;
+}
+
+TEST(concurrent_typed_slab_test, concurrent_typed_slab_copy_construction)
+{
+    tme::concurrent_typed_slab<string_only_policy> slab1({ {sizeof(std::string), 2U} });
+    auto result1a = slab1.make_unique<std::string>("abc123");
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("abc123"), *result1a.second) << "String in memory slab didn't initialise";
+    auto result1b = slab1.make_unique<std::string>("xyz789");
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("xyz789"), *result1b.second) << "String in memory slab didn't initialise";
+    tme::concurrent_typed_slab<string_only_policy> slab2(slab1);
+    EXPECT_TRUE(slab1 == slab2) << "Copy constructed slab is not equal to the original";
+
+    tme::concurrent_typed_slab<string_only_policy> slab3({ {sizeof(std::string), 2U} });
+    auto result3a = slab3.make_unique<std::string>("abc321");
+    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("abc321"), *result3a.second) << "String in memory slab didn't initialise";
+    auto result3b = slab3.make_unique<std::string>("xyz987");
+    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("xyz987"), *result3b.second) << "String in memory slab didn't initialise";
+    auto result3c = slab3.make_unique<std::string>("lmn654");
+    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("lmn654"), *result3c.second) << "String in memory slab didn't initialise";
+    auto result3d = slab3.make_unique<std::string>("!@#000");
+    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("!@#000"), *result3d.second) << "String in memory slab didn't initialise";
+    auto result3e = slab3.make_unique<std::string>("   ");
+    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique slab string failed";
+    EXPECT_EQ(std::string("   "), *result3e.second) << "String in memory slab didn't initialise";
+    tme::concurrent_typed_slab<string_only_policy> slab4(slab3);
+    EXPECT_TRUE(slab3 == slab4) << "Copy constructed slab is not equal to the original";
+}
+
+struct uint_64_16_policy
+{
+    template <class value_t>
+    static std::size_t get_index()
+    {
+	static_assert(sizeof(value_t) == 0U, "missing get_index specialisation");
+	return 0U;
+    }
+};
+
+template <>
+std::size_t uint_64_16_policy::get_index<std::uint64_t>()
+{
+    return 0U;
+}
+
+template <>
+std::size_t uint_64_16_policy::get_index<std::uint16_t>()
+{
+    return 1U;
+}
+
+TEST(concurrent_typed_slab_test, concurrent_typed_slab_copy_assignment_same_length)
+{
+    tme::concurrent_typed_slab<uint_64_16_policy> slab1({ {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result1a = slab1.make_unique<std::uint64_t>(123U);
+    EXPECT_EQ(tme::make_result::success, result1a.first) << "Make unique slab string failed";
+    EXPECT_EQ(123U, *result1a.second) << "String in memory slab didn't initialise";
+    auto result1b = slab1.make_unique<std::uint64_t>(789U);
+    EXPECT_EQ(tme::make_result::success, result1b.first) << "Make unique slab string failed";
+    EXPECT_EQ(789U, *result1b.second) << "String in memory slab didn't initialise";
+    auto result1c = slab1.make_unique<std::uint16_t>(123U);
+    EXPECT_EQ(tme::make_result::success, result1c.first) << "Make unique slab string failed";
+    EXPECT_EQ(123U, *result1c.second) << "String in memory slab didn't initialise";
+    auto result1d = slab1.make_unique<std::uint16_t>(789U);
+    EXPECT_EQ(tme::make_result::success, result1d.first) << "Make unique slab string failed";
+    EXPECT_EQ(789U, *result1d.second) << "String in memory slab didn't initialise";
+    tme::concurrent_typed_slab<uint_64_16_policy> slab2({ {sizeof(std::uint64_t), 2U}, {sizeof(std::uint16_t), 2U} });
+    auto result2a = slab2.make_unique<std::uint64_t>(456U);
+    EXPECT_EQ(tme::make_result::success, result2a.first) << "Make unique slab string failed";
+    EXPECT_EQ(456U, *result2a.second) << "String in memory slab didn't initialise";
+    auto result2b = slab2.make_unique<std::uint64_t>(0U);
+    EXPECT_EQ(tme::make_result::success, result2b.first) << "Make unique slab string failed";
+    EXPECT_EQ(0U, *result2b.second) << "String in memory slab didn't initialise";
+    auto result2c = slab2.make_unique<std::uint16_t>(456U);
+    EXPECT_EQ(tme::make_result::success, result2c.first) << "Make unique slab string failed";
+    EXPECT_EQ(456U, *result2c.second) << "String in memory slab didn't initialise";
+    auto result2d = slab2.make_unique<std::uint16_t>(0U);
+    EXPECT_EQ(tme::make_result::success, result2d.first) << "Make unique slab string failed";
+    EXPECT_EQ(0U, *result2d.second) << "String in memory slab didn't initialise";
+    slab2 = slab1;
+    EXPECT_TRUE(slab1 == slab2) << "Copy assigned slab is not equal to the original";
+    EXPECT_EQ(123U, *result2a.second) << "Memory blocks in slab weren't copied during assignment";
+    EXPECT_EQ(789U, *result2b.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(123U, *result2c.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(789U, *result2d.second) << "String in memory slab didn't initialise";
+
+    tme::concurrent_typed_slab<uint_64_16_policy> slab3({ {sizeof(std::uint64_t), 2U} });
+    auto result3a = slab3.make_unique<std::uint64_t>(321U);
+    EXPECT_EQ(tme::make_result::success, result3a.first) << "Make unique slab string failed";
+    EXPECT_EQ(321U, *result3a.second) << "String in memory slab didn't initialise";
+    auto result3b = slab3.make_unique<std::uint64_t>(987U);
+    EXPECT_EQ(tme::make_result::success, result3b.first) << "Make unique slab string failed";
+    EXPECT_EQ(987U, *result3b.second) << "String in memory slab didn't initialise";
+    auto result3c = slab3.make_unique<std::uint64_t>(654U);
+    EXPECT_EQ(tme::make_result::success, result3c.first) << "Make unique slab string failed";
+    EXPECT_EQ(654U, *result3c.second) << "String in memory slab didn't initialise";
+    auto result3d = slab3.make_unique<std::uint64_t>(999U);
+    EXPECT_EQ(tme::make_result::success, result3d.first) << "Make unique slab string failed";
+    EXPECT_EQ(999U, *result3d.second) << "String in memory slab didn't initialise";
+    auto result3e = slab3.make_unique<std::uint64_t>(111U);
+    EXPECT_EQ(tme::make_result::success, result3e.first) << "Make unique slab string failed";
+    EXPECT_EQ(111U, *result3e.second) << "String in memory slab didn't initialise";
+    tme::concurrent_typed_slab<uint_64_16_policy> slab4({ {sizeof(std::uint64_t), 2U} });
+    auto result4a = slab4.make_unique<std::uint64_t>(1991U);
+    EXPECT_EQ(tme::make_result::success, result4a.first) << "Make unique slab string failed";
+    EXPECT_EQ(1991U, *result4a.second) << "String in memory slab didn't initialise";
+    auto result4b = slab4.make_unique<std::uint64_t>(5665U);
+    EXPECT_EQ(tme::make_result::success, result4b.first) << "Make unique slab string failed";
+    EXPECT_EQ(5665U, *result4b.second) << "String in memory slab didn't initialise";
+    auto result4c = slab4.make_unique<std::uint64_t>(2882U);
+    EXPECT_EQ(tme::make_result::success, result4c.first) << "Make unique slab string failed";
+    EXPECT_EQ(2882U, *result4c.second) << "String in memory slab didn't initialise";
+    auto result4d = slab4.make_unique<std::uint64_t>(3773U);
+    EXPECT_EQ(tme::make_result::success, result4d.first) << "Make unique slab string failed";
+    EXPECT_EQ(3773U, *result4d.second) << "String in memory slab didn't initialise";
+    slab4 = slab3;
+    EXPECT_TRUE(slab3 == slab4) << "Copy assigned slab is not equal to the original";
+    EXPECT_EQ(321U, *result4a.second) << "Memory blocks in slab weren't copied during assignment";
+    EXPECT_EQ(987U, *result4b.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(654U, *result4c.second) << "String in memory slab didn't initialise";
+    EXPECT_EQ(999U, *result4d.second) << "String in memory slab didn't initialise";
+}
