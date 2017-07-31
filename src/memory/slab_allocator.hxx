@@ -250,14 +250,7 @@ void concurrent_typed_slab<t>::deallocate(value_t* pointer)
     const std::size_t bucket = type_index_policy::template get_index<value_t>();
     if (TURBO_LIKELY(bucket < block_map_.size()))
     {
-	for (auto&& block : block_map_[bucket])
-	{
-	    if (block.in_range(pointer))
-	    {
-		block.free(pointer);
-		break;
-	    }
-	}
+	block_map_[bucket].free(pointer);
     }
 }
 

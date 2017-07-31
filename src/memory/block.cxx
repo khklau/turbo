@@ -577,5 +577,17 @@ void* block_list::allocate()
     return allocation;
 }
 
+void block_list::free(void* pointer)
+{
+    for (auto&& block : *this)
+    {
+	if (block.in_range(pointer))
+	{
+	    block.free(pointer);
+	    break;
+	}
+    }
+}
+
 } // namespace memory
 } // namespace turbo
