@@ -12,6 +12,8 @@ publicHeaders = [
     'emplacing_list.hxx',
     'emplacing_skiplist.hpp',
     'emplacing_skiplist.hxx',
+    'heap.hpp',
+    'heap.hxx',
     'invalid_dereference_error.hpp',
     'mpmc_ring_queue.hpp',
     'mpmc_ring_queue.hxx',
