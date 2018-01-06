@@ -18,7 +18,7 @@ def build(buildCtx):
 	    includes=['.'] + buildCtx.env.component.include_path_list,
 	    cxxflags=buildCtx.env.CXXFLAGS,
 	    linkflags=buildCtx.env.LDFLAGS,
-	    use=['GTEST', 'shlib_turbo_algorithm', 'shlib_turbo_filesystem'],
+	    use=['GTEST_STLIB', 'shlib_turbo_algorithm', 'shlib_turbo_filesystem'],
 	    libpath=['.'] + buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=None)
