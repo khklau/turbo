@@ -10,11 +10,14 @@ namespace threading {
 class TURBO_SYMBOL_DECL scoped_thread
 {
 public:
-    explicit scoped_thread(std::thread&& thread);
+    scoped_thread(std::thread&& thread) noexcept;
+    scoped_thread(scoped_thread&& other) noexcept;
     ~scoped_thread();
+    scoped_thread& operator=(scoped_thread&& other) noexcept;
+private:
+    scoped_thread() = delete;
     scoped_thread(const scoped_thread&) = delete;
     scoped_thread& operator=(const scoped_thread&) = delete;
-private:
     std::thread thread_;
 };
     
