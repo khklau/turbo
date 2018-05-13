@@ -1,6 +1,4 @@
 #include "semaphore.hpp"
-#include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
 
 namespace turbo {
 namespace threading {
