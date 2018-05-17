@@ -3,11 +3,15 @@ from waflib.extras.layout import Product, Component
 
 publicHeaders = [
     'scoped_thread.hpp',
-    'semaphore.hpp']
+    'semaphore.hpp',
+    'shared_lock.hpp',
+    'shared_lock.hxx',
+    'shared_mutex.hpp']
 
 sourceFiles = [
     'scoped_thread.cxx',
-    'semaphore.cxx']
+    'semaphore.cxx',
+    'shared_mutex.cxx']
 
 def name(context):
     return os.path.basename(str(context.path))
