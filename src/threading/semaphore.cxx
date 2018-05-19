@@ -33,12 +33,10 @@ void semaphore::lock()
 
 void semaphore::unlock()
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (0U < counter_)
     {
-	std::lock_guard<std::mutex> lock(mutex_);
-	if (0U < counter_)
-	{
-	    --counter_;
-	}
+	--counter_;
     }
     condition_.notify_all();
 }
@@ -49,11 +47,11 @@ void semaphore::wait(std::unique_lock<std::mutex>& lock)
     {
 	if (counter_ < limit_)
 	{
-	    ++counter_;
 	    return true;
 	}
 	return false;
     });
+    ++counter_;
 }
 
 } // namespace threading
