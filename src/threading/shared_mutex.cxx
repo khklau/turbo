@@ -29,7 +29,7 @@ bool shared_mutex::try_lock_shared()
 void shared_mutex::lock_shared()
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (write_counter_ != 0U);
+    if (write_counter_ != 0U)
     {
 	wait_shareable(lock);
     }
