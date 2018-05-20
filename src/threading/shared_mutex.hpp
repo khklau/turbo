@@ -19,11 +19,12 @@ public:
     bool try_lock();
     void lock();
     void unlock();
-    inline native_handle_type native_handle() { return mutex_.native_handle(); }
+    inline native_handle_type native_handle() { return data_mutex_.native_handle(); }
 private:
     inline void wait_shareable(std::unique_lock<std::mutex>& lock);
     inline void wait_exclusive(std::unique_lock<std::mutex>& lock);
-    std::mutex mutex_;
+    std::mutex counter_mutex_;
+    std::mutex data_mutex_;
     std::condition_variable condition_;
     std::uint32_t read_counter_;
     std::uint32_t write_counter_;

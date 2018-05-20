@@ -5,7 +5,8 @@ namespace threading {
 
 shared_mutex::shared_mutex()
     :
-	mutex_(),
+	counter_mutex_(),
+	data_mutex_(),
 	condition_(),
 	read_counter_(0U),
 	write_counter_(0U)
@@ -13,7 +14,7 @@ shared_mutex::shared_mutex()
 
 bool shared_mutex::try_lock_shared()
 {
-    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
+    std::unique_lock<std::mutex> lock(counter_mutex_, std::defer_lock);
     if (lock.try_lock())
     {
 	if (write_counter_ != 0U)
@@ -28,7 +29,7 @@ bool shared_mutex::try_lock_shared()
 
 void shared_mutex::lock_shared()
 {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(counter_mutex_);
     if (write_counter_ != 0U)
     {
 	wait_shareable(lock);
@@ -39,7 +40,7 @@ void shared_mutex::lock_shared()
 void shared_mutex::unlock_shared()
 {
     {
-	std::lock_guard<std::mutex> lock(mutex_);
+	std::lock_guard<std::mutex> lock(counter_mutex_);
 	if (0U < read_counter_)
 	{
 	    --read_counter_;
@@ -50,34 +51,33 @@ void shared_mutex::unlock_shared()
 
 bool shared_mutex::try_lock()
 {
-    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
-    if (lock.try_lock())
+    bool result = data_mutex_.try_lock();
+    if (result)
     {
+	std::unique_lock<std::mutex> lock(counter_mutex_);
 	wait_exclusive(lock);
-	return true;
+	++write_counter_;
     }
-    else
-    {
-	return false;
-    }
+    return result;
 }
 
 void shared_mutex::lock()
 {
-    std::unique_lock<std::mutex> lock(mutex_);
+    data_mutex_.lock();
+    std::unique_lock<std::mutex> lock(counter_mutex_);
     wait_exclusive(lock);
+    ++write_counter_;
 }
 
 void shared_mutex::unlock()
 {
+    std::lock_guard<std::mutex> lock(counter_mutex_);
+    if (0U < write_counter_)
     {
-	std::lock_guard<std::mutex> lock(mutex_);
-	if (0U < write_counter_)
-	{
-	    --write_counter_;
-	}
+	--write_counter_;
     }
     condition_.notify_all();
+    data_mutex_.unlock();
 }
 
 void shared_mutex::wait_shareable(std::unique_lock<std::mutex>& lock)
