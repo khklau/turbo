@@ -3,6 +3,7 @@
 #include <turbo/threading/shared_lock.hxx>
 #include <gtest/gtest.h>
 #include <asio/io_service.hpp>
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
@@ -25,7 +26,7 @@ private:
     void run();
     void exec_stop();
     template <typename then_f>
-    void exec_write(std::string value, then_f&& then_func);
+    void exec_write(const std::string& value, then_f&& then_func);
     tth::shared_mutex& mutex_;
     std::string& shared_value_;
     std::thread* thread_;
@@ -72,7 +73,7 @@ void write_task::run()
 template <typename then_f>
 void write_task::write(const std::string& value, then_f&& then_func)
 {
-    service_.post([&]() -> void
+    service_.post([this, value, &then_func]() -> void
     {
 	this->exec_write<then_f>(value, std::forward<then_f&&>(then_func));
     });
@@ -84,7 +85,7 @@ void write_task::exec_stop()
 }
 
 template <typename then_f>
-void write_task::exec_write(std::string value, then_f&& then_func)
+void write_task::exec_write(const std::string& value, then_f&& then_func)
 {
     {
 	std::unique_lock<tth::shared_mutex> lock(mutex_);
@@ -171,13 +172,14 @@ void read_task::exec_read()
 	tth::shared_lock<tth::shared_mutex> lock(mutex_);
 	value = shared_value_;
     }
-    if (expected_ != value)
+    auto result = std::search(value.cbegin(), value.cend(), expected_.cbegin(), expected_.cend());
+    if (result == value.cend())
     {
 	this->read();
     }
     else
     {
-	EXPECT_EQ(expected_, value) << "read failed";
+	EXPECT_EQ(value.cbegin(), result) << "read failed";
     }
 }
 
@@ -211,8 +213,8 @@ TEST(shared_mutex_test, basic_write)
 	reader1.read();
 	reader2.read();
 	reader3.read();
-	writer1.write("bar", [&]() -> void { });
-	writer2.write("bar", [&]() -> void { });
+	writer1.write("bar1", [&]() -> void { });
+	writer2.write("bar2", [&]() -> void { });
 	reader1.start();
 	reader2.start();
 	reader3.start();
