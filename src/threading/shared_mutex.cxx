@@ -39,14 +39,12 @@ void shared_mutex::lock_shared()
 
 void shared_mutex::unlock_shared()
 {
+    std::lock_guard<std::mutex> lock(counter_mutex_);
+    if (0U < read_counter_)
     {
-	std::lock_guard<std::mutex> lock(counter_mutex_);
-	if (0U < read_counter_)
-	{
-	    --read_counter_;
-	}
+	--read_counter_;
     }
-    condition_.notify_all();
+    condition_.notify_one();
 }
 
 bool shared_mutex::try_lock()
