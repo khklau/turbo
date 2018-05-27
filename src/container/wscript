@@ -6,6 +6,8 @@ publicHeaders = [
     'bitwise_trie.hxx',
     'concurrent_list.hpp',
     'concurrent_list.hxx',
+    'concurrent_unordered_map.hpp',
+    'concurrent_unordered_map.hxx',
     'concurrent_vector.hpp',
     'concurrent_vector.hxx',
     'emplacing_list.hpp',
