@@ -32,24 +32,24 @@ private:
     typedef typename bucket_group_type::iterator group_iterator;
     struct bound_accessor
     {
-	static inline storage_iterator begin(group_iterator& group_iter, group_iterator& group_end)
+	static inline storage_iterator begin(bucket_group_type* bucket_group, std::size_t bucket_id)
 	{
-	    return group_iter != group_end ? group_iter->begin() : storage_iterator();
+	    return (bucket_group && bucket_id < bucket_group->size()) ? (*bucket_group)[bucket_id].begin() : storage_iterator();
 	}
-	static inline storage_iterator end(group_iterator& group_iter, group_iterator& group_end)
+	static inline storage_iterator end(bucket_group_type* bucket_group, std::size_t bucket_id)
 	{
-	    return group_iter != group_end ? group_iter->end() : storage_iterator();
+	    return (bucket_group && bucket_id < bucket_group->size()) ? (*bucket_group)[bucket_id].end() : storage_iterator();
 	}
     };
     struct const_bound_accessor
     {
-	static inline const_storage_iterator begin(const const_group_iterator& group_iter, const const_group_iterator& group_end)
+	static inline const_storage_iterator begin(const bucket_group_type* bucket_group, std::size_t bucket_id)
 	{
-	    return group_iter != group_end ? group_iter->cbegin() : const_storage_iterator();
+	    return (bucket_group && bucket_id < bucket_group->size()) ? (*bucket_group)[bucket_id].cbegin() : storage_iterator();
 	}
-	static inline const_storage_iterator end(const const_group_iterator& group_iter, const const_group_iterator& group_end)
+	static inline const_storage_iterator end(const  bucket_group_type* bucket_group, std::size_t bucket_id)
 	{
-	    return group_iter != group_end ? group_iter->cend() : const_storage_iterator();
+	    return (bucket_group && bucket_id < bucket_group->size()) ? (*bucket_group)[bucket_id].cend() : storage_iterator();
 	}
     };
 
@@ -67,11 +67,12 @@ public:
 	typedef group_iterator_t group_iterator_type;
 	typedef bound_t bound;
 	basic_iterator(
-		const group_iterator_t& group_end,
-		const group_iterator_t& group_iter);
+		bucket_group_type& bucket_group,
+		turbo::threading::shared_mutex& group_mutex);
 	basic_iterator(
-		const group_iterator_t& group_end,
-		const group_iterator_t& group_iter,
+		bucket_group_type& bucket_group,
+		turbo::threading::shared_mutex& group_mutex,
+		std::size_t bucket_id,
 		const storage_iterator_t& storage_iter,
 		turbo::threading::shared_mutex& storage_mutex);
 	inline value_t& operator*() { return *storage_iter_; }
@@ -79,8 +80,9 @@ public:
 	basic_iterator& operator++();
 	basic_iterator& operator++(int);
     private:
-	group_iterator_t group_end_;
-	group_iterator_t group_iter_;
+	bucket_group_type* bucket_group_;
+	turbo::threading::shared_mutex* group_mutex_;
+	std::size_t bucket_id_;
 	storage_iterator_t storage_iter_;
 	turbo::threading::shared_mutex* storage_mutex_;
     };
@@ -101,22 +103,25 @@ public:
     {
 	return group_.empty()
 		? end()
-		: iterator(group_.end(), group_.begin(), group_.begin()->begin(), group_.begin()->mutex());
+		: iterator(group_, mutex_, 0U, group_[0U].begin(), group_[0U].mutex());
     }
     inline const_iterator cbegin()
     {
 	return group_.empty()
 		? cend()
-		: const_iterator(group_.cend(), group_.cbegin(), group_.cbegin()->cbegin(), group_.begin()->mutex());
+		: const_iterator(group_, mutex_, 0U, group_[0U].cbegin(), group_[0U].mutex());
     }
     inline iterator end()
     {
-	return iterator(group_.end(), group_.end());
+	return iterator(group_, mutex_);
     }
     inline const_iterator cend()
     {
-	return const_iterator(group_.cend(), group_.cend());
+	return const_iterator(group_, mutex_);
     }
+
+    const_iterator find(const key_type& key) const;
+    iterator find(const key_type& key);
 private:
     class bucket
     {
@@ -153,6 +158,7 @@ private:
     allocator_type& allocator_;
     const hasher& hash_func_;
     bucket_group_type group_;
+    mutable turbo::threading::shared_mutex mutex_;
 };
 
 } // namespace container

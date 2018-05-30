@@ -9,6 +9,15 @@
 namespace turbo {
 namespace container {
 
+namespace detail {
+
+constexpr std::uint64_t power_of_2_ceil(std::uint64_t input)
+{
+    return std::llround(std::pow(2U, std::ceil(std::log2(input))));
+}
+
+} // namespace detail
+
 namespace tth = turbo::threading;
 
 template <typename k, typename e, typename h, class a>
@@ -19,17 +28,52 @@ concurrent_unordered_map<k, e, h, a>::concurrent_unordered_map(
     :
 	allocator_(allocator),
 	hash_func_(hash_func),
-	group_(min_buckets)
+	group_(detail::power_of_2_ceil(min_buckets)),
+	mutex_()
 { }
+
+template <typename k, typename e, typename h, class a>
+typename concurrent_unordered_map<k, e, h, a>::const_iterator concurrent_unordered_map<k, e, h, a>::find(const key_type& key) const
+{
+    std::size_t bucket_id = hasher(key) & (group_.size() - 1);
+    tth::shared_lock<tth::shared_mutex> group_lock(mutex_);
+    tth::shared_lock<tth::shared_mutex> storage_lock(group_[bucket_id].mutex());
+    const_storage_iterator iter = group_[bucket_id].find(key);
+    if (iter != group_[bucket_id].cend())
+    {
+	return const_iterator(group_, mutex_, bucket_id, iter, group_[bucket_id].mutex());
+    }
+    else
+    {
+	return cend();
+    }
+}
+
+template <typename k, typename e, typename h, class a>
+typename concurrent_unordered_map<k, e, h, a>::iterator concurrent_unordered_map<k, e, h, a>::find(const key_type& key)
+{
+    std::size_t bucket_id = hasher(key) & (group_.size() - 1);
+    std::lock(mutex_, group_[bucket_id].mutex());
+    storage_iterator iter = group_[bucket_id].find(key);
+    if (iter != group_[bucket_id].end())
+    {
+	return iterator(group_, mutex_, bucket_id, iter, group_[bucket_id].mutex());
+    }
+    else
+    {
+	return end();
+    }
+}
 
 template <typename k, typename e, typename h, class a>
 template <class value_t, class storage_iterator_t, class group_iterator_t, class bound_t>
 concurrent_unordered_map<k, e, h, a>::basic_iterator<value_t, storage_iterator_t, group_iterator_t, bound_t>::basic_iterator(
-	const group_iterator_t& group_end,
-	const group_iterator_t& group_iter)
+	bucket_group_type& bucket_group,
+	tth::shared_mutex& group_mutex)
     :
-	group_end_(group_end),
-	group_iter_(group_iter),
+	bucket_group_(&bucket_group),
+	group_mutex_(&group_mutex),
+	bucket_id_(bucket_group.size()),
 	storage_iter_(),
 	storage_mutex_(nullptr)
 { }
@@ -37,13 +81,15 @@ concurrent_unordered_map<k, e, h, a>::basic_iterator<value_t, storage_iterator_t
 template <typename k, typename e, typename h, class a>
 template <class value_t, class storage_iterator_t, class group_iterator_t, class bound_t>
 concurrent_unordered_map<k, e, h, a>::basic_iterator<value_t, storage_iterator_t, group_iterator_t, bound_t>::basic_iterator(
-	const group_iterator_t& group_end,
-	const group_iterator_t& group_iter,
+	bucket_group_type& bucket_group,
+	tth::shared_mutex& group_mutex,
+	std::size_t bucket_id,
 	const storage_iterator_t& storage_iter,
 	tth::shared_mutex& storage_mutex)
     :
-	group_end_(group_end),
-	group_iter_(group_iter),
+	bucket_group_(&bucket_group),
+	group_mutex_(&group_mutex),
+	bucket_id_(bucket_id),
 	storage_iter_(storage_iter),
 	storage_mutex_(&storage_mutex)
 { }
@@ -52,18 +98,19 @@ template <typename k, typename e, typename h, class a>
 template <class v, class s, class g, class b>
 concurrent_unordered_map<k, e, h, a>::basic_iterator<v, s, g, b>& concurrent_unordered_map<k, e, h, a>::basic_iterator<v, s, g, b>::operator++()
 {
-    if (storage_iter_ == storage_iterator_type() || group_iter_ == group_end_ || !storage_mutex_)
+    if (storage_iter_ == storage_iterator_type() || bucket_id_ == bucket_group_->size() || !storage_mutex_)
     {
 	return *this;
     }
-    tth::shared_lock<tth::shared_mutex> lock(*storage_mutex_);
+    tth::shared_lock<tth::shared_mutex> group_lock(*group_mutex_);
+    tth::shared_lock<tth::shared_mutex> storage_lock(*storage_mutex_);
     ++storage_iter_;
-    if (storage_iter_ == bound::end(group_iter_, group_end_))
+    if (storage_iter_ == bound::end(bucket_group_, bucket_id_))
     {
-	++group_iter_;
-	if (group_iter_ != group_end_)
+	++bucket_id_;
+	if (bucket_id_ < bucket_group_->size())
 	{
-	    storage_iter_ = bound::begin(group_iter_, group_end_);
+	    storage_iter_ = bound::begin(bucket_group_, bucket_id_);
 	}
 	else
 	{
