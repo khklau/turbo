@@ -22,3 +22,15 @@ def build(buildCtx):
 	    libpath=['.'] + buildCtx.env.component.lib_path_list,
 	    rpath=buildCtx.env.component.rpath_list,
 	    install_path=None)
+    buildCtx.program(
+	    name='exe_has_member_test',
+	    source=[buildCtx.path.find_node('has_member_test.cxx')],
+	    target=os.path.join(buildCtx.env.component.build_tree.testPathFromBuild(buildCtx), 'has_member_test'),
+	    defines=['GTEST_HAS_PTHREAD=1'],
+	    includes=['.'] + buildCtx.env.component.include_path_list,
+	    cxxflags=buildCtx.env.CXXFLAGS,
+	    linkflags=buildCtx.env.LDFLAGS,
+	    use=['GTEST_STLIB'],
+	    libpath=['.'] + buildCtx.env.component.lib_path_list,
+	    rpath=buildCtx.env.component.rpath_list,
+	    install_path=None)
