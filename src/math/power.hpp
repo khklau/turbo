@@ -30,6 +30,22 @@ public:
     static const std::uint32_t result = impl<1U, base, exponent>::result;
 };
 
+std::uint64_t power_of_2_ceil(std::uint64_t input)
+{
+    if (input <= 2U)
+    {
+	return 2U;
+    }
+    std::uint64_t tmp = input - 1;
+    tmp |= tmp >> 1;
+    tmp |= tmp >> 2;
+    tmp |= tmp >> 4;
+    tmp |= tmp >> 8;
+    tmp |= tmp >> 16;
+    tmp |= tmp >> 32;
+    return tmp + 1;
+}
+
 } // namespace math
 } // namespace turbo
 
