@@ -3,28 +3,31 @@
 
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <mutex>
 #include <utility>
+#include <tuple>
 #include <vector>
-#include <turbo/memory/cstdlib_allocator.hpp>
+#include <turbo/memory/slab_allocator.hpp>
 #include <turbo/threading/shared_mutex.hpp>
 
 namespace turbo {
 namespace container {
 
-template<typename key_t, typename element_t, typename hash_f = std::hash<key_t>, class typed_allocator_t = turbo::memory::cstdlib_typed_allocator>
+template<typename key_t, typename element_t, typename hash_f = std::hash<key_t>, class typed_allocator_t = turbo::memory::concurrent_sized_slab>
 class concurrent_unordered_map
 {
 public:
     typedef key_t key_type;
     typedef element_t mapped_type;
     typedef std::pair<key_type, mapped_type> value_type;
+    typedef std::shared_ptr<value_type> shared_value_type;
     typedef hash_f hasher;
     typedef typed_allocator_t allocator_type;
 
 private:
     class bucket;
-    typedef std::vector<value_type> bucket_storage_type;
+    typedef std::vector<shared_value_type> bucket_storage_type;
     typedef typename bucket_storage_type::const_iterator const_storage_iterator;
     typedef typename bucket_storage_type::iterator storage_iterator;
     typedef std::vector<bucket> bucket_group_type;
@@ -75,6 +78,8 @@ public:
 		std::size_t bucket_id,
 		const storage_iterator_t& storage_iter,
 		turbo::threading::shared_mutex& storage_mutex);
+	bool operator==(const basic_iterator& other) const;
+	inline bool operator!=(const basic_iterator& other) const { return !(*this == other); }
 	inline value_t& operator*() { return *storage_iter_; }
 	inline value_t* operator->() { return &(*storage_iter_); }
 	basic_iterator& operator++();
@@ -87,8 +92,8 @@ public:
 	turbo::threading::shared_mutex* storage_mutex_;
     };
 
-    typedef basic_iterator<value_type, storage_iterator, group_iterator, bound_accessor> iterator;
-    typedef basic_iterator<const value_type, const_storage_iterator, const_group_iterator, const_bound_accessor> const_iterator;
+    typedef basic_iterator<shared_value_type, storage_iterator, group_iterator, bound_accessor> iterator;
+    typedef basic_iterator<const shared_value_type, const_storage_iterator, const_group_iterator, const_bound_accessor> const_iterator;
 
     explicit concurrent_unordered_map(
 	    allocator_type& allocator,
@@ -122,6 +127,9 @@ public:
 
     const_iterator find(const key_type& key) const;
     iterator find(const key_type& key);
+
+    template <class... key_args_t, class... value_args_t>
+    bool try_emplace(std::tuple<key_args_t...>&& key_args, std::tuple<value_args_t...>&& value_args);
 private:
     class bucket
     {
@@ -150,7 +158,7 @@ private:
 	const_storage_iterator find(const key_type& key) const;
 	storage_iterator find(const key_type& key);
 	storage_iterator erase(const_storage_iterator& position);
-	storage_iterator push_back(value_type&& value);
+	storage_iterator push_back(shared_value_type&& value);
     private:
 	bucket_storage_type storage_;
 	mutable turbo::threading::shared_mutex mutex_;
