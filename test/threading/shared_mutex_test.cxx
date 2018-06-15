@@ -222,3 +222,42 @@ TEST(shared_mutex_test, basic_write)
 	writer2.start();
     }
 }
+
+TEST(shared_mutex_test, mixed_locks)
+{
+    tth::shared_mutex mutex1;
+    {
+	std::unique_lock<tth::shared_mutex> lock1a(mutex1, std::defer_lock);
+	EXPECT_TRUE(lock1a.try_lock()) << "1st lock (unique) failed";
+    }
+    {
+	tth::shared_lock<tth::shared_mutex> lock1b(mutex1, std::defer_lock);
+	EXPECT_TRUE(lock1b.try_lock()) << "2nd lock (shared) failed";
+    }
+    {
+	std::unique_lock<tth::shared_mutex> lock1c(mutex1, std::defer_lock);
+	EXPECT_TRUE(lock1c.try_lock()) << "3rd lock (unique) failed";
+    }
+    {
+	tth::shared_lock<tth::shared_mutex> lock1d(mutex1, std::defer_lock);
+	EXPECT_TRUE(lock1d.try_lock()) << "4th lock (shared) failed";
+    }
+
+    tth::shared_mutex mutex2;
+    {
+	tth::shared_lock<tth::shared_mutex> lock2a(mutex2, std::defer_lock);
+	EXPECT_TRUE(lock2a.try_lock()) << "2nd lock (shared) failed";
+    }
+    {
+	std::unique_lock<tth::shared_mutex> lock2b(mutex2, std::defer_lock);
+	EXPECT_TRUE(lock2b.try_lock()) << "1st lock (unique) failed";
+    }
+    {
+	tth::shared_lock<tth::shared_mutex> lock2c(mutex2, std::defer_lock);
+	EXPECT_TRUE(lock2c.try_lock()) << "4th lock (shared) failed";
+    }
+    {
+	std::unique_lock<tth::shared_mutex> lock2d(mutex2, std::defer_lock);
+	EXPECT_TRUE(lock2d.try_lock()) << "3rd lock (unique) failed";
+    }
+}
