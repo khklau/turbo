@@ -95,6 +95,14 @@ public:
     typedef basic_iterator<shared_value_type, storage_iterator, group_iterator, bound_accessor> iterator;
     typedef basic_iterator<const shared_value_type, const_storage_iterator, const_group_iterator, const_bound_accessor> const_iterator;
 
+    enum class emplace_result
+    {
+	success,
+	key_exists,
+	beaten,
+	allocator_full
+    };
+
     explicit concurrent_unordered_map(
 	    allocator_type& allocator,
 	    std::size_t min_buckets = 64U,
@@ -129,7 +137,7 @@ public:
     iterator find(const key_type& key);
 
     template <class... key_args_t, class... value_args_t>
-    bool try_emplace(std::tuple<key_args_t...>&& key_args, std::tuple<value_args_t...>&& value_args);
+    emplace_result try_emplace(std::tuple<key_args_t...>&& key_args, std::tuple<value_args_t...>&& value_args);
 private:
     class bucket
     {

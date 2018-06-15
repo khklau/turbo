@@ -25,9 +25,12 @@ TEST(concurrent_unordered_map_test, emplace_basic)
     turbo::memory::concurrent_sized_slab allocator1(16U, { {sizeof(std::pair<std::string, std::uint8_t>), 32U} });
     typedef tco::concurrent_unordered_map<std::string, std::uint8_t> person_age_map;
     person_age_map map1(allocator1);
-    EXPECT_TRUE(map1.try_emplace(std::make_tuple("steve"), std::make_tuple(45))) << "Emplace failed";
+    EXPECT_EQ(person_age_map::emplace_result::success, map1.try_emplace(std::make_tuple("steve"), std::make_tuple(45)))
+	    << "Emplace failed";
     auto iter1a = map1.find("steve");
     EXPECT_NE(map1.end(), iter1a) << "Could not find just emplaced value";
     EXPECT_EQ((*iter1a)->first, std::string("steve")) << "Find returned the wrong value";
     EXPECT_EQ((*iter1a)->second, 45) << "Find returned the wrong value";
+    EXPECT_EQ(person_age_map::emplace_result::key_exists, map1.try_emplace(std::make_tuple("steve"), std::make_tuple(10)))
+	    << "Duplicate key detection failed";
 }

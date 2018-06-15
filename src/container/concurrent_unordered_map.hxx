@@ -29,7 +29,6 @@ template <typename k, typename e, typename h, class a>
 typename concurrent_unordered_map<k, e, h, a>::const_iterator concurrent_unordered_map<k, e, h, a>::find(const key_type& key) const
 {
     std::size_t bucket_id = hasher()(key) & (group_.size() - 1);
-    tth::shared_lock<tth::shared_mutex> group_lock(mutex_);
     tth::shared_lock<tth::shared_mutex> storage_lock(group_[bucket_id].mutex());
     const_storage_iterator iter = group_[bucket_id].find(key);
     if (iter != group_[bucket_id].cend())
@@ -46,7 +45,7 @@ template <typename k, typename e, typename h, class a>
 typename concurrent_unordered_map<k, e, h, a>::iterator concurrent_unordered_map<k, e, h, a>::find(const key_type& key)
 {
     std::size_t bucket_id = hasher()(key) & (group_.size() - 1);
-    std::lock(mutex_, group_[bucket_id].mutex());
+    std::unique_lock<tth::shared_mutex> storage_lock(group_[bucket_id].mutex());
     storage_iterator iter = group_[bucket_id].find(key);
     if (iter != group_[bucket_id].end())
     {
@@ -60,12 +59,14 @@ typename concurrent_unordered_map<k, e, h, a>::iterator concurrent_unordered_map
 
 template <typename k, typename e, typename h, class a>
 template <class... key_args_t, class... value_args_t>
-bool concurrent_unordered_map<k, e, h, a>::try_emplace(std::tuple<key_args_t...>&& key_args, std::tuple<value_args_t...>&& value_args)
+typename concurrent_unordered_map<k, e, h, a>::emplace_result concurrent_unordered_map<k, e, h, a>::try_emplace(
+	std::tuple<key_args_t...>&& key_args,
+	std::tuple<value_args_t...>&& value_args)
 {
     value_type* allocation = allocator_.template allocate<value_type>();
     if (allocation == nullptr)
     {
-	return false;
+	return emplace_result::allocator_full;
     }
     std::shared_ptr<value_type> value(new (allocation) value_type(
 	    std::piecewise_construct,
@@ -83,14 +84,22 @@ bool concurrent_unordered_map<k, e, h, a>::try_emplace(std::tuple<key_args_t...>
     // TODO: decide when to resize the map
     std::size_t bucket_id = hasher()(value->first) & (group_.size() - 1);
     std::unique_lock<tth::shared_mutex> lock(group_[bucket_id].mutex(), std::defer_lock);
-    if (!lock.try_lock())
+    if (lock.try_lock())
     {
-	return false;
+	const_storage_iterator iter = group_[bucket_id].find(value->first);
+	if (iter != group_[bucket_id].cend())
+	{
+	    return emplace_result::key_exists;
+	}
+	else
+	{
+	    group_[bucket_id].push_back(std::move(value));
+	    return emplace_result::success;
+	}
     }
     else
     {
-	group_[bucket_id].push_back(std::move(value));
-	return true;
+	return emplace_result::beaten;
     }
 }
 
