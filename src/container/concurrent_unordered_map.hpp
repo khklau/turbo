@@ -103,6 +103,13 @@ public:
 	allocator_full
     };
 
+    enum class erase_result
+    {
+	success,
+	key_not_found,
+	beaten
+    };
+
     explicit concurrent_unordered_map(
 	    allocator_type& allocator,
 	    std::size_t min_buckets = 64U,
@@ -138,6 +145,8 @@ public:
 
     template <class... key_args_t, class... value_args_t>
     emplace_result try_emplace(std::tuple<key_args_t...>&& key_args, std::tuple<value_args_t...>&& value_args);
+
+    erase_result erase(const key_type& key);
 private:
     class bucket
     {
@@ -165,7 +174,7 @@ private:
 	}
 	const_storage_iterator find(const key_type& key) const;
 	storage_iterator find(const key_type& key);
-	storage_iterator erase(const_storage_iterator& position);
+	storage_iterator erase(storage_iterator& position);
 	storage_iterator push_back(shared_value_type&& value);
     private:
 	bucket_storage_type storage_;

@@ -28,7 +28,7 @@ concurrent_unordered_map<k, e, h, a>::concurrent_unordered_map(
 template <typename k, typename e, typename h, class a>
 typename concurrent_unordered_map<k, e, h, a>::const_iterator concurrent_unordered_map<k, e, h, a>::find(const key_type& key) const
 {
-    std::size_t bucket_id = hasher()(key) & (group_.size() - 1);
+    std::size_t bucket_id = hash_func_(key) & (group_.size() - 1);
     tth::shared_lock<tth::shared_mutex> storage_lock(group_[bucket_id].mutex());
     const_storage_iterator iter = group_[bucket_id].find(key);
     if (iter != group_[bucket_id].cend())
@@ -44,7 +44,7 @@ typename concurrent_unordered_map<k, e, h, a>::const_iterator concurrent_unorder
 template <typename k, typename e, typename h, class a>
 typename concurrent_unordered_map<k, e, h, a>::iterator concurrent_unordered_map<k, e, h, a>::find(const key_type& key)
 {
-    std::size_t bucket_id = hasher()(key) & (group_.size() - 1);
+    std::size_t bucket_id = hash_func_(key) & (group_.size() - 1);
     std::unique_lock<tth::shared_mutex> storage_lock(group_[bucket_id].mutex());
     storage_iterator iter = group_[bucket_id].find(key);
     if (iter != group_[bucket_id].end())
@@ -82,7 +82,7 @@ typename concurrent_unordered_map<k, e, h, a>::emplace_result concurrent_unorder
 		this->allocator_.deallocate(ptr);
 	    });
     // TODO: decide when to resize the map
-    std::size_t bucket_id = hasher()(value->first) & (group_.size() - 1);
+    std::size_t bucket_id = hash_func_(value->first) & (group_.size() - 1);
     std::unique_lock<tth::shared_mutex> lock(group_[bucket_id].mutex(), std::defer_lock);
     if (lock.try_lock())
     {
@@ -100,6 +100,30 @@ typename concurrent_unordered_map<k, e, h, a>::emplace_result concurrent_unorder
     else
     {
 	return emplace_result::beaten;
+    }
+}
+
+template <typename k, typename e, typename h, class a>
+typename concurrent_unordered_map<k, e, h, a>::erase_result concurrent_unordered_map<k, e, h, a>::erase(const key_type& key)
+{
+    std::size_t bucket_id = hash_func_(key) & (group_.size() - 1);
+    std::unique_lock<tth::shared_mutex> lock(group_[bucket_id].mutex(), std::defer_lock);
+    if (lock.try_lock())
+    {
+	storage_iterator iter = group_[bucket_id].find(key);
+	if (iter != group_[bucket_id].cend())
+	{
+	    group_[bucket_id].erase(iter);
+	    return erase_result::success;
+	}
+	else
+	{
+	    return erase_result::key_not_found;
+	}
+    }
+    else
+    {
+	return erase_result::beaten;
     }
 }
 
@@ -197,10 +221,11 @@ typename concurrent_unordered_map<k, e, h, a>::storage_iterator concurrent_unord
 }
 
 template <typename k, typename e, typename h, class a>
-typename concurrent_unordered_map<k, e, h, a>::storage_iterator concurrent_unordered_map<k, e, h, a>::bucket::erase(const_storage_iterator& position)
+typename concurrent_unordered_map<k, e, h, a>::storage_iterator concurrent_unordered_map<k, e, h, a>::bucket::erase(storage_iterator& position)
 {
     auto source_iter = storage_.erase(position);
     std::move(source_iter, storage_.end(), position);
+    return position;
 }
 
 template <typename k, typename e, typename h, class a>
