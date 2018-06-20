@@ -5,6 +5,7 @@ publicHeaders = [
     'enum_iterator.hpp',
     'enum_iterator.hxx',
     'enum_metadata.hpp',
+    'function_traits.hpp',
     'has_member.hpp',
     'type_selection.hpp']
 
