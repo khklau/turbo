@@ -4,9 +4,9 @@
 #include <turbo/container/concurrent_unordered_map.hpp>
 #include <algorithm>
 #include <turbo/math/power.hpp>
-#include <turbo/memory/slab_allocator.hxx>
+#include <turbo/memory/slab_allocator.hh>
 #include <turbo/threading/shared_lock.hpp>
-#include <turbo/threading/shared_lock.hxx>
+#include <turbo/threading/shared_lock.hh>
 
 namespace turbo {
 namespace container {

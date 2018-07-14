@@ -1,5 +1,5 @@
 #include <turbo/type_utility/enum_iterator.hpp>
-#include <turbo/type_utility/enum_iterator.hxx>
+#include <turbo/type_utility/enum_iterator.hh>
 #include <gtest/gtest.h>
 
 namespace tt = turbo::type_utility;

@@ -1,5 +1,5 @@
 #include <turbo/container/spsc_ring_queue.hpp>
-#include <turbo/container/spsc_ring_queue.hxx>
+#include <turbo/container/spsc_ring_queue.hh>
 #include <gtest/gtest.h>
 #include <array>
 #include <functional>
@@ -8,7 +8,7 @@
 #include <string>
 #include <thread>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 
 namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;

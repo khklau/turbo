@@ -1,12 +1,12 @@
 #include <turbo/container/bitwise_trie.hpp>
-#include <turbo/container/bitwise_trie.hxx>
+#include <turbo/container/bitwise_trie.hh>
 #include <chrono>
 #include <functional>
 #include <map>
 #include <random>
 #include <gtest/gtest.h>
 #include <turbo/memory/slab_allocator.hpp>
-#include <turbo/memory/slab_allocator.hxx>
+#include <turbo/memory/slab_allocator.hh>
 
 namespace turbo {
 namespace container {

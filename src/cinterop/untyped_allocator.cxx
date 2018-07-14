@@ -1,8 +1,8 @@
 #include "untyped_allocator.hpp"
 #include <utility>
-#include <turbo/container/bitwise_trie.hxx>
+#include <turbo/container/bitwise_trie.hh>
 #include <turbo/container/trie_key.hpp>
-#include <turbo/memory/slab_allocator.hxx>
+#include <turbo/memory/slab_allocator.hh>
 
 namespace tco = turbo::container;
 namespace tme = turbo::memory;
@@ -32,7 +32,7 @@ untyped_allocator::untyped_allocator(const untyped_allocator& other)
 
 ///
 /// For some reason using the default destructor requires users of this library
-/// to include bitwise_trie.hxx (a GCC bug?), so defining a custom destructor
+/// to include bitwise_trie.hh (a GCC bug?), so defining a custom destructor
 /// to avoid this
 ///
 untyped_allocator::~untyped_allocator()

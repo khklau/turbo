@@ -5,7 +5,7 @@ publicHeaders = [
     'scoped_thread.hpp',
     'semaphore.hpp',
     'shared_lock.hpp',
-    'shared_lock.hxx',
+    'shared_lock.hh',
     'shared_mutex.hpp']
 
 sourceFiles = [

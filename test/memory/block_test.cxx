@@ -1,5 +1,5 @@
 #include <turbo/memory/block.hpp>
-#include <turbo/memory/block.hxx>
+#include <turbo/memory/block.hh>
 #include <cstdint>
 #include <algorithm>
 #include <array>
@@ -11,9 +11,9 @@
 #include <utility>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 #include <turbo/container/mpmc_ring_queue.hpp>
-#include <turbo/container/mpmc_ring_queue.hxx>
+#include <turbo/container/mpmc_ring_queue.hh>
 
 namespace tar = turbo::algorithm::recovery;
 namespace tco = turbo::container;

@@ -1,5 +1,5 @@
 #include <turbo/algorithm/sequence.hpp>
-#include <turbo/algorithm/sequence.hxx>
+#include <turbo/algorithm/sequence.hh>
 #include <gtest/gtest.h>
 
 namespace tal = turbo::algorithm;

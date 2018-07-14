@@ -1,5 +1,5 @@
 #include <turbo/memory/alignment.hpp>
-#include <turbo/memory/alignment.hxx>
+#include <turbo/memory/alignment.hh>
 #include <cstdint>
 #include <gtest/gtest.h>
 

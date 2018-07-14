@@ -1,10 +1,10 @@
 #include <turbo/container/concurrent_unordered_map.hpp>
-#include <turbo/container/concurrent_unordered_map.hxx>
+#include <turbo/container/concurrent_unordered_map.hh>
 #include <cstdint>
 #include <string>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 
 namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;

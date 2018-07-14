@@ -1,11 +1,11 @@
 #include "block.hpp"
-#include "block.hxx"
+#include "block.hh"
 #include <cstring>
 #include <algorithm>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 #include <turbo/memory/alignment.hpp>
-#include <turbo/container/mpmc_ring_queue.hxx>
+#include <turbo/container/mpmc_ring_queue.hh>
 #include <turbo/toolset/extension.hpp>
 
 namespace turbo {

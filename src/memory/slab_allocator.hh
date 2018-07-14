@@ -8,10 +8,10 @@
 #include <stdexcept>
 #include <turbo/algorithm/recovery.hpp>
 #include <turbo/memory/alignment.hpp>
-#include <turbo/memory/alignment.hxx>
-#include <turbo/memory/block.hxx>
+#include <turbo/memory/alignment.hh>
+#include <turbo/memory/block.hh>
 #include <turbo/toolset/extension.hpp>
-#include <turbo/container/mpmc_ring_queue.hxx>
+#include <turbo/container/mpmc_ring_queue.hh>
 
 namespace turbo {
 namespace memory {

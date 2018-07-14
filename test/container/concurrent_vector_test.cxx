@@ -1,9 +1,9 @@
 #include <turbo/container/concurrent_vector.hpp>
-#include <turbo/container/concurrent_vector.hxx>
+#include <turbo/container/concurrent_vector.hh>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 
 namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;

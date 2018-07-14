@@ -1,5 +1,5 @@
 #include <turbo/memory/slab_allocator.hpp>
-#include <turbo/memory/slab_allocator.hxx>
+#include <turbo/memory/slab_allocator.hh>
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <array>
@@ -12,7 +12,7 @@
 #include <thread>
 #include <utility>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 
 namespace turbo {
 namespace memory {

@@ -1,5 +1,5 @@
 #include <turbo/container/emplacing_list.hpp>
-#include <turbo/container/emplacing_list.hxx>
+#include <turbo/container/emplacing_list.hh>
 #include <cstdint>
 #include <algorithm>
 #include <list>
@@ -7,9 +7,9 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 #include <turbo/memory/slab_allocator.hpp>
-#include <turbo/memory/slab_allocator.hxx>
+#include <turbo/memory/slab_allocator.hh>
 
 namespace tco = turbo::container;
 namespace tar = turbo::algorithm::recovery;

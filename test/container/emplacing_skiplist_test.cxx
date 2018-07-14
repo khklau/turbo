@@ -1,5 +1,5 @@
 #include <turbo/container/emplacing_skiplist.hpp>
-#include <turbo/container/emplacing_skiplist.hxx>
+#include <turbo/container/emplacing_skiplist.hh>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -8,9 +8,9 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <turbo/algorithm/recovery.hpp>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 #include <turbo/memory/slab_allocator.hpp>
-#include <turbo/memory/slab_allocator.hxx>
+#include <turbo/memory/slab_allocator.hh>
 
 namespace turbo {
 namespace container {

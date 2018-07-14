@@ -1,11 +1,11 @@
 #include "slab_allocator.hpp"
-#include "slab_allocator.hxx"
+#include "slab_allocator.hh"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
 #include <turbo/memory/alignment.hpp>
-#include <turbo/memory/alignment.hxx>
-#include <turbo/memory/block.hxx>
+#include <turbo/memory/alignment.hh>
+#include <turbo/memory/block.hh>
 #include <turbo/toolset/extension.hpp>
 
 namespace turbo {

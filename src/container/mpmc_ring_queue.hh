@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
-#include <turbo/algorithm/recovery.hxx>
+#include <turbo/algorithm/recovery.hh>
 
 namespace turbo {
 namespace container {

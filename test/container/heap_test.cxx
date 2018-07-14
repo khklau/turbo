@@ -1,5 +1,5 @@
 #include <turbo/container/heap.hpp>
-#include <turbo/container/heap.hxx>
+#include <turbo/container/heap.hh>
 #include <gtest/gtest.h>
 #include <cstdint>
 

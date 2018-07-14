@@ -1,6 +1,6 @@
 #include <turbo/threading/shared_mutex.hpp>
 #include <turbo/threading/shared_lock.hpp>
-#include <turbo/threading/shared_lock.hxx>
+#include <turbo/threading/shared_lock.hh>
 #include <gtest/gtest.h>
 #include <asio/io_service.hpp>
 #include <algorithm>

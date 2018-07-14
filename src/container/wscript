@@ -3,24 +3,24 @@ from waflib.extras.layout import Product, Component
 
 publicHeaders = [
     'bitwise_trie.hpp',
-    'bitwise_trie.hxx',
+    'bitwise_trie.hh',
     'concurrent_list.hpp',
-    'concurrent_list.hxx',
+    'concurrent_list.hh',
     'concurrent_unordered_map.hpp',
-    'concurrent_unordered_map.hxx',
+    'concurrent_unordered_map.hh',
     'concurrent_vector.hpp',
-    'concurrent_vector.hxx',
+    'concurrent_vector.hh',
     'emplacing_list.hpp',
-    'emplacing_list.hxx',
+    'emplacing_list.hh',
     'emplacing_skiplist.hpp',
-    'emplacing_skiplist.hxx',
+    'emplacing_skiplist.hh',
     'heap.hpp',
-    'heap.hxx',
+    'heap.hh',
     'invalid_dereference_error.hpp',
     'mpmc_ring_queue.hpp',
-    'mpmc_ring_queue.hxx',
+    'mpmc_ring_queue.hh',
     'spsc_ring_queue.hpp',
-    'spsc_ring_queue.hxx',
+    'spsc_ring_queue.hh',
     'trie_key.hpp']
 
 def name(context):

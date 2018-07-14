@@ -3,8 +3,8 @@
 
 #include <turbo/container/concurrent_vector.hpp>
 #include <limits>
-#include <turbo/algorithm/recovery.hxx>
-#include <turbo/container/mpmc_ring_queue.hxx>
+#include <turbo/algorithm/recovery.hh>
+#include <turbo/container/mpmc_ring_queue.hh>
 #include <turbo/math/power.hpp>
 #include <turbo/math/summation.hpp>
 #include <turbo/toolset/extension.hpp>
