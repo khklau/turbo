@@ -562,7 +562,7 @@ std::unique_ptr<block_list::node> block_list::clone_node(const node& other) cons
 void* block_list::allocate()
 {
     void* allocation = nullptr;
-    for (auto iter = begin(); allocation == nullptr && iter != end(); ++iter)
+    for (auto iter = begin(); allocation == nullptr; ++iter)
     {
 	allocation = iter->allocate();
 	if (allocation == nullptr && iter.is_last())
